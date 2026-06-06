@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chewring - Turing Machine Classroom Draft</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <h1>Chewring</h1>
+        <p>Classroom Turing Machine Draft</p>
+      </div>
+      <div class="controls">
+        <select id="programPreset" title="Default programs">
+          <option value="scan-right">Scan Right Until Blank</option>
+          <option value="unary-increment">Unary Increment</option>
+          <option value="binary-invert">Binary Invert</option>
+          <option value="two-row-copy">Two-Row Copy Demo</option>
+        </select>
+        <button id="btnLoadProgram">Load Program</button>
+        <button id="btnTheme">Dark: Off</button>
+        <button id="btnAddRow" title="Add a workspace row">+ Row</button>
+        <button id="btnRemoveRow" title="Remove last row">- Row</button>
+        <button id="btnResetTape">Reset Tape</button>
+        <button id="btnResetMachine">Reset Machine</button>
+        <button id="btnStep">Step</button>
+        <button id="btnRun">Run</button>
+        <button id="btnPause" disabled>Pause</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="tape-panel card">
+        <div class="panel-head">
+          <h2>Tape Workspace</h2>
+          <div class="panel-actions">
+            <label for="symbolPalette">Paint:</label>
+            <select id="symbolPalette">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="_" selected>blank (_)</option>
+              <option value="X">X</option>
+              <option value="#">#</option>
+            </select>
+            <label for="cellSizeSlider">Cell size:</label>
+            <input id="cellSizeSlider" type="range" min="28" max="84" step="2" value="46" />
+            <span id="cellSizeValue">46px</span>
+            <button id="btnHeadMode">Head: Off</button>
+          </div>
+        </div>
+        <div id="tapeViewport" class="tape-viewport"></div>
+        <div class="status-row">
+          <span id="statusState">State: q0</span>
+          <span id="statusHead">Head: r0, c0</span>
+          <span id="statusStep">Step: 0</span>
+          <span id="statusMessage">Ready.</span>
+        </div>
+      </section>
+
+      <section class="bottom-row">
+        <section class="rules-panel card">
+          <div class="panel-head">
+            <h2>Delta Rules</h2>
+            <div class="panel-actions compact">
+              <label>Start
+                <input id="startState" value="q0" />
+              </label>
+              <label>Accept
+                <input id="acceptStates" value="qa" />
+              </label>
+              <label>Reject
+                <input id="rejectStates" value="qr" />
+              </label>
+              <button id="btnAddRule">+ Rule</button>
+            </div>
+          </div>
+          <div class="rules-table-wrap">
+            <table id="rulesTable">
+              <thead>
+                <tr>
+                  <th>Current</th>
+                  <th>Read</th>
+                  <th>Write</th>
+                  <th>Move</th>
+                  <th>Next</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="diagram-panel card">
+          <div class="panel-head">
+            <h2>Finite State Diagram</h2>
+          </div>
+          <svg id="diagram" viewBox="0 0 640 360" aria-label="State diagram"></svg>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

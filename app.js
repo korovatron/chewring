@@ -50,6 +50,7 @@ const appState = {
   lastPlacedSymbol: "0",
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
+  modalOpenedAt: 0,
   message: "Ready.",
   rules: [
     { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
@@ -393,6 +394,7 @@ function openStateModal(existingStateName = "") {
   els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
   els.btnStateModalDelete.hidden = !existingStateName;
 
+  appState.modalOpenedAt = performance.now();
   els.stateModal.classList.add("visible");
 }
 
@@ -1714,6 +1716,7 @@ function addRule() {
 }
 
 function openAboutModal() {
+  appState.modalOpenedAt = performance.now();
   els.aboutModal.classList.add("visible");
 }
 
@@ -1874,6 +1877,9 @@ function initEvents() {
 
   bindModalActivate(els.btnAboutClose, closeAboutModal);
   els.aboutModal.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) {
+      return;
+    }
     if (event.target === els.aboutModal) closeAboutModal();
   });
 
@@ -1931,6 +1937,9 @@ function initEvents() {
   });
   bindModalActivate(els.btnStateModalSave, saveStateModal);
   els.stateModal.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) {
+      return;
+    }
     if (event.target === els.stateModal) {
       closeStateModal();
     }

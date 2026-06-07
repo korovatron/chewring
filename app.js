@@ -395,6 +395,7 @@ function openStateModal(existingStateName = "") {
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
+  document.body.appendChild(els.stateModal);
   els.stateModal.style.display = "flex";
 
   requestAnimationFrame(() => {
@@ -1725,6 +1726,7 @@ function addRule() {
 
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
+  document.body.appendChild(els.aboutModal);
   els.aboutModal.style.display = "flex";
 }
 

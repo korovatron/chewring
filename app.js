@@ -422,7 +422,6 @@ function openStateModal(existingStateName = "") {
     }
     els.stateNameInput.focus({ preventScroll: true });
   });
-  });
 }
 
 function closeStateModal() {

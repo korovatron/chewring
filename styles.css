@@ -33,6 +33,11 @@
   --node-current-stroke: #a17700;
   --edge: #74808d;
   --label: #22313f;
+  --edge-label-badge-bg: #fff0b8;
+  --edge-label-badge-border: #9f7a00;
+  --edge-label-read: #0e4c92;
+  --edge-label-write: #8a2d0a;
+  --edge-label-move: #176a2f;
 }
 
 body[data-theme="dark"] {
@@ -69,6 +74,11 @@ body[data-theme="dark"] {
   --node-current-stroke: #ffd86b;
   --edge: #8ea0b0;
   --label: #d7e1ea;
+  --edge-label-badge-bg: #3e2f00;
+  --edge-label-badge-border: #ffca52;
+  --edge-label-read: #8fc3ff;
+  --edge-label-write: #ffb18f;
+  --edge-label-move: #8ce7a5;
 }
 
 * {
@@ -238,7 +248,8 @@ button:disabled {
   width: var(--tape-cell-size);
   height: var(--tape-cell-size);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: clamp(1rem, calc(var(--tape-cell-size) * 0.52), 2.2rem);
+  line-height: 1;
   border: 1px solid var(--cell-border);
   background: var(--cell);
   color: var(--ink);
@@ -338,6 +349,12 @@ tr.active-rule {
   stroke-width: 3;
 }
 
+.state-node.accept-inner {
+  fill: none;
+  stroke: var(--ok);
+  stroke-width: 2;
+}
+
 .state-node.reject {
   stroke: var(--warn);
   stroke-width: 3;
@@ -361,8 +378,30 @@ tr.active-rule {
 }
 
 .label {
-  font-size: 12px;
+  font-size: var(--diagram-label-size, 12px);
   fill: var(--label);
+}
+
+.edge-label-bg {
+  fill: var(--edge-label-badge-bg);
+  stroke: var(--edge-label-badge-border);
+  stroke-width: 1;
+}
+
+.edge-label {
+  font-weight: 700;
+}
+
+.edge-label-read {
+  fill: var(--edge-label-read);
+}
+
+.edge-label-write {
+  fill: var(--edge-label-write);
+}
+
+.edge-label-move {
+  fill: var(--edge-label-move);
 }
 
 @media (max-width: 960px) {

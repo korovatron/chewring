@@ -1,4 +1,5 @@
-const BLANK = "_";
+const BLANK = "□";
+const LEGACY_BLANK = "_";
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -125,17 +126,34 @@ function tapeKey(row, col) {
   return `${row}:${col}`;
 }
 
+function normalizeSymbol(symbol) {
+  const clean = (symbol || "").trim();
+  if (!clean) {
+    return "";
+  }
+  if (clean === BLANK || clean === LEGACY_BLANK) {
+    return BLANK;
+  }
+  return clean;
+}
+
+function symbolForDisplay(symbol) {
+  const clean = normalizeSymbol(symbol);
+  return clean || BLANK;
+}
+
 function getSymbol(row, col) {
   const value = appState.tape.get(tapeKey(row, col));
   return value ?? BLANK;
 }
 
 function setSymbol(row, col, symbol) {
-  if (symbol === BLANK) {
+  const normalized = normalizeSymbol(symbol);
+  if (normalized === BLANK) {
     appState.tape.delete(tapeKey(row, col));
     return;
   }
-  appState.tape.set(tapeKey(row, col), symbol);
+  appState.tape.set(tapeKey(row, col), normalized);
 }
 
 function applyCellSize() {
@@ -178,7 +196,7 @@ function loadTapeRows(rowStrings) {
   for (let r = 0; r < rowStrings.length; r += 1) {
     const row = rowStrings[r] || "";
     for (let c = 0; c < row.length; c += 1) {
-      const symbol = row[c];
+      const symbol = normalizeSymbol(row[c]);
       if (symbol !== BLANK) {
         setSymbol(r, c, symbol);
       }
@@ -263,7 +281,7 @@ function renderTape() {
       const cell = document.createElement("button");
       cell.className = "tape-cell";
       const symbol = getSymbol(r, c);
-      cell.textContent = symbol;
+      cell.textContent = symbolForDisplay(symbol);
       cell.dataset.row = String(r);
       cell.dataset.col = String(c);
       if (r === appState.head.row && c === appState.head.col) {
@@ -289,9 +307,9 @@ function onTapeCellClick(event) {
     appState.startHead = { row, col };
     appState.message = `Head start set to r${row}, c${col}.`;
   } else {
-    const symbol = els.symbolPalette.value;
+    const symbol = normalizeSymbol(els.symbolPalette.value);
     setSymbol(row, col, symbol);
-    appState.message = `Set r${row}, c${col} to '${symbol}'.`;
+    appState.message = `Set r${row}, c${col} to '${symbolForDisplay(symbol)}'.`;
   }
 
   renderAll();
@@ -333,10 +351,12 @@ function ruleInputCell(rule, field, type) {
   const td = document.createElement("td");
   const input = document.createElement("input");
   input.type = type;
-  input.value = rule[field];
+  input.value = field === "read" || field === "write" ? symbolForDisplay(rule[field]) : rule[field];
   input.addEventListener("change", () => {
-    rule[field] = (input.value || "").trim();
+    const clean = (input.value || "").trim();
+    rule[field] = field === "read" || field === "write" ? normalizeSymbol(clean) : clean;
     renderDiagram();
+    input.value = field === "read" || field === "write" ? symbolForDisplay(rule[field]) : rule[field];
   });
   td.appendChild(input);
   return td;
@@ -369,11 +389,102 @@ function parseAndCleanRule(rule) {
   return {
     ...rule,
     current: (rule.current || "").trim(),
-    read: (rule.read || "").trim(),
-    write: (rule.write || "").trim(),
+    read: normalizeSymbol(rule.read),
+    write: normalizeSymbol(rule.write),
     move: (rule.move || "").trim(),
     next: (rule.next || "").trim()
   };
+}
+
+function moveToNotation(move) {
+  if (move === "L") return "⟵";
+  if (move === "R") return "⟶";
+  if (move === "U") return "↑";
+  if (move === "D") return "↓";
+  return "";
+}
+
+function buildEdgeGroups() {
+  const groupsByPair = new Map();
+
+  for (const rawRule of appState.rules) {
+    const clean = parseAndCleanRule(rawRule);
+    if (!clean.current || !clean.read || !clean.write || !clean.move || !clean.next) {
+      continue;
+    }
+
+    const readDisplay = symbolForDisplay(clean.read);
+    const writeDisplay = symbolForDisplay(clean.write);
+    const writeNotation = writeDisplay === readDisplay ? "" : writeDisplay;
+    const moveNotation = moveToNotation(clean.move);
+    const pairKey = `${clean.current}\u0001${clean.next}`;
+    const actionKey = `${writeNotation}\u0001${moveNotation}`;
+
+    let pairGroups = groupsByPair.get(pairKey);
+    if (!pairGroups) {
+      pairGroups = [];
+      groupsByPair.set(pairKey, pairGroups);
+    }
+
+    let group = pairGroups.find((candidate) => candidate.actionKey === actionKey);
+    if (!group) {
+      group = {
+        actionKey,
+        current: clean.current,
+        next: clean.next,
+        writeNotation,
+        moveNotation,
+        reads: [],
+        ruleIds: new Set()
+      };
+      pairGroups.push(group);
+    }
+
+    if (!group.reads.includes(readDisplay)) {
+      group.reads.push(readDisplay);
+    }
+    group.ruleIds.add(rawRule.id);
+  }
+
+  return groupsByPair;
+}
+
+function buildGroupLabel(group) {
+  const readPart = group.reads.join(", ");
+  const action = `${group.writeNotation || ""}${group.moveNotation || ""}`;
+  return `${readPart}|${action}`;
+}
+
+function appendLabelToken(label, text, className) {
+  const token = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  if (className) {
+    token.setAttribute("class", className);
+  }
+  token.textContent = text;
+  label.appendChild(token);
+}
+
+function renderGroupLabel(label, group) {
+  label.textContent = "";
+  if (group.reads.length === 0) {
+    appendLabelToken(label, "?", "edge-label-read");
+  } else {
+    appendLabelToken(label, group.reads[0], "edge-label-read");
+    for (let i = 1; i < group.reads.length; i += 1) {
+      appendLabelToken(label, ", ", "");
+      appendLabelToken(label, group.reads[i], "edge-label-read");
+    }
+  }
+
+  appendLabelToken(label, "|", "");
+
+  if (group.writeNotation) {
+    appendLabelToken(label, group.writeNotation, "edge-label-write");
+  }
+
+  if (group.moveNotation) {
+    appendLabelToken(label, group.moveNotation, "edge-label-move");
+  }
 }
 
 function findMatchingRule() {
@@ -522,6 +633,12 @@ function setupDiagramDefs(svg) {
 
 function renderDiagram() {
   const svg = els.diagram;
+  const diagramWidth = Math.max(360, Math.round(svg.clientWidth || 640));
+  const diagramHeight = Math.max(240, Math.round(svg.clientHeight || 360));
+  const sizeScale = Math.max(1.12, Math.min(1.5, Math.min(diagramWidth / 620, diagramHeight / 340)));
+  const labelFontSize = Math.round(12 * sizeScale);
+  svg.setAttribute("viewBox", `0 0 ${diagramWidth} ${diagramHeight}`);
+  svg.style.setProperty("--diagram-label-size", `${labelFontSize}px`);
   while (svg.firstChild) {
     svg.removeChild(svg.firstChild);
   }
@@ -540,58 +657,144 @@ function renderDiagram() {
     return;
   }
 
-  const centerX = 320;
-  const centerY = 180;
-  const radius = Math.max(80, Math.min(130, 150 - list.length * 4));
+  const centerX = diagramWidth / 2;
+  const centerY = diagramHeight / 2;
+  const nodeRadius = 26 * sizeScale;
+  const padding = 56 * sizeScale;
+  const usableWidth = Math.max(140, diagramWidth - padding * 2);
+  const usableHeight = Math.max(120, diagramHeight - padding * 2);
+  const crowdFactor = list.length <= 8 ? 1 : Math.max(0.62, 8 / list.length);
+  const radiusX = Math.max(74, (usableWidth / 2 - nodeRadius - 8) * crowdFactor);
+  const radiusY = Math.max(62, (usableHeight / 2 - nodeRadius - 8) * crowdFactor);
+  const startAngle = list.length === 2 ? 0 : -Math.PI / 2;
   const positions = new Map();
 
   list.forEach((name, i) => {
-    const angle = (i / list.length) * Math.PI * 2 - Math.PI / 2;
+    const angle = (i / list.length) * Math.PI * 2 + startAngle;
     positions.set(name, {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle)
+      x: centerX + radiusX * Math.cos(angle),
+      y: centerY + radiusY * Math.sin(angle)
     });
   });
 
-  for (const rule of appState.rules) {
-    const clean = parseAndCleanRule(rule);
-    if (!clean.current || !clean.next) {
-      continue;
-    }
-    const from = positions.get(clean.current);
-    const to = positions.get(clean.next);
-    if (!from || !to) {
-      continue;
-    }
+  const edgeGroups = buildEdgeGroups();
+  for (const groups of edgeGroups.values()) {
+    groups.forEach((group, index) => {
+      const from = positions.get(group.current);
+      const to = positions.get(group.next);
+      if (!from || !to) {
+        return;
+      }
 
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", String(from.x));
-    line.setAttribute("y1", String(from.y));
-    line.setAttribute("x2", String(to.x));
-    line.setAttribute("y2", String(to.y));
-    line.setAttribute("class", "edge");
-    line.setAttribute("marker-end", "url(#arrow)");
+      const isSelfLoop = group.current === group.next;
+      let labelX = (from.x + to.x) / 2;
+      let labelY = (from.y + to.y) / 2 - 4 + index * 14;
 
-    if (rule.id === appState.activeRuleId) {
-      line.classList.add("active");
-    }
+      if (isSelfLoop) {
+        const loopDepth = 46 + index * 10;
+        const loopSpread = 44 + index * 6;
+        const spaceLeft = from.x;
+        const spaceRight = diagramWidth - from.x;
+        const drawRight = spaceRight >= spaceLeft;
+        const side = drawRight ? 1 : -1;
+        const loopPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        loopPath.setAttribute(
+          "d",
+          `M ${from.x + side * nodeRadius} ${from.y - 16} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * nodeRadius} ${from.y + 16}`
+        );
+        labelX = from.x + side * (nodeRadius + loopDepth + 24);
+        labelY = from.y + 4 + index * 12;
+        loopPath.setAttribute("class", "edge");
+        loopPath.setAttribute("marker-end", "url(#arrow)");
 
-    svg.appendChild(line);
+        if (appState.activeRuleId && group.ruleIds.has(appState.activeRuleId)) {
+          loopPath.classList.add("active");
+        }
 
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", String((from.x + to.x) / 2));
-    label.setAttribute("y", String((from.y + to.y) / 2 - 4));
-    label.setAttribute("text-anchor", "middle");
-    label.setAttribute("class", "label");
-    label.textContent = `${clean.read}->${clean.write},${clean.move}`;
-    svg.appendChild(label);
+        svg.appendChild(loopPath);
+      } else {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+
+        const startX = from.x + ux * (nodeRadius - 1);
+        const startY = from.y + uy * (nodeRadius - 1);
+        const endX = to.x - ux * (nodeRadius + 2);
+        const endY = to.y - uy * (nodeRadius + 2);
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", String(startX));
+        line.setAttribute("y1", String(startY));
+        line.setAttribute("x2", String(endX));
+        line.setAttribute("y2", String(endY));
+        line.setAttribute("class", "edge");
+        line.setAttribute("marker-end", "url(#arrow)");
+
+        if (appState.activeRuleId && group.ruleIds.has(appState.activeRuleId)) {
+          line.classList.add("active");
+        }
+
+        svg.appendChild(line);
+      }
+
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(labelX));
+      label.setAttribute("y", String(labelY));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "label edge-label");
+      renderGroupLabel(label, group);
+      svg.appendChild(label);
+
+      const bounds = label.getBBox();
+      const badgePadX = 5 * sizeScale;
+      const badgePadY = 2 * sizeScale;
+      let badgeX = bounds.x - badgePadX;
+      let badgeY = bounds.y - badgePadY;
+      const badgeWidth = bounds.width + badgePadX * 2;
+      const badgeHeight = bounds.height + badgePadY * 2;
+      const minPad = 2;
+
+      if (badgeX < minPad) {
+        const shift = minPad - badgeX;
+        badgeX += shift;
+        labelX += shift;
+      } else if (badgeX + badgeWidth > diagramWidth - minPad) {
+        const shift = diagramWidth - minPad - (badgeX + badgeWidth);
+        badgeX += shift;
+        labelX += shift;
+      }
+
+      if (badgeY < minPad) {
+        const shift = minPad - badgeY;
+        badgeY += shift;
+        labelY += shift;
+      } else if (badgeY + badgeHeight > diagramHeight - minPad) {
+        const shift = diagramHeight - minPad - (badgeY + badgeHeight);
+        badgeY += shift;
+        labelY += shift;
+      }
+
+      label.setAttribute("x", String(labelX));
+      label.setAttribute("y", String(labelY));
+
+      const badge = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      badge.setAttribute("x", String(badgeX));
+      badge.setAttribute("y", String(badgeY));
+      badge.setAttribute("width", String(badgeWidth));
+      badge.setAttribute("height", String(badgeHeight));
+      badge.setAttribute("rx", "4");
+      badge.setAttribute("class", "edge-label-bg");
+      svg.insertBefore(badge, label);
+    });
   }
 
   for (const [name, pos] of positions.entries()) {
     const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circle.setAttribute("cx", String(pos.x));
     circle.setAttribute("cy", String(pos.y));
-    circle.setAttribute("r", "26");
+    circle.setAttribute("r", String(nodeRadius));
     circle.setAttribute("class", "state-node");
 
     if (appState.acceptStates.includes(name)) {
@@ -605,6 +808,15 @@ function renderDiagram() {
     }
 
     svg.appendChild(circle);
+
+    if (appState.acceptStates.includes(name)) {
+      const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      inner.setAttribute("cx", String(pos.x));
+      inner.setAttribute("cy", String(pos.y));
+      inner.setAttribute("r", String(Math.max(12, nodeRadius - 6 * sizeScale)));
+      inner.setAttribute("class", "state-node accept-inner");
+      svg.appendChild(inner);
+    }
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("x", String(pos.x));
@@ -713,6 +925,7 @@ function initEvents() {
   window.addEventListener("resize", () => {
     autoFitCellSize();
     renderTape();
+    renderDiagram();
   });
 }
 

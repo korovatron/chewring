@@ -1154,8 +1154,16 @@ tr.active-rule {
   }
 
   .rules-panel {
-    min-height: 240px;
-    height: 240px;
+    min-height: 0;
+    height: auto;
+  }
+
+  .rules-panel .rules-table-wrap {
+    overflow: visible;
+  }
+
+  .rules-panel th {
+    position: static;
   }
 
   .diagram-panel {

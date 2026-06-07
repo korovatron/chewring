@@ -397,17 +397,31 @@ function openStateModal(existingStateName = "") {
   appState.modalOpenedAt = performance.now();
   try {
     els.stateModal.showModal();
-    appState.message = `dialog.open=${els.stateModal.open}`;
   } catch (err) {
     appState.message = `showModal error: ${err.name}: ${err.message}`;
+    updateStatus();
+    return;
   }
-  updateStatus();
+
+  // Diagnostic: inject a red div directly on body to test if ANY overlay renders
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:red;z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;";
+  probe.textContent = "OVERLAY TEST";
+  document.body.appendChild(probe);
+
+  requestAnimationFrame(() => {
+    const r = els.stateModal.getBoundingClientRect();
+    appState.message = `dialog x=${Math.round(r.x)} y=${Math.round(r.y)} w=${Math.round(r.width)} h=${Math.round(r.height)}`;
+    updateStatus();
+    setTimeout(() => probe.remove(), 4000);
+  });
 
   requestAnimationFrame(() => {
     if (!els.stateModal.open) {
       return;
     }
     els.stateNameInput.focus({ preventScroll: true });
+  });
   });
 }
 

@@ -395,14 +395,36 @@ function openStateModal(existingStateName = "") {
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
-  els.stateModal.classList.add("visible");
+  setModalVisible(els.stateModal, true);
+  appState.message = "Modal debug: state modal open called.";
+  updateStatus();
+
+  requestAnimationFrame(() => {
+    if (!appState.stateModal.open) {
+      return;
+    }
+    els.stateNameInput.focus({ preventScroll: true });
+  });
 }
 
 function closeStateModal() {
   appState.stateModal.open = false;
   appState.stateModal.originalName = null;
   els.btnStateModalDelete.hidden = true;
-  els.stateModal.classList.remove("visible");
+  setModalVisible(els.stateModal, false);
+  appState.message = "Modal debug: state modal close called.";
+  updateStatus();
+}
+
+function setModalVisible(modalElement, isVisible) {
+  if (!modalElement) {
+    return;
+  }
+
+  modalElement.classList.toggle("visible", isVisible);
+  modalElement.style.display = isVisible ? "flex" : "none";
+  modalElement.style.opacity = isVisible ? "1" : "0";
+  modalElement.style.pointerEvents = isVisible ? "auto" : "none";
 }
 
 function deleteState(stateName) {
@@ -1717,11 +1739,15 @@ function addRule() {
 
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
-  els.aboutModal.classList.add("visible");
+  setModalVisible(els.aboutModal, true);
+  appState.message = "Modal debug: about modal open called.";
+  updateStatus();
 }
 
 function closeAboutModal() {
-  els.aboutModal.classList.remove("visible");
+  setModalVisible(els.aboutModal, false);
+  appState.message = "Modal debug: about modal close called.";
+  updateStatus();
 }
 
 function bindModalActivate(target, handler) {
@@ -1964,6 +1990,8 @@ function initEvents() {
       return;
     }
     if (event.target === els.stateModal) {
+      appState.message = "Modal debug: backdrop click close fired.";
+      updateStatus();
       closeStateModal();
     }
   });

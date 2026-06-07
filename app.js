@@ -1,5 +1,7 @@
 const BLANK = "□";
 const LEGACY_BLANK = "_";
+const TAPE_SYMBOL_CYCLE = ["0", "1", BLANK, "#", "X"];
+const DRAG_THRESHOLD_PX = 6;
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -15,6 +17,9 @@ const appState = {
   steps: 0,
   running: false,
   runTimer: null,
+  tapeViewCol: 0,
+  tapeDrag: null,
+  tapeSnapRaf: null,
   headMode: false,
   activeRuleId: null,
   message: "Ready.",
@@ -157,11 +162,17 @@ function setSymbol(row, col, symbol) {
 }
 
 function applyCellSize() {
-  const size = Math.max(28, Math.min(84, appState.cellSize));
+  const size = Math.max(28, Math.min(132, appState.cellSize));
   appState.cellSize = size;
   document.documentElement.style.setProperty("--tape-cell-size", `${size}px`);
   els.cellSizeSlider.value = String(size);
   els.cellSizeValue.textContent = `${size}px`;
+}
+
+function changeCellSizeBy(delta) {
+  appState.cellSize += delta;
+  applyCellSize();
+  renderTape();
 }
 
 function autoFitCellSize() {
@@ -180,7 +191,7 @@ function autoFitCellSize() {
   const sizeFromWidth = Math.floor((width - targetCols * horizontalGap) / targetCols);
   const sizeFromHeight = Math.floor((height - (appState.rows - 1) * verticalGap) / Math.max(1, appState.rows));
 
-  appState.cellSize = Math.max(28, Math.min(84, Math.min(sizeFromWidth, sizeFromHeight)));
+  appState.cellSize = Math.max(28, Math.min(132, Math.min(sizeFromWidth, sizeFromHeight)));
   applyCellSize();
 }
 
@@ -208,6 +219,18 @@ function cloneRules(rules) {
   return rules.map((rule) => ({ ...rule, id: crypto.randomUUID() }));
 }
 
+function syncTapeViewToHead() {
+  appState.tapeViewCol = appState.head.col;
+}
+
+function stopTapeSnap() {
+  if (!appState.tapeSnapRaf) {
+    return;
+  }
+  cancelAnimationFrame(appState.tapeSnapRaf);
+  appState.tapeSnapRaf = null;
+}
+
 function loadSelectedProgram() {
   const preset = DEFAULT_PROGRAMS[els.programPreset.value];
   if (!preset) {
@@ -224,6 +247,7 @@ function loadSelectedProgram() {
   appState.rejectStates = [...preset.rejectStates];
   appState.head = { ...preset.head };
   appState.startHead = { ...preset.head };
+  syncTapeViewToHead();
   appState.steps = 0;
   appState.activeRuleId = null;
   appState.rules = cloneRules(preset.rules);
@@ -264,8 +288,18 @@ function renderTape() {
   const cellPitch = appState.cellSize + 4;
   const cellsPerRow = Math.max(9, Math.floor(width / cellPitch));
   const half = Math.floor(cellsPerRow / 2);
-  const fromCol = appState.head.col - half;
-  const toCol = appState.head.col + half;
+  const centerCol = Number.isFinite(appState.tapeViewCol) ? appState.tapeViewCol : appState.head.col;
+  const anchorCol = Math.round(centerCol);
+  const fromCol = anchorCol - half - 1;
+  const toCol = anchorCol + half + 1;
+
+  const viewportStyles = getComputedStyle(viewport);
+  const padLeft = Number.parseFloat(viewportStyles.paddingLeft) || 0;
+  const padRight = Number.parseFloat(viewportStyles.paddingRight) || 0;
+  const contentWidth = Math.max(1, width - padLeft - padRight);
+  const headCenterXContent = contentWidth / 2;
+  const headCenterX = padLeft + headCenterXContent;
+  const xOffset = headCenterXContent - ((centerCol - fromCol) * cellPitch + appState.cellSize / 2);
 
   appState.minCol = Math.min(appState.minCol, fromCol - 5);
   appState.maxCol = Math.max(appState.maxCol, toCol + 5);
@@ -276,43 +310,172 @@ function renderTape() {
   for (let r = 0; r < appState.rows; r += 1) {
     const rowEl = document.createElement("div");
     rowEl.className = "tape-row";
+    rowEl.style.transform = `translateX(${xOffset}px)`;
 
     for (let c = fromCol; c <= toCol; c += 1) {
       const cell = document.createElement("button");
+      cell.type = "button";
       cell.className = "tape-cell";
       const symbol = getSymbol(r, c);
       cell.textContent = symbolForDisplay(symbol);
       cell.dataset.row = String(r);
       cell.dataset.col = String(c);
-      if (r === appState.head.row && c === appState.head.col) {
-        cell.classList.add("head");
-      }
-      cell.addEventListener("click", onTapeCellClick);
       rowEl.appendChild(cell);
     }
 
     grid.appendChild(rowEl);
   }
 
-  viewport.replaceChildren(grid);
+  viewport.replaceChildren(grid, buildHeadIndicator(headCenterX));
 }
 
-function onTapeCellClick(event) {
-  const target = event.currentTarget;
-  const row = Number(target.dataset.row);
-  const col = Number(target.dataset.col);
+function buildHeadIndicator(headCenterX) {
+  const indicator = document.createElement("div");
+  indicator.className = "tape-head-indicator";
+  indicator.style.width = `${appState.cellSize}px`;
+  indicator.style.height = `${appState.cellSize}px`;
+  indicator.style.left = `${headCenterX - appState.cellSize / 2}px`;
+
+  const rowPitch = appState.cellSize + 6;
+  const viewportStyles = getComputedStyle(els.tapeViewport);
+  const padTop = Number.parseFloat(viewportStyles.paddingTop) || 0;
+  const padBottom = Number.parseFloat(viewportStyles.paddingBottom) || 0;
+  const contentHeight = Math.max(1, els.tapeViewport.clientHeight - padTop - padBottom);
+  const rowsHeight = appState.rows * appState.cellSize + (appState.rows - 1) * 6;
+  const topStart = padTop + Math.max(0, (contentHeight - rowsHeight) / 2);
+  indicator.style.top = `${topStart + appState.head.row * rowPitch}px`;
+  return indicator;
+}
+
+function cycleTapeCell(row, col) {
+  const current = symbolForDisplay(getSymbol(row, col));
+  const index = TAPE_SYMBOL_CYCLE.indexOf(current);
+  const next = TAPE_SYMBOL_CYCLE[(index + 1 + TAPE_SYMBOL_CYCLE.length) % TAPE_SYMBOL_CYCLE.length] || TAPE_SYMBOL_CYCLE[0];
+  setSymbol(row, col, next);
+  appState.message = `Set r${row}, c${col} to '${symbolForDisplay(next)}'.`;
+}
+
+function applyHeadFromTapeView() {
+  const snapped = Math.round(appState.tapeViewCol);
+  appState.head.col = snapped;
+  if (!appState.running) {
+    appState.startHead.col = snapped;
+  }
+}
+
+function animateTapeSnapTo(col) {
+  stopTapeSnap();
+  const start = performance.now();
+  const from = appState.tapeViewCol;
+  const to = col;
+  const duration = 170;
+
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - (1 - t) ** 3;
+    appState.tapeViewCol = from + (to - from) * eased;
+    applyHeadFromTapeView();
+    renderTape();
+    updateStatus();
+    if (t < 1) {
+      appState.tapeSnapRaf = requestAnimationFrame(tick);
+      return;
+    }
+    appState.tapeViewCol = to;
+    applyHeadFromTapeView();
+    appState.tapeSnapRaf = null;
+    renderTape();
+    updateStatus();
+  };
+
+  appState.tapeSnapRaf = requestAnimationFrame(tick);
+}
+
+function handleTapeCellActivate(cell) {
+  if (!cell) {
+    return;
+  }
+  const row = Number(cell.dataset.row);
+  const col = Number(cell.dataset.col);
 
   if (appState.headMode) {
     appState.head = { row, col };
     appState.startHead = { row, col };
+    syncTapeViewToHead();
     appState.message = `Head start set to r${row}, c${col}.`;
   } else {
-    const symbol = normalizeSymbol(els.symbolPalette.value);
-    setSymbol(row, col, symbol);
-    appState.message = `Set r${row}, c${col} to '${symbolForDisplay(symbol)}'.`;
+    cycleTapeCell(row, col);
   }
 
-  renderAll();
+  renderTape();
+  updateStatus();
+}
+
+function initTapeInteractions() {
+  const viewport = els.tapeViewport;
+
+  viewport.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || appState.running) {
+      return;
+    }
+    const cell = event.target.closest(".tape-cell");
+    if (!cell) {
+      return;
+    }
+    stopTapeSnap();
+    appState.tapeDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startCol: appState.tapeViewCol,
+      moved: false,
+      pressedCell: cell
+    };
+    viewport.classList.add("dragging");
+    viewport.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  viewport.addEventListener("pointermove", (event) => {
+    const drag = appState.tapeDrag;
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    const dx = event.clientX - drag.startX;
+    if (!drag.moved && Math.abs(dx) >= DRAG_THRESHOLD_PX) {
+      drag.moved = true;
+    }
+    if (!drag.moved) {
+      return;
+    }
+    const cellPitch = appState.cellSize + 4;
+    appState.tapeViewCol = drag.startCol - dx / cellPitch;
+    applyHeadFromTapeView();
+    renderTape();
+    updateStatus();
+  });
+
+  const finishPointer = (event, cancelled) => {
+    const drag = appState.tapeDrag;
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    if (viewport.hasPointerCapture(event.pointerId)) {
+      viewport.releasePointerCapture(event.pointerId);
+    }
+    viewport.classList.remove("dragging");
+
+    if (!cancelled && drag.moved) {
+      animateTapeSnapTo(Math.round(appState.tapeViewCol));
+    } else if (!cancelled) {
+      const cell = event.target.closest(".tape-cell") || drag.pressedCell;
+      handleTapeCellActivate(cell);
+    }
+
+    appState.tapeDrag = null;
+  };
+
+  viewport.addEventListener("pointerup", (event) => finishPointer(event, false));
+  viewport.addEventListener("pointercancel", (event) => finishPointer(event, true));
 }
 
 function renderRulesTable() {
@@ -547,6 +710,7 @@ function machineStep() {
   applyMove(rule.move);
   appState.currentState = rule.next;
   appState.steps += 1;
+  syncTapeViewToHead();
 
   if (appState.acceptStates.includes(appState.currentState)) {
     appState.message = `Accepted in ${appState.currentState} after ${appState.steps} steps.`;
@@ -592,9 +756,11 @@ function stopRunLoop() {
 
 function resetMachine() {
   stopRunLoop();
+  stopTapeSnap();
   updateMachineConfigFromInputs();
   appState.currentState = appState.startState;
   appState.head = { ...appState.startHead };
+  syncTapeViewToHead();
   appState.steps = 0;
   appState.activeRuleId = null;
   appState.message = "Machine reset.";
@@ -602,9 +768,11 @@ function resetMachine() {
 }
 
 function resetTape() {
+  stopTapeSnap();
   appState.tape.clear();
   appState.head = { row: 0, col: 0 };
   appState.startHead = { row: 0, col: 0 };
+  syncTapeViewToHead();
   appState.steps = 0;
   appState.activeRuleId = null;
   appState.currentState = appState.startState;
@@ -860,6 +1028,7 @@ function addRule() {
 }
 
 function initEvents() {
+  initTapeInteractions();
   els.btnLoadProgram.addEventListener("click", loadSelectedProgram);
   els.btnTheme.addEventListener("click", toggleTheme);
 
@@ -869,6 +1038,19 @@ function initEvents() {
     renderTape();
   });
 
+  els.tapeViewport.addEventListener(
+    "wheel",
+    (event) => {
+      const direction = Math.sign(event.deltaY);
+      if (!direction) {
+        return;
+      }
+      event.preventDefault();
+      changeCellSizeBy(direction > 0 ? -2 : 2);
+    },
+    { passive: false }
+  );
+
   els.btnHeadMode.addEventListener("click", () => {
     appState.headMode = !appState.headMode;
     els.btnHeadMode.textContent = appState.headMode ? "Head: On" : "Head: Off";
@@ -877,6 +1059,7 @@ function initEvents() {
   els.btnAddRow.addEventListener("click", () => {
     appState.rows += 1;
     autoFitCellSize();
+    syncTapeViewToHead();
     appState.message = `Rows: ${appState.rows}. U and D moves enabled.`;
     renderAll();
   });
@@ -891,6 +1074,7 @@ function initEvents() {
       appState.startHead.row = appState.rows - 1;
     }
     autoFitCellSize();
+    syncTapeViewToHead();
     appState.message = `Rows: ${appState.rows}.`;
     renderAll();
   });

@@ -775,13 +775,16 @@ button.tape-cell:hover:not(:disabled) {
 }
 
 .modal-backdrop {
-  border: none;
+  display: none;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
   padding: 16px;
-  background: transparent;
-  color: var(--ink);
   box-sizing: border-box;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100dvh - 32px);
+  z-index: 9999;
+  color: var(--ink);
 }
 
 .modal-backdrop::backdrop {

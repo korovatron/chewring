@@ -395,29 +395,10 @@ function openStateModal(existingStateName = "") {
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
-  try {
-    els.stateModal.showModal();
-  } catch (err) {
-    appState.message = `showModal error: ${err.name}: ${err.message}`;
-    updateStatus();
-    return;
-  }
-
-  // Diagnostic: inject a red div directly on body to test if ANY overlay renders
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:red;z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;";
-  probe.textContent = "OVERLAY TEST";
-  document.body.appendChild(probe);
+  els.stateModal.style.display = "flex";
 
   requestAnimationFrame(() => {
-    const r = els.stateModal.getBoundingClientRect();
-    appState.message = `dialog x=${Math.round(r.x)} y=${Math.round(r.y)} w=${Math.round(r.width)} h=${Math.round(r.height)}`;
-    updateStatus();
-    setTimeout(() => probe.remove(), 4000);
-  });
-
-  requestAnimationFrame(() => {
-    if (!els.stateModal.open) {
+    if (els.stateModal.style.display !== "flex") {
       return;
     }
     els.stateNameInput.focus({ preventScroll: true });
@@ -428,7 +409,7 @@ function closeStateModal() {
   appState.stateModal.open = false;
   appState.stateModal.originalName = null;
   els.btnStateModalDelete.hidden = true;
-  els.stateModal.close();
+  els.stateModal.style.display = "none";
 }
 
 
@@ -1744,11 +1725,11 @@ function addRule() {
 
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
-  els.aboutModal.showModal();
+  els.aboutModal.style.display = "flex";
 }
 
 function closeAboutModal() {
-  els.aboutModal.close();
+  els.aboutModal.style.display = "none";
 }
 
 function bindModalActivate(target, handler) {
@@ -1994,36 +1975,20 @@ function initEvents() {
       closeStateModal();
     }
   });
-  els.stateNameInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      saveStateModal();
-    }
-  });
-  els.stateIsAccept.addEventListener("change", () => {
-    if (els.stateIsAccept.checked) {
-      els.stateIsReject.checked = false;
-    }
-  });
-  els.stateIsReject.addEventListener("change", () => {
-    if (els.stateIsReject.checked) {
-      els.stateIsAccept.checked = false;
-    }
-  });
-
-  els.stateModal.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeStateModal();
-  });
-
-  els.aboutModal.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeAboutModal();
-  });
-
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      if (appState.stateModal.open) closeStateModal();
+      if (els.aboutModal.style.display === "flex") closeAboutModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
+    }
+  });
+
+  els.stateModal.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === els.stateModal) {
+      closeStateModal();
     }
   });
 

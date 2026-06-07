@@ -30,7 +30,7 @@
   <link rel="shortcut icon" href="images/chewRingLogo.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="images/appIcon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=20260607-25" />
+  <link rel="stylesheet" href="styles.css?v=20260607-28" />
 </head>
 <body data-theme="dark">
   <div class="app-shell">
@@ -155,7 +155,7 @@
     </main>
   </div>
 
-  <dialog id="stateModal" class="modal-backdrop" aria-labelledby="stateModalTitle">
+  <div id="stateModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="stateModalTitle">
     <div class="modal">
       <h3 id="stateModalTitle">State Settings</h3>
       <label for="stateNameInput">State name</label>
@@ -180,8 +180,8 @@
         <button id="btnStateModalSave" type="button">Save</button>
       </div>
     </div>
-  </dialog>
-  <dialog id="aboutModal" class="modal-backdrop" aria-labelledby="aboutModalTitle">
+  </div>
+  <div id="aboutModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
     <div class="modal">
       <h3 id="aboutModalTitle">About Chewring</h3>
       <p>Chewring is a classroom Turing machine simulator built for teaching and exploring theoretical computer science concepts.</p>
@@ -190,8 +190,8 @@
         <button id="btnAboutClose" type="button">Close</button>
       </div>
     </div>
-  </dialog>
+  </div>
 
-  <script src="app.js?v=20260607-27"></script>
+  <script src="app.js?v=20260607-28"></script>
 </body>
 </html>

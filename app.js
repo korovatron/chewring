@@ -995,6 +995,10 @@ function initTapeInteractions() {
       appState.startHead = { ...appState.head };
       animateTapeToHead(220);
       updateStatus();
+    } else if (cancelled && drag.moved) {
+      // iOS can emit pointercancel mid-drag; re-align visual tape to integer head row/col.
+      animateTapeToHead(180);
+      updateStatus();
     } else if (!cancelled && drag.pressedCell) {
       const cell = event.target.closest(".tape-cell") || drag.pressedCell;
       handleTapeCellActivate(cell);
@@ -1699,6 +1703,7 @@ function bindTap(target, handler) {
   }
 
   let lastActivationAt = 0;
+  let suppressClickUntil = 0;
 
   const activate = (event) => {
     const now = Date.now();
@@ -1709,14 +1714,35 @@ function bindTap(target, handler) {
     handler(event);
   };
 
-  // Click remains the primary path so keyboard and assistive tech keep working.
-  target.addEventListener("click", activate);
-
-  // iOS can occasionally miss click synthesis after touch. Pointer fallback closes that gap.
+  // iOS touch should activate immediately and suppress delayed ghost clicks.
   target.addEventListener("pointerup", (event) => {
     if (event.pointerType === "touch" || event.pointerType === "pen") {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      suppressClickUntil = Date.now() + 900;
       activate(event);
     }
+  });
+
+  target.addEventListener(
+    "touchend",
+    (event) => {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      suppressClickUntil = Date.now() + 900;
+      activate(event);
+    },
+    { passive: false }
+  );
+
+  // Click remains for mouse/keyboard/assistive activation.
+  target.addEventListener("click", (event) => {
+    if (Date.now() < suppressClickUntil) {
+      return;
+    }
+    activate(event);
   });
 }
 

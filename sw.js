@@ -1,4 +1,4 @@
-const CACHE_VERSION = "chewring-v5";
+const CACHE_VERSION = "chewring-v6";
 const CACHE_NAME = `chewring-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -10,7 +10,14 @@ const APP_SHELL = [
   "./images/appIcon.png",
   "./images/preview.png"
 ];
-const APP_SHELL_PATHS = new Set(["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest"]);
+const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest"];
+
+function isAppShellPath(pathname) {
+  if (APP_SHELL_FILES.includes(pathname)) {
+    return true;
+  }
+  return APP_SHELL_FILES.some((filePath) => filePath !== "/" && pathname.endsWith(filePath));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -41,7 +48,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (APP_SHELL_PATHS.has(requestUrl.pathname)) {
+  if (isAppShellPath(requestUrl.pathname)) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {

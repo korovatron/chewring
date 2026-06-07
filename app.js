@@ -226,10 +226,8 @@ function isMobileViewport() {
   return window.innerWidth <= 768 || window.innerHeight <= 500;
 }
 
-const MOBILE_MAX_ROWS = 2;
-
 function canAddAnotherRow() {
-  if (isMobileViewport() && appState.rows >= MOBILE_MAX_ROWS) return false;
+  if (isMobileViewport()) return true;
   return appState.rows < maxRowsForViewportAtMinCellSize();
 }
 
@@ -238,6 +236,7 @@ function applyCellSize() {
   const size = Math.max(CELL_SIZE_MIN, Math.min(maxAllowed, appState.cellSize));
   appState.cellSize = size;
   document.documentElement.style.setProperty("--tape-cell-size", `${size}px`);
+  document.documentElement.style.setProperty("--tape-rows", String(appState.rows));
   els.cellSizeSlider.max = String(maxAllowed);
   els.cellSizeSlider.value = String(size);
 }
@@ -251,6 +250,17 @@ function changeCellSizeBy(delta) {
 function autoFitCellSize() {
   const viewport = els.tapeViewport;
   if (!viewport) {
+    return;
+  }
+
+  if (isMobileViewport()) {
+    // On mobile the panel grows to fit rows, so size purely from width.
+    const width = viewport.clientWidth || 320;
+    const targetCols = 10;
+    const horizontalGap = 4;
+    const sizeFromWidth = Math.floor((width - targetCols * horizontalGap) / targetCols);
+    appState.cellSize = Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, sizeFromWidth));
+    applyCellSize();
     return;
   }
 
@@ -1883,6 +1893,9 @@ function initEvents() {
   els.tapeViewport.addEventListener(
     "wheel",
     (event) => {
+      if (isMobileViewport()) {
+        return;
+      }
       const direction = Math.sign(event.deltaY);
       if (!direction) {
         return;
@@ -2006,15 +2019,6 @@ function initEvents() {
   });
 
   window.addEventListener("resize", () => {
-    if (isMobileViewport() && appState.rows > MOBILE_MAX_ROWS) {
-      appState.rows = MOBILE_MAX_ROWS;
-      if (appState.head.row > appState.rows - 1) {
-        appState.head.row = appState.rows - 1;
-      }
-      if (appState.startHead.row > appState.rows - 1) {
-        appState.startHead.row = appState.rows - 1;
-      }
-    }
     autoFitCellSize();
     renderTape();
     renderDiagram();
@@ -2029,11 +2033,6 @@ function seedExampleTape() {
 function init() {
   document.body.setAttribute("data-theme", "dark");
   loadPreset("scan-right");
-  if (isMobileViewport() && appState.rows > MOBILE_MAX_ROWS) {
-    appState.rows = MOBILE_MAX_ROWS;
-    if (appState.head.row > appState.rows - 1) appState.head.row = appState.rows - 1;
-    if (appState.startHead.row > appState.rows - 1) appState.startHead.row = appState.rows - 1;
-  }
   autoFitCellSize();
   initEvents();
   renderAll();

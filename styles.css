@@ -1141,11 +1141,31 @@ tr.active-rule {
     font-size: 0.78rem;
     padding: 5px 8px;
     gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-tools {
+    margin-left: 0;
   }
 
   .tape-panel {
-    min-height: 220px;
-    height: 220px;
+    min-height: 0;
+    height: auto;
+  }
+
+  .tape-viewport {
+    height: calc((var(--tape-cell-size, 46px) + 6px) * var(--tape-rows, 1) + 20px);
+    min-height: unset;
+  }
+
+  .status-tools label[for="cellSizeSlider"],
+  #cellSizeSlider {
+    display: none;
+  }
+
+  .status-tools .status-tools-sep {
+    display: none;
   }
 
   .bottom-row {

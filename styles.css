@@ -780,6 +780,17 @@ button.tape-cell:hover:not(:disabled) {
   color: #ffffff;
 }
 
+.modal a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.modal a:hover,
+.modal a:focus-visible {
+  opacity: 0.8;
+}
+
 .modal-backdrop {
   display: none;
   position: fixed;

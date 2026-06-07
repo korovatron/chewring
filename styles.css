@@ -22,6 +22,7 @@
   --control-border: #c9c3b5;
   --control-hover: #f4efe2;
 
+  --start: #00b7ff;
   --accent: #b3442a;
   --ok: #00d66b;
   --warn: #ff2a2a;
@@ -40,7 +41,7 @@
 
   --table-head: #f7f2e7;
   --table-row-border: #e3ddd0;
-  --active-row: #fff3c4;
+  --active-row: #ffea00;
 
   --diagram-bg: #fffefb;
   --node-fill: #ffffff;
@@ -50,10 +51,10 @@
   --edge: #74808d;
   --label: #22313f;
   --edge-label-badge-bg: #fff0b8;
-  --edge-label-badge-border: #9f7a00;
-  --edge-label-read: #0e4c92;
-  --edge-label-write: #8a2d0a;
-  --edge-label-move: #176a2f;
+  --edge-label-badge-border: #ffd400;
+  --edge-label-read: #00a6ff;
+  --edge-label-write: #ff4d4d;
+  --edge-label-move: #00e676;
 }
 
 body[data-theme="dark"] {
@@ -70,6 +71,7 @@ body[data-theme="dark"] {
   --control-border: #3c4b57;
   --control-hover: #2b3944;
 
+  --start: #19b5ff;
   --accent: #ff8f6b;
   --ok: #39ff7a;
   --warn: #ff3b3b;
@@ -87,7 +89,7 @@ body[data-theme="dark"] {
 
   --table-head: #28343e;
   --table-row-border: #33414d;
-  --active-row: #2b4052;
+  --active-row: #ffd400;
 
   --diagram-bg: #1a2129;
   --node-fill: #2a3640;
@@ -97,10 +99,10 @@ body[data-theme="dark"] {
   --edge: #8ea0b0;
   --label: #d7e1ea;
   --edge-label-badge-bg: #3e2f00;
-  --edge-label-badge-border: #ffca52;
-  --edge-label-read: #8fc3ff;
-  --edge-label-write: #ffb18f;
-  --edge-label-move: #8ce7a5;
+  --edge-label-badge-border: #ffd400;
+  --edge-label-read: #19b5ff;
+  --edge-label-write: #ff5252;
+  --edge-label-move: #00ff85;
 }
 
 * {
@@ -772,11 +774,23 @@ button.tape-cell:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   color: var(--ink);
   background: rgba(0, 0, 0, 0.24);
+}
+
+#stateStartBadge {
+  border-color: var(--start);
+}
+
+#stateAcceptBadge {
+  border-color: var(--ok);
+}
+
+#stateRejectBadge {
+  border-color: var(--warn);
 }
 
 .rules-panel {
@@ -835,6 +849,11 @@ tr.active-rule {
   stroke-width: 2;
 }
 
+.state-node.start {
+  stroke: var(--start);
+  stroke-width: 3;
+}
+
 .state-node.accept {
   stroke: var(--ok);
   stroke-width: 3;
@@ -852,9 +871,7 @@ tr.active-rule {
 }
 
 .state-node.current {
-  fill: var(--node-current-fill);
-  stroke: var(--node-current-stroke);
-  stroke-width: 4;
+  stroke-width: 5;
 }
 
 .edge {
@@ -863,20 +880,25 @@ tr.active-rule {
   fill: none;
 }
 
-.edge.active {
-  stroke: var(--accent);
-  stroke-width: 3;
-}
-
 .label {
   font-size: var(--diagram-label-size, 12px);
   fill: var(--label);
 }
 
+.label.current-state-label {
+  font-size: calc(var(--diagram-label-size, 12px) * 1.22);
+  font-weight: 800;
+}
+
 .edge-label-bg {
-  fill: var(--edge-label-badge-bg);
+  fill: #000000;
   stroke: var(--edge-label-badge-border);
   stroke-width: 1;
+}
+
+.edge-label-bg.active-transition-badge {
+  stroke: #ffea00;
+  stroke-width: 2.4;
 }
 
 .edge-label {

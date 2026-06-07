@@ -27,6 +27,7 @@ const appState = {
   minCol: -20,
   maxCol: 20,
   tape: new Map(),
+  startTape: new Map(),
   head: { row: 0, col: 0 },
   startHead: { row: 0, col: 0 },
   startState: "s0",
@@ -275,6 +276,14 @@ function loadTapeRows(rowStrings) {
       }
     }
   }
+}
+
+function snapshotStartTape() {
+  appState.startTape = new Map(appState.tape);
+}
+
+function restoreStartTape() {
+  appState.tape = new Map(appState.startTape);
 }
 
 function cloneRules(rules) {
@@ -556,6 +565,7 @@ function loadPreset(key) {
   ]);
 
   loadTapeRows(preset.tapeRows);
+  snapshotStartTape();
 
   syncMachineConfigInputs();
 
@@ -756,6 +766,9 @@ function cycleTapeCell(row, col) {
   const index = TAPE_SYMBOL_CYCLE.indexOf(current);
   const next = TAPE_SYMBOL_CYCLE[(index + 1 + TAPE_SYMBOL_CYCLE.length) % TAPE_SYMBOL_CYCLE.length] || TAPE_SYMBOL_CYCLE[0];
   setSymbol(row, col, next);
+  if (!appState.running) {
+    snapshotStartTape();
+  }
   appState.lastPlacedSymbol = normalizeSymbol(next);
   appState.message = `Set r${row}, c${col} to '${symbolForDisplay(next)}'.`;
 }
@@ -763,6 +776,9 @@ function cycleTapeCell(row, col) {
 function placeRememberedSymbol(row, col) {
   const symbol = normalizeSymbol(appState.lastPlacedSymbol) || "0";
   setSymbol(row, col, symbol);
+  if (!appState.running) {
+    snapshotStartTape();
+  }
   appState.lastPlacedSymbol = symbol;
   appState.message = `Set r${row}, c${col} to remembered '${symbolForDisplay(symbol)}'.`;
 }
@@ -1062,13 +1078,14 @@ function ruleSymbolSelectCell(rule, field, options) {
 }
 
 function ruleSelectCell(rule, field, options) {
+  const MOVE_LABELS = { L: "Left", R: "Right", U: "Up", D: "Down", S: "Stay" };
   const td = document.createElement("td");
   const select = document.createElement("select");
 
   for (const option of options) {
     const el = document.createElement("option");
     el.value = option;
-    el.textContent = option;
+    el.textContent = field === "move" ? (MOVE_LABELS[option] || option) : option;
     if (option === rule[field]) {
       el.selected = true;
     }
@@ -1337,6 +1354,7 @@ function resetMachine() {
   stopTapeSnap();
   stopHeadPulse();
   clearTapeMoveDelay();
+  restoreStartTape();
   appState.currentState = appState.startState;
   appState.head = { ...appState.startHead };
   syncTapeViewToHead();
@@ -1351,6 +1369,7 @@ function resetTape() {
   stopHeadPulse();
   clearTapeMoveDelay();
   appState.tape.clear();
+  snapshotStartTape();
   appState.head = { row: 0, col: 0 };
   appState.startHead = { row: 0, col: 0 };
   syncTapeViewToHead();
@@ -1450,10 +1469,6 @@ function renderDiagram() {
         loopPath.setAttribute("class", "edge");
         loopPath.setAttribute("marker-end", "url(#arrow)");
 
-        if (appState.activeRuleId && group.ruleIds.has(appState.activeRuleId)) {
-          loopPath.classList.add("active");
-        }
-
         svg.appendChild(loopPath);
       } else {
         const dx = to.x - from.x;
@@ -1474,10 +1489,6 @@ function renderDiagram() {
         line.setAttribute("y2", String(endY));
         line.setAttribute("class", "edge");
         line.setAttribute("marker-end", "url(#arrow)");
-
-        if (appState.activeRuleId && group.ruleIds.has(appState.activeRuleId)) {
-          line.classList.add("active");
-        }
 
         svg.appendChild(line);
       }
@@ -1529,6 +1540,9 @@ function renderDiagram() {
       badge.setAttribute("height", String(badgeHeight));
       badge.setAttribute("rx", "4");
       badge.setAttribute("class", "edge-label-bg");
+      if (appState.activeRuleId && group.ruleIds.has(appState.activeRuleId)) {
+        badge.classList.add("active-transition-badge");
+      }
       svg.insertBefore(badge, label);
     });
   }
@@ -1550,6 +1564,10 @@ function renderDiagram() {
     circle.setAttribute("cy", String(pos.y));
     circle.setAttribute("r", String(nodeRadius));
     circle.setAttribute("class", "state-node");
+
+    if (name === appState.startState) {
+      circle.classList.add("start");
+    }
 
     if (appState.acceptStates.includes(name)) {
       circle.classList.add("accept");
@@ -1577,6 +1595,9 @@ function renderDiagram() {
     text.setAttribute("y", String(pos.y + 5));
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("class", "label");
+    if (name === appState.currentState) {
+      text.classList.add("current-state-label");
+    }
     text.textContent = name;
     nodeGroup.appendChild(text);
     svg.appendChild(nodeGroup);

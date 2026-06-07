@@ -70,6 +70,7 @@ const els = {
   statusState: document.getElementById("statusState"),
   statusStep: document.getElementById("statusStep"),
   statusMessage: document.getElementById("statusMessage"),
+  rulesTableWrap: document.querySelector(".rules-table-wrap"),
   rulesTableBody: document.querySelector("#rulesTable tbody"),
   btnAddRule: document.getElementById("btnAddRule"),
   stateStartBadge: document.getElementById("stateStartBadge"),
@@ -1675,6 +1676,13 @@ function addRule() {
     next: defaultState
   });
   renderAll();
+
+  requestAnimationFrame(() => {
+    if (!els.rulesTableWrap) {
+      return;
+    }
+    els.rulesTableWrap.scrollTop = els.rulesTableWrap.scrollHeight;
+  });
 }
 
 function openAboutModal() {
@@ -1683,6 +1691,26 @@ function openAboutModal() {
 
 function closeAboutModal() {
   els.aboutModal.hidden = true;
+}
+
+function bindTap(target, handler) {
+  let lastTouchActivation = 0;
+
+  target.addEventListener("pointerup", (event) => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+      return;
+    }
+    event.preventDefault();
+    lastTouchActivation = Date.now();
+    handler(event);
+  });
+
+  target.addEventListener("click", (event) => {
+    if (Date.now() - lastTouchActivation < 400) {
+      return;
+    }
+    handler(event);
+  });
 }
 
 function toggleMenu(open) {
@@ -1714,7 +1742,7 @@ function initEvents() {
     { passive: false }
   );
 
-  els.btnAddRow.addEventListener("click", () => {
+  bindTap(els.btnAddRow, () => {
     if (!canAddAnotherRow()) {
       appState.message = `Cannot add more rows: minimum cell size (${CELL_SIZE_MIN}px) reached for current viewport height.`;
       updateStatus();
@@ -1758,12 +1786,12 @@ function initEvents() {
     });
   });
 
-  els.menuAbout.addEventListener("click", () => {
+  bindTap(els.menuAbout, () => {
     openAboutModal();
     toggleMenu(false);
   });
 
-  els.btnAboutClose.addEventListener("click", closeAboutModal);
+  bindTap(els.btnAboutClose, closeAboutModal);
   els.aboutModal.addEventListener("click", (event) => {
     if (event.target === els.aboutModal) closeAboutModal();
   });
@@ -1775,7 +1803,7 @@ function initEvents() {
   });
 
   els.btnAddRule.addEventListener("click", addRule);
-  els.btnAddState.addEventListener("click", () => openStateModal());
+  bindTap(els.btnAddState, () => openStateModal());
   els.btnResetTape.addEventListener("click", resetTape);
   els.btnResetMachine.addEventListener("click", resetMachine);
 
@@ -1813,14 +1841,14 @@ function initEvents() {
     renderAll();
   });
 
-  els.btnStateModalCancel.addEventListener("click", closeStateModal);
-  els.btnStateModalDelete.addEventListener("click", () => {
+  bindTap(els.btnStateModalCancel, closeStateModal);
+  bindTap(els.btnStateModalDelete, () => {
     if (!appState.stateModal.originalName) {
       return;
     }
     deleteState(appState.stateModal.originalName);
   });
-  els.btnStateModalSave.addEventListener("click", saveStateModal);
+  bindTap(els.btnStateModalSave, saveStateModal);
   els.stateModal.addEventListener("click", (event) => {
     if (event.target === els.stateModal) {
       closeStateModal();

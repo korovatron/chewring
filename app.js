@@ -222,7 +222,14 @@ function maxRowsForViewportAtMinCellSize() {
   return Math.max(1, Math.floor(contentHeight / rowPitchAtMin));
 }
 
+function isMobileViewport() {
+  return window.innerWidth <= 768 || window.innerHeight <= 500;
+}
+
+const MOBILE_MAX_ROWS = 2;
+
 function canAddAnotherRow() {
+  if (isMobileViewport() && appState.rows >= MOBILE_MAX_ROWS) return false;
   return appState.rows < maxRowsForViewportAtMinCellSize();
 }
 
@@ -1999,6 +2006,15 @@ function initEvents() {
   });
 
   window.addEventListener("resize", () => {
+    if (isMobileViewport() && appState.rows > MOBILE_MAX_ROWS) {
+      appState.rows = MOBILE_MAX_ROWS;
+      if (appState.head.row > appState.rows - 1) {
+        appState.head.row = appState.rows - 1;
+      }
+      if (appState.startHead.row > appState.rows - 1) {
+        appState.startHead.row = appState.rows - 1;
+      }
+    }
     autoFitCellSize();
     renderTape();
     renderDiagram();
@@ -2013,6 +2029,11 @@ function seedExampleTape() {
 function init() {
   document.body.setAttribute("data-theme", "dark");
   loadPreset("scan-right");
+  if (isMobileViewport() && appState.rows > MOBILE_MAX_ROWS) {
+    appState.rows = MOBILE_MAX_ROWS;
+    if (appState.head.row > appState.rows - 1) appState.head.row = appState.rows - 1;
+    if (appState.startHead.row > appState.rows - 1) appState.startHead.row = appState.rows - 1;
+  }
   autoFitCellSize();
   initEvents();
   renderAll();

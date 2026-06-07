@@ -777,21 +777,19 @@ button.tape-cell:hover:not(:disabled) {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 1000;
+  z-index: 2147483647;
   padding: 16px;
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transition: opacity 160ms ease, visibility 160ms ease;
 }
 
 .modal-backdrop.visible {
+  display: flex;
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
 }
 

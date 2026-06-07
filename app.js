@@ -674,8 +674,9 @@ function loadPreset(key) {
 
   syncMachineConfigInputs();
 
-  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo" };
+  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo", "ones-complement": "Ones' Complement (Bit Flip)" };
   appState.message = `Loaded: ${labels[key] || key}.`;
+  autoFitCellSize();
   renderAll();
 }
 

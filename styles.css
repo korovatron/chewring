@@ -627,7 +627,7 @@ button:disabled {
   width: var(--tape-cell-size);
   height: var(--tape-cell-size);
   font-weight: 700;
-  font-size: clamp(1rem, calc(var(--tape-cell-size) * 0.52), 3.4rem);
+  font-size: clamp(1rem, calc(var(--tape-cell-size) * 0.52), 10rem);
   line-height: 1;
   border: 1px solid var(--cell-border);
   background: transparent;

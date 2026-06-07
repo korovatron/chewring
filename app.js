@@ -8,7 +8,7 @@ const MOVE_AFTER_WRITE_DELAY_MS = HEAD_WRITE_PULSE_MS;
 const TAPE_ROW_PAD_X = 4;
 const TAPE_ROW_PAD_Y = 3;
 const CELL_SIZE_MIN = 28;
-const CELL_SIZE_MAX = 132;
+const CELL_SIZE_MAX = 280;
 const SUBSCRIPT_DIGITS = {
   "0": "₀",
   "1": "₁",
@@ -272,14 +272,18 @@ function autoFitCellSize() {
   const width = viewport.clientWidth || 1000;
   const height = viewport.clientHeight || 260;
 
-  const targetCols = 24;
   const horizontalGap = 4;
   const verticalGap = TAPE_ROW_PAD_Y * 2;
+  const minCols = 5;
 
-  const sizeFromWidth = Math.floor((width - targetCols * horizontalGap) / targetCols);
-  const sizeFromHeight = Math.floor((height - (appState.rows - 1) * verticalGap) / Math.max(1, appState.rows));
+  // Size cells so they fill ~65% of available vertical space.
+  const sizeFromHeight = Math.floor(
+    (height * 0.65 - (appState.rows - 1) * verticalGap) / Math.max(1, appState.rows)
+  );
+  // Cap: never so large that fewer than minCols fit across.
+  const maxSizeFromWidth = Math.floor((width - minCols * horizontalGap) / minCols);
 
-  appState.cellSize = Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, Math.min(sizeFromWidth, sizeFromHeight)));
+  appState.cellSize = Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, Math.min(sizeFromHeight, maxSizeFromWidth)));
   applyCellSize();
 }
 

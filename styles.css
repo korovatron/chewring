@@ -432,7 +432,7 @@ button:disabled {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 8px 20px rgba(10, 6, 30, 0.4);
-  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  transition: box-shadow 140ms ease, background 140ms ease;
 }
 
 .card:hover {
@@ -442,7 +442,6 @@ button:disabled {
     var(--tile-hover-mid) 50%,
     var(--tile-hover-end) 100%
   );
-  transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(10, 6, 30, 0.55);
 }
 

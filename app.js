@@ -398,10 +398,18 @@ function openStateModal(existingStateName = "") {
   document.body.appendChild(els.stateModal);
   els.stateModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:red;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
 
+  // Fresh element test - create a brand new div identical to the probe
+  const freshTest = document.createElement("div");
+  freshTest.style.cssText = "position:fixed;top:0;left:0;width:100%;height:50%;background:blue;z-index:2147483646;display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;";
+  freshTest.textContent = "FRESH DIV";
+  document.body.appendChild(freshTest);
+  setTimeout(() => freshTest.remove(), 5000);
+
   setTimeout(() => {
+    const inlineDisp = els.stateModal.style.display;
     const r = els.stateModal.getBoundingClientRect();
     const cs = window.getComputedStyle(els.stateModal);
-    appState.message = `disp=${cs.display} ${Math.round(r.width)}x${Math.round(r.height)} @${Math.round(r.x)},${Math.round(r.y)}`;
+    appState.message = `inline=${inlineDisp} comp=${cs.display} ${Math.round(r.width)}x${Math.round(r.height)}`;
     updateStatus();
   }, 200);
 

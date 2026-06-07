@@ -151,6 +151,28 @@ const DEFAULT_PROGRAMS = {
       { id: crypto.randomUUID(), current: "su", read: "0", write: "0", move: "R", next: "s0" },
       { id: crypto.randomUUID(), current: "su", read: "1", write: "1", move: "R", next: "s0" }
     ]
+  },
+  "ones-complement": {
+    rows: 2,
+    startState: "go_r",
+    acceptStates: ["sa"],
+    rejectStates: [],
+    head: { row: 0, col: 0 },
+    tapeRows: ["10110", ""],
+    rules: [
+      // Phase 1: scan right to find the end of the binary number on row 1
+      { id: crypto.randomUUID(), current: "go_r", read: "0", write: "0", move: "R", next: "go_r" },
+      { id: crypto.randomUUID(), current: "go_r", read: "1", write: "1", move: "R", next: "go_r" },
+      { id: crypto.randomUUID(), current: "go_r", read: BLANK, write: BLANK, move: "L", next: "back" },
+      // Phase 2: scan left, copy each bit inverted onto row 2
+      { id: crypto.randomUUID(), current: "back", read: "0", write: "0", move: "D", next: "d0" },
+      { id: crypto.randomUUID(), current: "back", read: "1", write: "1", move: "D", next: "d1" },
+      { id: crypto.randomUUID(), current: "back", read: BLANK, write: BLANK, move: "S", next: "sa" },
+      { id: crypto.randomUUID(), current: "d0",   read: BLANK, write: "1", move: "U", next: "ul" },
+      { id: crypto.randomUUID(), current: "d1",   read: BLANK, write: "0", move: "U", next: "ul" },
+      { id: crypto.randomUUID(), current: "ul",   read: "0",   write: "0", move: "L", next: "back" },
+      { id: crypto.randomUUID(), current: "ul",   read: "1",   write: "1", move: "L", next: "back" }
+    ]
   }
 };
 

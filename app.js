@@ -396,7 +396,14 @@ function openStateModal(existingStateName = "") {
 
   appState.modalOpenedAt = performance.now();
   document.body.appendChild(els.stateModal);
-  els.stateModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  els.stateModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:red;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+
+  setTimeout(() => {
+    const r = els.stateModal.getBoundingClientRect();
+    const cs = window.getComputedStyle(els.stateModal);
+    appState.message = `disp=${cs.display} ${Math.round(r.width)}x${Math.round(r.height)} @${Math.round(r.x)},${Math.round(r.y)}`;
+    updateStatus();
+  }, 200);
 
   requestAnimationFrame(() => {
     if (els.stateModal.style.display !== "flex") {

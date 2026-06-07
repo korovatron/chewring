@@ -21,6 +21,12 @@
   --control-bg: #ffffff;
   --control-border: #c9c3b5;
   --control-hover: #f4efe2;
+  --button-top: #5d529e;
+  --button-bottom: #43377f;
+  --button-border: #8478c6;
+  --button-hover-top: #6a60ae;
+  --button-hover-bottom: #4e4291;
+  --button-shadow: rgba(32, 24, 72, 0.42);
 
   --start: #00b7ff;
   --accent: #b3442a;
@@ -70,6 +76,12 @@ body[data-theme="dark"] {
   --control-bg: #24303a;
   --control-border: #3c4b57;
   --control-hover: #2b3944;
+  --button-top: #5e52a6;
+  --button-bottom: #3f347d;
+  --button-border: #8b80d2;
+  --button-hover-top: #7165bc;
+  --button-hover-bottom: #4f4395;
+  --button-shadow: rgba(0, 0, 0, 0.48);
 
   --start: #19b5ff;
   --accent: #ff8f6b;
@@ -327,6 +339,11 @@ button {
   padding: 6px 10px;
   border-radius: 8px;
   cursor: pointer;
+  color: #f7f7ff;
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+  border: 1px solid var(--button-border);
+  box-shadow: 0 4px 10px var(--button-shadow);
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
 select,
@@ -336,13 +353,21 @@ input {
 }
 
 button:hover:not(:disabled):not(.hamburger-btn) {
-  border-color: var(--accent);
-  background: var(--control-hover);
+  border-color: #b8adff;
+  background: linear-gradient(180deg, var(--button-hover-top), var(--button-hover-bottom));
+  box-shadow: 0 6px 14px var(--button-shadow);
+  transform: translateY(-1px);
+}
+
+button:focus-visible:not(.hamburger-btn) {
+  outline: 2px solid #c9c0ff;
+  outline-offset: 2px;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .layout {
@@ -726,6 +751,38 @@ button.tape-cell:hover:not(:disabled) {
 .modal-check input[type="checkbox"] {
   width: 16px;
   height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  margin: 0;
+  border: 2px solid var(--edge-label-badge-border);
+  border-radius: 3px;
+  background: #000000;
+}
+
+.modal-check input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  transform: scale(0);
+  transition: transform 120ms ease-in-out;
+  clip-path: polygon(14% 44%, 0 59%, 41% 100%, 100% 16%, 84% 0, 37% 62%);
+  background: #000000;
+}
+
+.modal-check input[type="checkbox"]:checked {
+  background: #ffea00;
+  border-color: #ffea00;
+}
+
+.modal-check input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.modal-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid #fff3a6;
+  outline-offset: 2px;
 }
 
 .modal-actions {
@@ -733,6 +790,19 @@ button.tape-cell:hover:not(:disabled) {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
+}
+
+.danger-btn {
+  border-color: var(--warn);
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff5a5a, #c92222);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  margin-right: auto;
+}
+
+.danger-btn:hover:not(:disabled) {
+  border-color: #ff9c9c;
+  background: linear-gradient(180deg, #ff6c6c, #d62c2c);
 }
 
 .state-node-group {
@@ -778,7 +848,7 @@ button.tape-cell:hover:not(:disabled) {
   border-radius: 999px;
   font-size: 0.9rem;
   color: var(--ink);
-  background: rgba(0, 0, 0, 0.24);
+  background: #000000;
 }
 
 #stateStartBadge {

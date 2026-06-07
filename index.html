@@ -114,7 +114,7 @@
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stateModalTitle">
           <h3 id="stateModalTitle">State Settings</h3>
           <label for="stateNameInput">State name</label>
-          <input id="stateNameInput" type="text" autocomplete="off" />
+          <input id="stateNameInput" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" spellcheck="false" />
 
           <label class="modal-check">
             <input id="stateIsStart" type="checkbox" />
@@ -130,6 +130,7 @@
           </label>
 
           <div class="modal-actions">
+            <button id="btnStateModalDelete" class="danger-btn" type="button" hidden>Delete</button>
             <button id="btnStateModalCancel" type="button">Cancel</button>
             <button id="btnStateModalSave" type="button">Save</button>
           </div>

@@ -82,6 +82,7 @@ const els = {
   stateIsStart: document.getElementById("stateIsStart"),
   stateIsAccept: document.getElementById("stateIsAccept"),
   stateIsReject: document.getElementById("stateIsReject"),
+  btnStateModalDelete: document.getElementById("btnStateModalDelete"),
   btnStateModalCancel: document.getElementById("btnStateModalCancel"),
   btnStateModalSave: document.getElementById("btnStateModalSave"),
   btnHamburger: document.getElementById("btnHamburger"),
@@ -389,6 +390,7 @@ function openStateModal(existingStateName = "") {
   els.stateIsStart.checked = Boolean(existingStateName && appState.startState === existingStateName);
   els.stateIsAccept.checked = Boolean(existingStateName && appState.acceptStates.includes(existingStateName));
   els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
+  els.btnStateModalDelete.hidden = !existingStateName;
 
   els.stateModal.hidden = false;
   els.stateNameInput.focus();
@@ -398,7 +400,38 @@ function openStateModal(existingStateName = "") {
 function closeStateModal() {
   appState.stateModal.open = false;
   appState.stateModal.originalName = null;
+  els.btnStateModalDelete.hidden = true;
   els.stateModal.hidden = true;
+}
+
+function deleteState(stateName) {
+  const remainingStates = getAvailableStates().filter((state) => state !== stateName);
+  if (remainingStates.length === 0) {
+    appState.message = "Cannot delete the only remaining state.";
+    updateStatus();
+    return;
+  }
+
+  stopRunLoop();
+  appState.rules = appState.rules.filter((rule) => rule.current !== stateName && rule.next !== stateName);
+  appState.states = appState.states.filter((state) => state !== stateName);
+  appState.acceptStates = appState.acceptStates.filter((state) => state !== stateName);
+  appState.rejectStates = appState.rejectStates.filter((state) => state !== stateName);
+
+  const fallbackState = remainingStates[0];
+  if (appState.startState === stateName) {
+    appState.startState = fallbackState;
+  }
+  if (appState.currentState === stateName) {
+    appState.currentState = appState.startState || fallbackState;
+  }
+
+  appState.activeRuleId = null;
+  syncStateRegistry();
+  syncMachineConfigInputs();
+  appState.message = `Deleted state '${stateName}' and removed referenced rules.`;
+  closeStateModal();
+  renderAll();
 }
 
 function saveStateModal() {
@@ -1777,6 +1810,12 @@ function initEvents() {
   });
 
   els.btnStateModalCancel.addEventListener("click", closeStateModal);
+  els.btnStateModalDelete.addEventListener("click", () => {
+    if (!appState.stateModal.originalName) {
+      return;
+    }
+    deleteState(appState.stateModal.originalName);
+  });
   els.btnStateModalSave.addEventListener("click", saveStateModal);
   els.stateModal.addEventListener("click", (event) => {
     if (event.target === els.stateModal) {

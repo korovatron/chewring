@@ -395,41 +395,36 @@ function openStateModal(existingStateName = "") {
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
-  document.body.appendChild(els.stateModal);
-  els.stateModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:red;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
 
-  // Fresh element test - create a brand new div identical to the probe
-  const freshTest = document.createElement("div");
-  freshTest.style.cssText = "position:fixed;top:0;left:0;width:100%;height:50%;background:blue;z-index:2147483646;display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;";
-  freshTest.textContent = "FRESH DIV";
-  document.body.appendChild(freshTest);
-  setTimeout(() => freshTest.remove(), 5000);
-
-  setTimeout(() => {
-    const inlineDisp = els.stateModal.style.display;
-    const r = els.stateModal.getBoundingClientRect();
-    const cs = window.getComputedStyle(els.stateModal);
-    appState.message = `inline=${inlineDisp} comp=${cs.display} ${Math.round(r.width)}x${Math.round(r.height)}`;
-    updateStatus();
-  }, 200);
+  // Create a fresh overlay element - works around iOS 26 Safari bug where
+  // pre-existing elements ignore inline style changes.
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.stateModal.firstElementChild;
+  if (content) overlay.appendChild(content);
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeStateModal();
+  });
+  document.body.appendChild(overlay);
+  appState.stateModalOverlay = overlay;
 
   requestAnimationFrame(() => {
-    if (els.stateModal.style.display !== "flex") {
-      return;
-    }
+    if (!appState.stateModalOverlay) return;
     els.stateNameInput.focus({ preventScroll: true });
   });
 }
 
 function closeStateModal() {
-  // DISABLED FOR DIAGNOSIS - logging close call time
-  const sinceOpen = Math.round(performance.now() - appState.modalOpenedAt);
-  appState.message = `close called ${sinceOpen}ms after open - NOT closing`;
-  updateStatus();
-  // appState.stateModal.open = false;
-  // appState.stateModal.originalName = null;
-  // els.btnStateModalDelete.hidden = true;
-  // els.stateModal.style.display = "none";
+  appState.stateModal.open = false;
+  appState.stateModal.originalName = null;
+  els.btnStateModalDelete.hidden = true;
+  if (appState.stateModalOverlay) {
+    const content = appState.stateModalOverlay.firstElementChild;
+    if (content) els.stateModal.appendChild(content);
+    appState.stateModalOverlay.remove();
+    appState.stateModalOverlay = null;
+  }
 }
 
 
@@ -1745,12 +1740,25 @@ function addRule() {
 
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
-  document.body.appendChild(els.aboutModal);
-  els.aboutModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.aboutModal.firstElementChild;
+  if (content) overlay.appendChild(content);
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeAboutModal();
+  });
+  document.body.appendChild(overlay);
+  appState.aboutModalOverlay = overlay;
 }
 
 function closeAboutModal() {
-  els.aboutModal.style.display = "none";
+  if (appState.aboutModalOverlay) {
+    const content = appState.aboutModalOverlay.firstElementChild;
+    if (content) els.aboutModal.appendChild(content);
+    appState.aboutModalOverlay.remove();
+    appState.aboutModalOverlay = null;
+  }
 }
 
 function bindModalActivate(target, handler) {
@@ -1928,12 +1936,6 @@ function initEvents() {
   });
 
   bindModalActivate(els.btnAboutClose, closeAboutModal);
-  els.aboutModal.addEventListener("click", (event) => {
-    if (performance.now() - appState.modalOpenedAt < 350) {
-      return;
-    }
-    if (event.target === els.aboutModal) closeAboutModal();
-  });
 
   document.addEventListener("click", (event) => {
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
@@ -1988,28 +1990,11 @@ function initEvents() {
     deleteState(appState.stateModal.originalName);
   });
   bindModalActivate(els.btnStateModalSave, saveStateModal);
-  els.stateModal.addEventListener("click", (event) => {
-    if (performance.now() - appState.modalOpenedAt < 350) {
-      return;
-    }
-    if (event.target === els.stateModal) {
-      closeStateModal();
-    }
-  });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (appState.stateModal.open) closeStateModal();
-      if (els.aboutModal.style.display === "flex") closeAboutModal();
+      if (appState.aboutModalOverlay) closeAboutModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
-    }
-  });
-
-  els.stateModal.addEventListener("click", (event) => {
-    if (performance.now() - appState.modalOpenedAt < 350) {
-      return;
-    }
-    if (event.target === els.stateModal) {
-      closeStateModal();
     }
   });
 

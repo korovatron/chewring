@@ -364,6 +364,8 @@ input {
 }
 
 button {
+  appearance: none;
+  -webkit-appearance: none;
   padding: 6px 10px;
   border-radius: 8px;
   cursor: pointer;
@@ -372,6 +374,8 @@ button {
   border: 1px solid var(--button-border);
   box-shadow: 0 4px 10px var(--button-shadow);
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  background-clip: padding-box;
+  -webkit-background-clip: padding-box;
 }
 
 select,
@@ -453,18 +457,49 @@ button:disabled {
 }
 
 .transport-controls {
-  gap: 6px;
+  gap: 7px;
 }
 
 .symbol-btn {
-  min-width: 34px;
-  height: 32px;
-  padding: 0 8px;
+  min-width: 42px;
+  height: 40px;
+  padding: 0 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1rem;
   line-height: 1;
+}
+
+.symbol-btn svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.symbol-btn svg.solid-icon {
+  fill: currentColor;
+  stroke: none;
+}
+
+.symbol-btn svg .solid-icon-shape {
+  fill: currentColor;
+  stroke: none;
+}
+
+.symbol-btn svg path,
+.symbol-btn svg rect {
+  vector-effect: non-scaling-stroke;
+}
+
+.symbol-btn svg.solid-icon path,
+.symbol-btn svg.solid-icon rect {
+  vector-effect: none;
 }
 
 #cellSizeValue {

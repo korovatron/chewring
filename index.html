@@ -69,11 +69,21 @@
         <div class="panel-head">
           <h2>Tape Workspace</h2>
           <div class="panel-actions transport-controls" aria-label="Machine controls">
-            <button id="btnResetTape" class="symbol-btn" title="Reset tape" aria-label="Reset tape" type="button">↺</button>
-            <button id="btnResetMachine" class="symbol-btn" title="Stop and reset machine" aria-label="Stop and reset machine" type="button">⏹</button>
-            <button id="btnStep" class="symbol-btn" title="Step" aria-label="Step" type="button">⏭</button>
-            <button id="btnRun" class="symbol-btn" title="Run" aria-label="Run" type="button">▶</button>
-            <button id="btnPause" class="symbol-btn" title="Pause" aria-label="Pause" type="button" disabled>⏸</button>
+            <button id="btnResetTape" class="symbol-btn" title="Reset tape" aria-label="Reset tape" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 12a5.2 5.2 0 1 1-1.53-3.67"/><path d="M18 5v4h-4"/></svg>
+            </button>
+            <button id="btnResetMachine" class="symbol-btn" title="Stop and reset machine" aria-label="Stop and reset machine" type="button">
+              <svg class="solid-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button id="btnStep" class="symbol-btn" title="Step" aria-label="Step" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l10 6-10 6z" class="solid-icon-shape"/><path d="M18 6v12"/></svg>
+            </button>
+            <button id="btnRun" class="symbol-btn" title="Run" aria-label="Run" type="button">
+              <svg class="solid-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 5l12 7-12 7z"/></svg>
+            </button>
+            <button id="btnPause" class="symbol-btn" title="Pause" aria-label="Pause" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 5v14"/><path d="M17 5v14"/></svg>
+            </button>
           </div>
         </div>
         <div id="tapeViewport" class="tape-viewport"></div>
@@ -85,8 +95,12 @@
           </div>
           <div class="status-tools">
             <span class="status-label">Rows</span>
-            <button id="btnRemoveRow" class="symbol-btn" title="Remove tape row" aria-label="Remove tape row" type="button">−</button>
-            <button id="btnAddRow" class="symbol-btn" title="Add tape row" aria-label="Add tape row" type="button">+</button>
+            <button id="btnRemoveRow" class="symbol-btn" title="Remove tape row" aria-label="Remove tape row" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 12h12"/></svg>
+            </button>
+            <button id="btnAddRow" class="symbol-btn" title="Add tape row" aria-label="Add tape row" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6v12"/><path d="M6 12h12"/></svg>
+            </button>
             <span class="status-tools-sep"></span>
             <label for="cellSizeSlider">Cell size</label>
             <input id="cellSizeSlider" type="range" min="28" max="132" step="2" value="46" />

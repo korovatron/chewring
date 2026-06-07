@@ -395,7 +395,13 @@ function openStateModal(existingStateName = "") {
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
-  els.stateModal.showModal();
+  try {
+    els.stateModal.showModal();
+    appState.message = `dialog.open=${els.stateModal.open}`;
+  } catch (err) {
+    appState.message = `showModal error: ${err.name}: ${err.message}`;
+  }
+  updateStatus();
 
   requestAnimationFrame(() => {
     if (!els.stateModal.open) {

@@ -6,6 +6,7 @@ const HEAD_WRITE_PULSE_MS = 280;
 const CELL_WRITE_MORPH_MS = 280;
 const MOVE_AFTER_WRITE_DELAY_MS = HEAD_WRITE_PULSE_MS;
 const TAPE_ROW_PAD_X = 4;
+const TAPE_ROW_PAD_Y = 3;
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -22,6 +23,7 @@ const appState = {
   running: false,
   runTimer: null,
   tapeViewCol: 0,
+  tapeViewRow: 0,
   tapeDrag: null,
   tapeSnapRaf: null,
   tapeMoveDelayTimer: null,
@@ -29,7 +31,6 @@ const appState = {
   headPulseAnchor: null,
   headPulseRaf: null,
   writeMorph: null,
-  headMode: false,
   activeRuleId: null,
   message: "Ready.",
   rules: [
@@ -46,7 +47,6 @@ const els = {
   programPreset: document.getElementById("programPreset"),
   btnLoadProgram: document.getElementById("btnLoadProgram"),
   btnTheme: document.getElementById("btnTheme"),
-  btnHeadMode: document.getElementById("btnHeadMode"),
   btnAddRow: document.getElementById("btnAddRow"),
   btnRemoveRow: document.getElementById("btnRemoveRow"),
   btnResetTape: document.getElementById("btnResetTape"),
@@ -235,6 +235,7 @@ function cloneRules(rules) {
 
 function syncTapeViewToHead() {
   appState.tapeViewCol = appState.head.col;
+  appState.tapeViewRow = appState.head.row;
 }
 
 function stopTapeSnap() {
@@ -372,9 +373,11 @@ function renderTape() {
   const viewport = els.tapeViewport;
   const width = viewport.clientWidth || 1000;
   const cellPitch = appState.cellSize + 4;
+  const rowPitch = appState.cellSize + TAPE_ROW_PAD_Y * 2;
   const cellsPerRow = Math.max(9, Math.floor(width / cellPitch));
   const half = Math.floor(cellsPerRow / 2);
   const centerCol = Number.isFinite(appState.tapeViewCol) ? appState.tapeViewCol : appState.head.col;
+  const centerRow = Number.isFinite(appState.tapeViewRow) ? appState.tapeViewRow : appState.head.row;
   const anchorCol = Math.round(centerCol);
   const fromCol = anchorCol - half - 1;
   const toCol = anchorCol + half + 1;
@@ -386,12 +389,14 @@ function renderTape() {
   const headCenterXContent = contentWidth / 2;
   const headCenterX = padLeft + headCenterXContent;
   const xOffset = headCenterXContent - (TAPE_ROW_PAD_X + (centerCol - fromCol) * cellPitch + appState.cellSize / 2);
+  const yOffset = (appState.head.row - centerRow) * rowPitch;
 
   appState.minCol = Math.min(appState.minCol, fromCol - 5);
   appState.maxCol = Math.max(appState.maxCol, toCol + 5);
 
   const grid = document.createElement("div");
   grid.className = "tape-grid";
+  grid.style.transform = `translateY(${yOffset}px)`;
 
   for (let r = 0; r < appState.rows; r += 1) {
     const rowEl = document.createElement("div");
@@ -412,7 +417,13 @@ function renderTape() {
     grid.appendChild(rowEl);
   }
 
-  viewport.replaceChildren(grid, buildHeadIndicator(headCenterX));
+  const headIndicator = buildHeadIndicator(headCenterX, centerCol, centerRow);
+  const targetGhost = buildTargetGhost(headCenterX, centerCol, centerRow, Number.parseFloat(headIndicator.style.top) || 0);
+  if (targetGhost) {
+    viewport.replaceChildren(grid, targetGhost, headIndicator);
+    return;
+  }
+  viewport.replaceChildren(grid, headIndicator);
 }
 
 function renderTapeCellContent(cell, row, col, currentSymbol) {
@@ -449,20 +460,20 @@ function renderTapeCellContent(cell, row, col, currentSymbol) {
   cell.appendChild(stack);
 }
 
-function buildHeadIndicator(headCenterX) {
+function buildHeadIndicator(headCenterX, centerCol, centerRow) {
   const indicator = document.createElement("div");
   indicator.className = "tape-head-indicator";
   indicator.style.width = `${appState.cellSize}px`;
   indicator.style.height = `${appState.cellSize}px`;
   indicator.style.left = `${headCenterX - appState.cellSize / 2}px`;
 
-  const rowPitch = appState.cellSize + 6;
+  const rowPitch = appState.cellSize + TAPE_ROW_PAD_Y * 2;
   const viewportStyles = getComputedStyle(els.tapeViewport);
   const padTop = Number.parseFloat(viewportStyles.paddingTop) || 0;
   const padBottom = Number.parseFloat(viewportStyles.paddingBottom) || 0;
   const contentHeight = Math.max(1, els.tapeViewport.clientHeight - padTop - padBottom);
-  const rowsHeight = appState.rows * appState.cellSize + (appState.rows - 1) * 6;
-  const topStart = padTop + Math.max(0, (contentHeight - rowsHeight) / 2);
+  const rowsHeight = appState.rows * rowPitch;
+  const topStart = padTop + (contentHeight - rowsHeight) / 2;
   let indicatorRow = appState.head.row;
 
   const now = performance.now();
@@ -476,9 +487,41 @@ function buildHeadIndicator(headCenterX) {
     indicator.style.borderColor = pulseColour;
     indicator.style.boxShadow = `0 0 0 2px ${pulseColour}66, 0 0 14px ${pulseColour}88`;
   }
-  indicator.style.top = `${topStart + indicatorRow * rowPitch}px`;
+  indicator.style.top = `${topStart + indicatorRow * rowPitch + TAPE_ROW_PAD_Y}px`;
+
+  // Keep diagnostics values for ghost rendering without recomputing layout terms.
+  indicator.dataset.topStart = String(topStart);
+  indicator.dataset.rowPitch = String(rowPitch);
+  indicator.dataset.headCenterX = String(headCenterX);
+  indicator.dataset.centerCol = String(centerCol);
+  indicator.dataset.centerRow = String(centerRow);
 
   return indicator;
+}
+
+function buildTargetGhost(headCenterX, centerCol, centerRow, headTop) {
+  const drag = appState.tapeDrag;
+  if (!drag || !drag.moved) {
+    return null;
+  }
+
+  const targetCol = Math.round(appState.tapeViewCol);
+  const targetRow = Math.max(0, Math.min(appState.rows - 1, Math.round(appState.tapeViewRow)));
+  const colDelta = targetCol - centerCol;
+  const rowDelta = targetRow - centerRow;
+  if (Math.abs(colDelta) < 0.001 && Math.abs(rowDelta) < 0.001) {
+    return null;
+  }
+
+  const cellPitch = appState.cellSize + 4;
+  const rowPitch = appState.cellSize + TAPE_ROW_PAD_Y * 2;
+  const ghost = document.createElement("div");
+  ghost.className = "tape-head-target";
+  ghost.style.width = `${appState.cellSize}px`;
+  ghost.style.height = `${appState.cellSize}px`;
+  ghost.style.left = `${headCenterX - appState.cellSize / 2 + colDelta * cellPitch}px`;
+  ghost.style.top = `${headTop + rowDelta * rowPitch}px`;
+  return ghost;
 }
 
 function cycleTapeCell(row, col) {
@@ -492,23 +535,29 @@ function cycleTapeCell(row, col) {
 function applyHeadFromTapeView() {
   const snapped = Math.round(appState.tapeViewCol);
   appState.head.col = snapped;
+  const snappedRow = Math.max(0, Math.min(appState.rows - 1, Math.round(appState.tapeViewRow)));
+  appState.head.row = snappedRow;
   if (!appState.running) {
     appState.startHead.col = snapped;
+    appState.startHead.row = snappedRow;
   }
 }
 
-function animateTapeSnapTo(col, options = {}) {
+function animateTapeSnapTo(col, row, options = {}) {
   const duration = Math.max(60, Number(options.duration) || 170);
   const updateHead = options.updateHead !== false;
   stopTapeSnap();
   const start = performance.now();
-  const from = appState.tapeViewCol;
-  const to = col;
+  const fromCol = appState.tapeViewCol;
+  const fromRow = Number.isFinite(appState.tapeViewRow) ? appState.tapeViewRow : appState.head.row;
+  const toCol = col;
+  const toRow = row;
 
   const tick = (now) => {
     const t = Math.min(1, (now - start) / duration);
     const eased = 1 - (1 - t) ** 3;
-    appState.tapeViewCol = from + (to - from) * eased;
+    appState.tapeViewCol = fromCol + (toCol - fromCol) * eased;
+    appState.tapeViewRow = fromRow + (toRow - fromRow) * eased;
     if (updateHead) {
       applyHeadFromTapeView();
     }
@@ -518,7 +567,8 @@ function animateTapeSnapTo(col, options = {}) {
       appState.tapeSnapRaf = requestAnimationFrame(tick);
       return;
     }
-    appState.tapeViewCol = to;
+    appState.tapeViewCol = toCol;
+    appState.tapeViewRow = toRow;
     if (updateHead) {
       applyHeadFromTapeView();
     }
@@ -530,24 +580,30 @@ function animateTapeSnapTo(col, options = {}) {
   appState.tapeSnapRaf = requestAnimationFrame(tick);
 }
 
-function animateTapeToHead(duration = 220) {
+function animateTapeToHead(duration = 220, options = {}) {
+  const includeRow = options.includeRow !== false;
   const targetCol = appState.head.col;
-  if (Math.abs(appState.tapeViewCol - targetCol) < 0.001) {
+  if (!includeRow) {
+    appState.tapeViewRow = appState.head.row;
+  }
+  const targetRow = includeRow ? appState.head.row : appState.tapeViewRow;
+  if (Math.abs(appState.tapeViewCol - targetCol) < 0.001 && Math.abs(appState.tapeViewRow - targetRow) < 0.001) {
     appState.tapeViewCol = targetCol;
+    appState.tapeViewRow = targetRow;
     return;
   }
-  animateTapeSnapTo(targetCol, { duration, updateHead: false });
+  animateTapeSnapTo(targetCol, targetRow, { duration, updateHead: false });
 }
 
-function scheduleTapeMoveToHead(delayMs, duration) {
+function scheduleTapeMoveToHead(delayMs, duration, options = {}) {
   clearTapeMoveDelay();
   if (delayMs <= 0) {
-    animateTapeToHead(duration);
+    animateTapeToHead(duration, options);
     return;
   }
   appState.tapeMoveDelayTimer = setTimeout(() => {
     appState.tapeMoveDelayTimer = null;
-    animateTapeToHead(duration);
+    animateTapeToHead(duration, options);
   }, delayMs);
 }
 
@@ -558,14 +614,7 @@ function handleTapeCellActivate(cell) {
   const row = Number(cell.dataset.row);
   const col = Number(cell.dataset.col);
 
-  if (appState.headMode) {
-    appState.head = { row, col };
-    appState.startHead = { row, col };
-    syncTapeViewToHead();
-    appState.message = `Head start set to r${row}, c${col}.`;
-  } else {
-    cycleTapeCell(row, col);
-  }
+  cycleTapeCell(row, col);
 
   renderTape();
   updateStatus();
@@ -583,7 +632,9 @@ function initTapeInteractions() {
     appState.tapeDrag = {
       pointerId: event.pointerId,
       startX: event.clientX,
+      startY: event.clientY,
       startCol: appState.tapeViewCol,
+      startRow: Number.isFinite(appState.tapeViewRow) ? appState.tapeViewRow : appState.head.row,
       moved: false,
       pressedCell: cell || null
     };
@@ -598,15 +649,23 @@ function initTapeInteractions() {
       return;
     }
     const dx = event.clientX - drag.startX;
-    if (!drag.moved && Math.abs(dx) >= DRAG_THRESHOLD_PX) {
-      drag.moved = true;
+    const dy = event.clientY - drag.startY;
+
+    if (!drag.moved) {
+      if (Math.hypot(dx, dy) >= DRAG_THRESHOLD_PX) {
+        drag.moved = true;
+      }
     }
+
     if (!drag.moved) {
       return;
     }
+
     const cellPitch = appState.cellSize + 4;
+    const rowPitch = appState.cellSize + TAPE_ROW_PAD_Y * 2;
     appState.tapeViewCol = drag.startCol - dx / cellPitch;
-    applyHeadFromTapeView();
+    appState.tapeViewRow = appState.rows > 1 ? drag.startRow - dy / rowPitch : appState.head.row;
+
     renderTape();
     updateStatus();
   });
@@ -622,7 +681,11 @@ function initTapeInteractions() {
     viewport.classList.remove("dragging");
 
     if (!cancelled && drag.moved) {
-      animateTapeSnapTo(Math.round(appState.tapeViewCol));
+      appState.head.col = Math.round(appState.tapeViewCol);
+      appState.head.row = Math.max(0, Math.min(appState.rows - 1, Math.round(appState.tapeViewRow)));
+      appState.startHead = { ...appState.head };
+      animateTapeToHead(220);
+      updateStatus();
     } else if (!cancelled && drag.pressedCell) {
       const cell = event.target.closest(".tape-cell") || drag.pressedCell;
       handleTapeCellActivate(cell);
@@ -874,12 +937,14 @@ function machineStep() {
   }
   setSymbol(writeRow, writeCol, rule.write);
   applyMove(rule.move);
+  // Machine-driven U/D movement should move the head marker, not vertically shift the tape sheet.
+  appState.tapeViewRow = appState.head.row;
   appState.currentState = rule.next;
   appState.steps += 1;
   if (wroteChanged) {
-    scheduleTapeMoveToHead(MOVE_AFTER_WRITE_DELAY_MS, appState.running ? 240 : 200);
+    scheduleTapeMoveToHead(MOVE_AFTER_WRITE_DELAY_MS, appState.running ? 180 : 200, { includeRow: false });
   } else {
-    scheduleTapeMoveToHead(0, appState.running ? 240 : 200);
+    scheduleTapeMoveToHead(0, appState.running ? 180 : 200, { includeRow: false });
   }
 
   if (appState.acceptStates.includes(appState.currentState)) {
@@ -901,11 +966,37 @@ function runLoopTick() {
   if (!appState.running) {
     return;
   }
+
+  // Keep execution and tape motion in lockstep to avoid mid-animation jumps.
+  if (appState.tapeMoveDelayTimer || appState.tapeSnapRaf) {
+    return;
+  }
+
   machineStep();
-  renderAll();
+
+  if (appState.tapeMoveDelayTimer || appState.tapeSnapRaf) {
+    // Tape movement/pulse loop will render tape frames; update non-tape visuals now.
+    renderRulesTable();
+    renderDiagram();
+    updateStatus();
+  } else {
+    renderAll();
+  }
+
   if (!appState.running) {
     stopRunLoop();
   }
+}
+
+function applyStepWithVisuals() {
+  machineStep();
+  if (appState.tapeMoveDelayTimer || appState.tapeSnapRaf) {
+    renderRulesTable();
+    renderDiagram();
+    updateStatus();
+    return;
+  }
+  renderAll();
 }
 
 function startRunLoop() {
@@ -1226,11 +1317,6 @@ function initEvents() {
     { passive: false }
   );
 
-  els.btnHeadMode.addEventListener("click", () => {
-    appState.headMode = !appState.headMode;
-    els.btnHeadMode.textContent = appState.headMode ? "Head: On" : "Head: Off";
-  });
-
   els.btnAddRow.addEventListener("click", () => {
     appState.rows += 1;
     autoFitCellSize();
@@ -1270,8 +1356,7 @@ function initEvents() {
       appState.activeRuleId = null;
     }
     updateMachineConfigFromInputs();
-    machineStep();
-    renderAll();
+    applyStepWithVisuals();
   });
 
   els.btnRun.addEventListener("click", () => {

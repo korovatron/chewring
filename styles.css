@@ -250,7 +250,7 @@ button:disabled {
 .tape-grid {
   width: 100%;
   display: grid;
-  gap: 6px;
+  gap: 0;
 }
 
 .tape-row {
@@ -260,7 +260,7 @@ button:disabled {
   gap: 4px;
   width: max-content;
   padding: 3px 4px;
-  border-radius: 7px;
+  border-radius: 0;
   background:
     repeating-linear-gradient(
       0deg,
@@ -270,7 +270,17 @@ button:disabled {
       transparent 7px
     ),
     linear-gradient(180deg, var(--tape-paper-top), var(--tape-paper-bottom));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 1px 2px var(--tape-paper-shadow);
+  box-shadow: none;
+}
+
+.tape-grid .tape-row:first-child {
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+}
+
+.tape-grid .tape-row:last-child {
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
 }
 
 .tape-cell {
@@ -334,6 +344,19 @@ button.tape-cell:hover:not(:disabled) {
   transition: border-color 80ms linear, box-shadow 80ms linear;
   pointer-events: none;
   z-index: 2;
+  box-sizing: border-box;
+}
+
+.tape-head-target {
+  position: absolute;
+  color: var(--head);
+  border: 2px dashed currentColor;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px currentColor;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 1;
   box-sizing: border-box;
 }
 

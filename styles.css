@@ -1079,3 +1079,36 @@ tr.active-rule {
     grid-template-rows: 1fr 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .app-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .layout {
+    grid-template-rows: auto auto auto;
+    flex: none;
+  }
+
+  .tape-panel {
+    min-height: 220px;
+    height: 220px;
+  }
+
+  .bottom-row {
+    grid-template-rows: auto auto;
+    grid-template-columns: 1fr;
+  }
+
+  .rules-panel {
+    min-height: 240px;
+    height: 240px;
+  }
+
+  .diagram-panel {
+    min-height: 260px;
+    height: 260px;
+  }
+}

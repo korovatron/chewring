@@ -784,11 +784,14 @@ button.tape-cell:hover:not(:disabled) {
   z-index: 1000;
   padding: 16px;
   overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
-.modal-backdrop[hidden] {
-  display: none;
+.modal-backdrop.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal {

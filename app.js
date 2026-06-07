@@ -393,14 +393,14 @@ function openStateModal(existingStateName = "") {
   els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
   els.btnStateModalDelete.hidden = !existingStateName;
 
-  els.stateModal.hidden = false;
+  els.stateModal.classList.add("visible");
 }
 
 function closeStateModal() {
   appState.stateModal.open = false;
   appState.stateModal.originalName = null;
   els.btnStateModalDelete.hidden = true;
-  els.stateModal.hidden = true;
+  els.stateModal.classList.remove("visible");
 }
 
 function deleteState(stateName) {
@@ -1714,11 +1714,11 @@ function addRule() {
 }
 
 function openAboutModal() {
-  els.aboutModal.hidden = false;
+  els.aboutModal.classList.add("visible");
 }
 
 function closeAboutModal() {
-  els.aboutModal.hidden = true;
+  els.aboutModal.classList.remove("visible");
 }
 
 function bindTap(target, handler) {

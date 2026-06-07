@@ -1,6 +1,6 @@
 const BLANK = "□";
 const LEGACY_BLANK = "_";
-const TAPE_SYMBOL_CYCLE = ["0", "1", BLANK, "#", "X"];
+const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X"];
 const DRAG_THRESHOLD_PX = 6;
 const HEAD_WRITE_PULSE_MS = 280;
 const CELL_WRITE_MORPH_MS = 280;
@@ -31,6 +31,7 @@ const appState = {
   headPulseAnchor: null,
   headPulseRaf: null,
   writeMorph: null,
+  lastPlacedSymbol: "0",
   activeRuleId: null,
   message: "Ready.",
   rules: [
@@ -529,7 +530,15 @@ function cycleTapeCell(row, col) {
   const index = TAPE_SYMBOL_CYCLE.indexOf(current);
   const next = TAPE_SYMBOL_CYCLE[(index + 1 + TAPE_SYMBOL_CYCLE.length) % TAPE_SYMBOL_CYCLE.length] || TAPE_SYMBOL_CYCLE[0];
   setSymbol(row, col, next);
+  appState.lastPlacedSymbol = normalizeSymbol(next);
   appState.message = `Set r${row}, c${col} to '${symbolForDisplay(next)}'.`;
+}
+
+function placeRememberedSymbol(row, col) {
+  const symbol = normalizeSymbol(appState.lastPlacedSymbol) || "0";
+  setSymbol(row, col, symbol);
+  appState.lastPlacedSymbol = symbol;
+  appState.message = `Set r${row}, c${col} to remembered '${symbolForDisplay(symbol)}'.`;
 }
 
 function applyHeadFromTapeView() {
@@ -622,6 +631,19 @@ function handleTapeCellActivate(cell) {
 
 function initTapeInteractions() {
   const viewport = els.tapeViewport;
+
+  viewport.addEventListener("contextmenu", (event) => {
+    const cell = event.target.closest(".tape-cell");
+    if (!cell || appState.running) {
+      return;
+    }
+    event.preventDefault();
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    placeRememberedSymbol(row, col);
+    renderTape();
+    updateStatus();
+  });
 
   viewport.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || appState.running) {
@@ -1125,19 +1147,20 @@ function renderDiagram() {
       let labelY = (from.y + to.y) / 2 - 4 + index * 14;
 
       if (isSelfLoop) {
-        const loopDepth = 46 + index * 10;
-        const loopSpread = 44 + index * 6;
+        const sideLevel = Math.floor(index / 2);
+        const loopDepth = 46 + sideLevel * 12;
+        const loopSpread = 44 + sideLevel * 8;
         const spaceLeft = from.x;
         const spaceRight = diagramWidth - from.x;
-        const drawRight = spaceRight >= spaceLeft;
-        const side = drawRight ? 1 : -1;
+        const preferredSide = spaceRight >= spaceLeft ? 1 : -1;
+        const side = index % 2 === 0 ? preferredSide : -preferredSide;
         const loopPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
         loopPath.setAttribute(
           "d",
           `M ${from.x + side * nodeRadius} ${from.y - 16} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * nodeRadius} ${from.y + 16}`
         );
         labelX = from.x + side * (nodeRadius + loopDepth + 24);
-        labelY = from.y + 4 + index * 12;
+        labelY = from.y + 4 + sideLevel * 12;
         loopPath.setAttribute("class", "edge");
         loopPath.setAttribute("marker-end", "url(#arrow)");
 

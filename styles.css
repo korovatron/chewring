@@ -252,6 +252,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   width: var(--tape-cell-size);
   height: var(--tape-cell-size);
   font-weight: 700;
@@ -263,6 +264,23 @@ button:disabled {
   border-radius: 6px;
   user-select: none;
   cursor: pointer;
+}
+
+.cell-symbol-stack {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.cell-symbol {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 60ms linear;
 }
 
 .tape-cell:hover {
@@ -278,6 +296,8 @@ button:disabled {
   position: absolute;
   border: 3px solid var(--head);
   border-radius: 6px;
+  box-shadow: none;
+  transition: border-color 80ms linear, box-shadow 80ms linear;
   pointer-events: none;
   z-index: 2;
   box-sizing: border-box;

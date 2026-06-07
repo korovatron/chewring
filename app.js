@@ -2,6 +2,9 @@ const BLANK = "□";
 const LEGACY_BLANK = "_";
 const TAPE_SYMBOL_CYCLE = ["0", "1", BLANK, "#", "X"];
 const DRAG_THRESHOLD_PX = 6;
+const HEAD_WRITE_PULSE_MS = 280;
+const CELL_WRITE_MORPH_MS = 280;
+const MOVE_AFTER_WRITE_DELAY_MS = HEAD_WRITE_PULSE_MS;
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -20,6 +23,11 @@ const appState = {
   tapeViewCol: 0,
   tapeDrag: null,
   tapeSnapRaf: null,
+  tapeMoveDelayTimer: null,
+  headWritePulseUntil: 0,
+  headPulseAnchor: null,
+  headPulseRaf: null,
+  writeMorph: null,
   headMode: false,
   activeRuleId: null,
   message: "Ready.",
@@ -231,6 +239,79 @@ function stopTapeSnap() {
   appState.tapeSnapRaf = null;
 }
 
+function clearTapeMoveDelay() {
+  if (!appState.tapeMoveDelayTimer) {
+    return;
+  }
+  clearTimeout(appState.tapeMoveDelayTimer);
+  appState.tapeMoveDelayTimer = null;
+}
+
+function rgbPulseColour(progress) {
+  const p = Math.max(0, Math.min(1, progress));
+  if (p < 1 / 3) {
+    return "#ff4d4d";
+  }
+  if (p < 2 / 3) {
+    return "#3ad16a";
+  }
+  return "#4da3ff";
+}
+
+function stopHeadPulse() {
+  if (appState.headPulseRaf) {
+    cancelAnimationFrame(appState.headPulseRaf);
+    appState.headPulseRaf = null;
+  }
+  appState.headWritePulseUntil = 0;
+  appState.headPulseAnchor = null;
+  appState.writeMorph = null;
+}
+
+function isVisualAnimationActive() {
+  const now = performance.now();
+  const pulseActive = now < appState.headWritePulseUntil;
+  const morphActive = appState.writeMorph && now < appState.writeMorph.until;
+  return pulseActive || morphActive;
+}
+
+function startHeadPulseLoop() {
+  if (appState.headPulseRaf) {
+    return;
+  }
+  const tick = () => {
+    renderTape();
+    if (isVisualAnimationActive()) {
+      appState.headPulseRaf = requestAnimationFrame(tick);
+      return;
+    }
+    appState.headPulseRaf = null;
+    appState.headWritePulseUntil = 0;
+    appState.headPulseAnchor = null;
+    appState.writeMorph = null;
+    renderTape();
+  };
+  appState.headPulseRaf = requestAnimationFrame(tick);
+}
+
+function triggerHeadWritePulse(row, col) {
+  appState.headWritePulseUntil = performance.now() + HEAD_WRITE_PULSE_MS;
+  appState.headPulseAnchor = { row, col };
+  startHeadPulseLoop();
+}
+
+function triggerCellWriteMorph(row, col, fromSymbol, toSymbol) {
+  appState.writeMorph = {
+    row,
+    col,
+    fromSymbol: symbolForDisplay(fromSymbol),
+    toSymbol: symbolForDisplay(toSymbol),
+    startedAt: performance.now(),
+    until: performance.now() + CELL_WRITE_MORPH_MS
+  };
+  startHeadPulseLoop();
+}
+
 function loadSelectedProgram() {
   const preset = DEFAULT_PROGRAMS[els.programPreset.value];
   if (!preset) {
@@ -317,7 +398,7 @@ function renderTape() {
       cell.type = "button";
       cell.className = "tape-cell";
       const symbol = getSymbol(r, c);
-      cell.textContent = symbolForDisplay(symbol);
+      renderTapeCellContent(cell, r, c, symbolForDisplay(symbol));
       cell.dataset.row = String(r);
       cell.dataset.col = String(c);
       rowEl.appendChild(cell);
@@ -327,6 +408,40 @@ function renderTape() {
   }
 
   viewport.replaceChildren(grid, buildHeadIndicator(headCenterX));
+}
+
+function renderTapeCellContent(cell, row, col, currentSymbol) {
+  const morph = appState.writeMorph;
+  if (!morph || morph.row !== row || morph.col !== col || morph.fromSymbol === morph.toSymbol) {
+    cell.textContent = currentSymbol;
+    return;
+  }
+
+  const now = performance.now();
+  const span = Math.max(1, morph.until - morph.startedAt);
+  const progress = Math.max(0, Math.min(1, (now - morph.startedAt) / span));
+  const pulseColour = rgbPulseColour(progress);
+
+  const stack = document.createElement("span");
+  stack.className = "cell-symbol-stack";
+
+  const oldSymbol = document.createElement("span");
+  oldSymbol.className = "cell-symbol old";
+  oldSymbol.textContent = morph.fromSymbol;
+  oldSymbol.style.opacity = String(1 - progress);
+  oldSymbol.style.color = pulseColour;
+  oldSymbol.style.textShadow = `0 0 6px ${pulseColour}66`;
+
+  const newSymbol = document.createElement("span");
+  newSymbol.className = "cell-symbol new";
+  newSymbol.textContent = morph.toSymbol;
+  newSymbol.style.opacity = String(progress);
+  newSymbol.style.color = pulseColour;
+  newSymbol.style.textShadow = `0 0 8px ${pulseColour}99`;
+
+  stack.appendChild(oldSymbol);
+  stack.appendChild(newSymbol);
+  cell.appendChild(stack);
 }
 
 function buildHeadIndicator(headCenterX) {
@@ -343,7 +458,21 @@ function buildHeadIndicator(headCenterX) {
   const contentHeight = Math.max(1, els.tapeViewport.clientHeight - padTop - padBottom);
   const rowsHeight = appState.rows * appState.cellSize + (appState.rows - 1) * 6;
   const topStart = padTop + Math.max(0, (contentHeight - rowsHeight) / 2);
-  indicator.style.top = `${topStart + appState.head.row * rowPitch}px`;
+  let indicatorRow = appState.head.row;
+
+  const now = performance.now();
+  const remaining = appState.headWritePulseUntil - now;
+  if (remaining > 0) {
+    if (appState.headPulseAnchor) {
+      indicatorRow = appState.headPulseAnchor.row;
+    }
+    const progress = 1 - remaining / HEAD_WRITE_PULSE_MS;
+    const pulseColour = rgbPulseColour(progress);
+    indicator.style.borderColor = pulseColour;
+    indicator.style.boxShadow = `0 0 0 2px ${pulseColour}66, 0 0 14px ${pulseColour}88`;
+  }
+  indicator.style.top = `${topStart + indicatorRow * rowPitch}px`;
+
   return indicator;
 }
 
@@ -363,18 +492,21 @@ function applyHeadFromTapeView() {
   }
 }
 
-function animateTapeSnapTo(col) {
+function animateTapeSnapTo(col, options = {}) {
+  const duration = Math.max(60, Number(options.duration) || 170);
+  const updateHead = options.updateHead !== false;
   stopTapeSnap();
   const start = performance.now();
   const from = appState.tapeViewCol;
   const to = col;
-  const duration = 170;
 
   const tick = (now) => {
     const t = Math.min(1, (now - start) / duration);
     const eased = 1 - (1 - t) ** 3;
     appState.tapeViewCol = from + (to - from) * eased;
-    applyHeadFromTapeView();
+    if (updateHead) {
+      applyHeadFromTapeView();
+    }
     renderTape();
     updateStatus();
     if (t < 1) {
@@ -382,13 +514,36 @@ function animateTapeSnapTo(col) {
       return;
     }
     appState.tapeViewCol = to;
-    applyHeadFromTapeView();
+    if (updateHead) {
+      applyHeadFromTapeView();
+    }
     appState.tapeSnapRaf = null;
     renderTape();
     updateStatus();
   };
 
   appState.tapeSnapRaf = requestAnimationFrame(tick);
+}
+
+function animateTapeToHead(duration = 220) {
+  const targetCol = appState.head.col;
+  if (Math.abs(appState.tapeViewCol - targetCol) < 0.001) {
+    appState.tapeViewCol = targetCol;
+    return;
+  }
+  animateTapeSnapTo(targetCol, { duration, updateHead: false });
+}
+
+function scheduleTapeMoveToHead(delayMs, duration) {
+  clearTapeMoveDelay();
+  if (delayMs <= 0) {
+    animateTapeToHead(duration);
+    return;
+  }
+  appState.tapeMoveDelayTimer = setTimeout(() => {
+    appState.tapeMoveDelayTimer = null;
+    animateTapeToHead(duration);
+  }, delayMs);
 }
 
 function handleTapeCellActivate(cell) {
@@ -419,16 +574,13 @@ function initTapeInteractions() {
       return;
     }
     const cell = event.target.closest(".tape-cell");
-    if (!cell) {
-      return;
-    }
     stopTapeSnap();
     appState.tapeDrag = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startCol: appState.tapeViewCol,
       moved: false,
-      pressedCell: cell
+      pressedCell: cell || null
     };
     viewport.classList.add("dragging");
     viewport.setPointerCapture(event.pointerId);
@@ -466,7 +618,7 @@ function initTapeInteractions() {
 
     if (!cancelled && drag.moved) {
       animateTapeSnapTo(Math.round(appState.tapeViewCol));
-    } else if (!cancelled) {
+    } else if (!cancelled && drag.pressedCell) {
       const cell = event.target.closest(".tape-cell") || drag.pressedCell;
       handleTapeCellActivate(cell);
     }
@@ -706,11 +858,24 @@ function machineStep() {
   const found = appState.rules.find((r) => r.id === rule.id || (r.current === rule.current && r.read === rule.read && r.write === rule.write && r.move === rule.move && r.next === rule.next));
   appState.activeRuleId = found ? found.id : null;
 
-  setSymbol(appState.head.row, appState.head.col, rule.write);
+  const writeRow = appState.head.row;
+  const writeCol = appState.head.col;
+  const currentSymbol = getSymbol(writeRow, writeCol);
+  const nextSymbol = normalizeSymbol(rule.write);
+  const wroteChanged = nextSymbol !== normalizeSymbol(currentSymbol);
+  if (wroteChanged) {
+    triggerHeadWritePulse(writeRow, writeCol);
+    triggerCellWriteMorph(writeRow, writeCol, currentSymbol, nextSymbol);
+  }
+  setSymbol(writeRow, writeCol, rule.write);
   applyMove(rule.move);
   appState.currentState = rule.next;
   appState.steps += 1;
-  syncTapeViewToHead();
+  if (wroteChanged) {
+    scheduleTapeMoveToHead(MOVE_AFTER_WRITE_DELAY_MS, appState.running ? 240 : 200);
+  } else {
+    scheduleTapeMoveToHead(0, appState.running ? 240 : 200);
+  }
 
   if (appState.acceptStates.includes(appState.currentState)) {
     appState.message = `Accepted in ${appState.currentState} after ${appState.steps} steps.`;
@@ -748,6 +913,7 @@ function startRunLoop() {
 
 function stopRunLoop() {
   appState.running = false;
+  clearTapeMoveDelay();
   if (appState.runTimer) {
     clearInterval(appState.runTimer);
     appState.runTimer = null;
@@ -757,6 +923,8 @@ function stopRunLoop() {
 function resetMachine() {
   stopRunLoop();
   stopTapeSnap();
+  stopHeadPulse();
+  clearTapeMoveDelay();
   updateMachineConfigFromInputs();
   appState.currentState = appState.startState;
   appState.head = { ...appState.startHead };
@@ -769,6 +937,8 @@ function resetMachine() {
 
 function resetTape() {
   stopTapeSnap();
+  stopHeadPulse();
+  clearTapeMoveDelay();
   appState.tape.clear();
   appState.head = { row: 0, col: 0 };
   appState.startHead = { row: 0, col: 0 };
@@ -1085,12 +1255,30 @@ function initEvents() {
 
   els.btnStep.addEventListener("click", () => {
     stopRunLoop();
+    if (appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState)) {
+      stopTapeSnap();
+      stopHeadPulse();
+      appState.currentState = appState.startState;
+      appState.head = { ...appState.startHead };
+      syncTapeViewToHead();
+      appState.steps = 0;
+      appState.activeRuleId = null;
+    }
     updateMachineConfigFromInputs();
     machineStep();
     renderAll();
   });
 
   els.btnRun.addEventListener("click", () => {
+    if (appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState)) {
+      stopTapeSnap();
+      stopHeadPulse();
+      appState.currentState = appState.startState;
+      appState.head = { ...appState.startHead };
+      syncTapeViewToHead();
+      appState.steps = 0;
+      appState.activeRuleId = null;
+    }
     updateMachineConfigFromInputs();
     startRunLoop();
     renderAll();

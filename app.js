@@ -1869,6 +1869,14 @@ function init() {
   autoFitCellSize();
   initEvents();
   renderAll();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {
+        // Ignore registration failures so the app still runs normally.
+      });
+    });
+  }
 }
 
 init();

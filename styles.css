@@ -159,7 +159,7 @@ textarea {
 }
 
 body.modal-open .app-shell {
-  visibility: hidden;
+  pointer-events: none;
 }
 
 .top-bar {
@@ -781,9 +781,7 @@ button.tape-cell:hover:not(:disabled) {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  display: block;
   background: rgba(0, 0, 0, 0.7);
   z-index: 1000;
   padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
@@ -797,6 +795,9 @@ button.tape-cell:hover:not(:disabled) {
 
 .modal {
   width: min(420px, calc(100vw - 24px));
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%) translateZ(0);
   margin-top: 0;
   padding: 14px;
   border-radius: 10px;
@@ -810,7 +811,6 @@ button.tape-cell:hover:not(:disabled) {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  transform: translateZ(0);
 }
 
 .modal h3 {

@@ -1732,6 +1732,16 @@ function closeAboutModal() {
   }
 }
 
+function handleBackdropDismiss(backdrop, closeFn, event) {
+  if (event.target !== backdrop) {
+    return;
+  }
+  if (performance.now() - appState.modalOpenedAt < 300) {
+    return;
+  }
+  closeFn();
+}
+
 function bindTap(target, handler) {
   if (!target) {
     return;
@@ -1860,12 +1870,9 @@ function initEvents() {
   });
 
   bindTap(els.btnAboutClose, closeAboutModal);
-  els.aboutModal.addEventListener("click", (event) => {
-    if (performance.now() - appState.modalOpenedAt < 1200) {
-      return;
-    }
-    if (event.target === els.aboutModal) closeAboutModal();
-  });
+  els.aboutModal.addEventListener("pointerup", (event) => handleBackdropDismiss(els.aboutModal, closeAboutModal, event));
+  els.aboutModal.addEventListener("touchend", (event) => handleBackdropDismiss(els.aboutModal, closeAboutModal, event), { passive: true });
+  els.aboutModal.addEventListener("click", (event) => handleBackdropDismiss(els.aboutModal, closeAboutModal, event));
 
   document.addEventListener("click", (event) => {
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
@@ -1920,14 +1927,9 @@ function initEvents() {
     deleteState(appState.stateModal.originalName);
   });
   bindTap(els.btnStateModalSave, saveStateModal);
-  els.stateModal.addEventListener("click", (event) => {
-    if (performance.now() - appState.modalOpenedAt < 1200) {
-      return;
-    }
-    if (event.target === els.stateModal) {
-      closeStateModal();
-    }
-  });
+  els.stateModal.addEventListener("pointerup", (event) => handleBackdropDismiss(els.stateModal, closeStateModal, event));
+  els.stateModal.addEventListener("touchend", (event) => handleBackdropDismiss(els.stateModal, closeStateModal, event), { passive: true });
+  els.stateModal.addEventListener("click", (event) => handleBackdropDismiss(els.stateModal, closeStateModal, event));
   els.stateNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();

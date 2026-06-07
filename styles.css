@@ -18,8 +18,14 @@
 
   --cell: #fffdf8;
   --cell-border: #d8d1c3;
+  --tape-ink: #17202a;
+  --tape-cell-hover-border: #6f5319;
+  --tape-paper-top: #fff6df;
+  --tape-paper-bottom: #f3e8cb;
+  --tape-paper-fibre: rgba(145, 120, 74, 0.11);
+  --tape-paper-shadow: rgba(85, 64, 35, 0.09);
   --read-bg: #fff2b3;
-  --head: #1261a0;
+  --head: #0d4f86;
   --tape-cell-size: 46px;
 
   --table-head: #f7f2e7;
@@ -60,8 +66,14 @@ body[data-theme="dark"] {
 
   --cell: #24303a;
   --cell-border: #42505c;
+  --tape-ink: #1e252c;
+  --tape-cell-hover-border: #5c430f;
+  --tape-paper-top: #e5d9be;
+  --tape-paper-bottom: #d6c7a8;
+  --tape-paper-fibre: rgba(102, 84, 54, 0.12);
+  --tape-paper-shadow: rgba(0, 0, 0, 0.3);
   --read-bg: #5e4d1a;
-  --head: #7ec3ff;
+  --head: #0f3f6b;
 
   --table-head: #28343e;
   --table-row-border: #33414d;
@@ -246,6 +258,19 @@ button:disabled {
   grid-auto-flow: column;
   grid-auto-columns: var(--tape-cell-size);
   gap: 4px;
+  width: max-content;
+  padding: 3px 4px;
+  border-radius: 7px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 5px,
+      var(--tape-paper-fibre) 6px,
+      transparent 7px
+    ),
+    linear-gradient(180deg, var(--tape-paper-top), var(--tape-paper-bottom));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 1px 2px var(--tape-paper-shadow);
 }
 
 .tape-cell {
@@ -259,9 +284,11 @@ button:disabled {
   font-size: clamp(1rem, calc(var(--tape-cell-size) * 0.52), 3.4rem);
   line-height: 1;
   border: 1px solid var(--cell-border);
-  background: var(--cell);
-  color: var(--ink);
+  background: transparent;
+  color: var(--tape-ink);
   border-radius: 6px;
+  box-shadow: inset 0 0 0 0 transparent;
+  transition: border-color 90ms linear, box-shadow 90ms linear;
   user-select: none;
   cursor: pointer;
 }
@@ -283,8 +310,12 @@ button:disabled {
   transition: opacity 60ms linear;
 }
 
-.tape-cell:hover {
-  border-color: var(--accent);
+button.tape-cell:hover:not(:disabled) {
+  border-color: var(--tape-cell-hover-border);
+  background: transparent;
+  outline: 2px solid var(--tape-cell-hover-border);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px var(--tape-cell-hover-border);
 }
 
 .tape-cell.head {
@@ -294,9 +325,12 @@ button:disabled {
 
 .tape-head-indicator {
   position: absolute;
-  border: 3px solid var(--head);
+  border: 4px solid var(--head);
   border-radius: 6px;
-  box-shadow: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 0 0 2px rgba(8, 18, 28, 0.35),
+    0 0 16px rgba(13, 79, 134, 0.35);
   transition: border-color 80ms linear, box-shadow 80ms linear;
   pointer-events: none;
   z-index: 2;

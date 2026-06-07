@@ -5,6 +5,7 @@ const DRAG_THRESHOLD_PX = 6;
 const HEAD_WRITE_PULSE_MS = 280;
 const CELL_WRITE_MORPH_MS = 280;
 const MOVE_AFTER_WRITE_DELAY_MS = HEAD_WRITE_PULSE_MS;
+const TAPE_ROW_PAD_X = 4;
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -153,6 +154,11 @@ function normalizeSymbol(symbol) {
 function symbolForDisplay(symbol) {
   const clean = normalizeSymbol(symbol);
   return clean || BLANK;
+}
+
+function symbolForTape(symbol) {
+  const display = symbolForDisplay(symbol);
+  return display === BLANK ? "" : display;
 }
 
 function getSymbol(row, col) {
@@ -304,8 +310,8 @@ function triggerCellWriteMorph(row, col, fromSymbol, toSymbol) {
   appState.writeMorph = {
     row,
     col,
-    fromSymbol: symbolForDisplay(fromSymbol),
-    toSymbol: symbolForDisplay(toSymbol),
+    fromSymbol: symbolForTape(fromSymbol),
+    toSymbol: symbolForTape(toSymbol),
     startedAt: performance.now(),
     until: performance.now() + CELL_WRITE_MORPH_MS
   };
@@ -334,7 +340,6 @@ function loadSelectedProgram() {
   appState.rules = cloneRules(preset.rules);
 
   loadTapeRows(preset.tapeRows);
-  autoFitCellSize();
 
   els.startState.value = appState.startState;
   els.acceptStates.value = appState.acceptStates.join(",");
@@ -380,7 +385,7 @@ function renderTape() {
   const contentWidth = Math.max(1, width - padLeft - padRight);
   const headCenterXContent = contentWidth / 2;
   const headCenterX = padLeft + headCenterXContent;
-  const xOffset = headCenterXContent - ((centerCol - fromCol) * cellPitch + appState.cellSize / 2);
+  const xOffset = headCenterXContent - (TAPE_ROW_PAD_X + (centerCol - fromCol) * cellPitch + appState.cellSize / 2);
 
   appState.minCol = Math.min(appState.minCol, fromCol - 5);
   appState.maxCol = Math.max(appState.maxCol, toCol + 5);
@@ -398,7 +403,7 @@ function renderTape() {
       cell.type = "button";
       cell.className = "tape-cell";
       const symbol = getSymbol(r, c);
-      renderTapeCellContent(cell, r, c, symbolForDisplay(symbol));
+      renderTapeCellContent(cell, r, c, symbolForTape(symbol));
       cell.dataset.row = String(r);
       cell.dataset.col = String(c);
       rowEl.appendChild(cell);

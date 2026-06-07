@@ -158,6 +158,10 @@ textarea {
   gap: 10px;
 }
 
+body.modal-open .app-shell {
+  visibility: hidden;
+}
+
 .top-bar {
   display: flex;
   justify-content: space-between;

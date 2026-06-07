@@ -394,14 +394,9 @@ function openStateModal(existingStateName = "") {
   els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
   els.btnStateModalDelete.hidden = !existingStateName;
 
-  appState.modalOpenedAt = Date.now();
+  appState.modalOpenedAt = performance.now();
+  document.body.classList.add("modal-open");
   els.stateModal.hidden = false;
-  try {
-    els.stateNameInput.focus();
-    els.stateNameInput.select();
-  } catch {
-    // iOS can reject immediate focus/select during touch activation.
-  }
 }
 
 function closeStateModal() {
@@ -409,6 +404,9 @@ function closeStateModal() {
   appState.stateModal.originalName = null;
   els.btnStateModalDelete.hidden = true;
   els.stateModal.hidden = true;
+  if (els.aboutModal.hidden) {
+    document.body.classList.remove("modal-open");
+  }
 }
 
 function deleteState(stateName) {
@@ -1722,12 +1720,16 @@ function addRule() {
 }
 
 function openAboutModal() {
-  appState.modalOpenedAt = Date.now();
+  appState.modalOpenedAt = performance.now();
+  document.body.classList.add("modal-open");
   els.aboutModal.hidden = false;
 }
 
 function closeAboutModal() {
   els.aboutModal.hidden = true;
+  if (els.stateModal.hidden) {
+    document.body.classList.remove("modal-open");
+  }
 }
 
 function bindTap(target, handler) {
@@ -1859,7 +1861,7 @@ function initEvents() {
 
   bindTap(els.btnAboutClose, closeAboutModal);
   els.aboutModal.addEventListener("click", (event) => {
-    if (Date.now() - appState.modalOpenedAt < 450) {
+    if (performance.now() - appState.modalOpenedAt < 1200) {
       return;
     }
     if (event.target === els.aboutModal) closeAboutModal();
@@ -1919,7 +1921,7 @@ function initEvents() {
   });
   bindTap(els.btnStateModalSave, saveStateModal);
   els.stateModal.addEventListener("click", (event) => {
-    if (Date.now() - appState.modalOpenedAt < 450) {
+    if (performance.now() - appState.modalOpenedAt < 1200) {
       return;
     }
     if (event.target === els.stateModal) {

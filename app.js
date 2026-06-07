@@ -1721,6 +1721,30 @@ function closeAboutModal() {
   els.aboutModal.classList.remove("visible");
 }
 
+function bindModalActivate(target, handler) {
+  if (!target) {
+    return;
+  }
+
+  let lastActivationAt = 0;
+  const activate = (event) => {
+    const now = Date.now();
+    if (now - lastActivationAt < 250) {
+      return;
+    }
+    lastActivationAt = now;
+    handler(event);
+  };
+
+  target.addEventListener("click", activate);
+  target.addEventListener("pointerup", (event) => {
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      activate(event);
+    }
+  });
+  target.addEventListener("touchend", activate, { passive: true });
+}
+
 function bindTap(target, handler) {
   if (!target) {
     return;
@@ -1843,12 +1867,12 @@ function initEvents() {
     });
   });
 
-  els.menuAbout.addEventListener("click", () => {
+  bindModalActivate(els.menuAbout, () => {
     openAboutModal();
     toggleMenu(false);
   });
 
-  els.btnAboutClose.addEventListener("click", closeAboutModal);
+  bindModalActivate(els.btnAboutClose, closeAboutModal);
   els.aboutModal.addEventListener("click", (event) => {
     if (event.target === els.aboutModal) closeAboutModal();
   });
@@ -1860,7 +1884,7 @@ function initEvents() {
   });
 
   els.btnAddRule.addEventListener("click", addRule);
-  els.btnAddState.addEventListener("click", () => openStateModal());
+  bindModalActivate(els.btnAddState, () => openStateModal());
   els.btnResetTape.addEventListener("click", resetTape);
   els.btnResetMachine.addEventListener("click", resetMachine);
 
@@ -1898,14 +1922,14 @@ function initEvents() {
     renderAll();
   });
 
-  els.btnStateModalCancel.addEventListener("click", closeStateModal);
-  els.btnStateModalDelete.addEventListener("click", () => {
+  bindModalActivate(els.btnStateModalCancel, closeStateModal);
+  bindModalActivate(els.btnStateModalDelete, () => {
     if (!appState.stateModal.originalName) {
       return;
     }
     deleteState(appState.stateModal.originalName);
   });
-  els.btnStateModalSave.addEventListener("click", saveStateModal);
+  bindModalActivate(els.btnStateModalSave, saveStateModal);
   els.stateModal.addEventListener("click", (event) => {
     if (event.target === els.stateModal) {
       closeStateModal();
@@ -1931,7 +1955,7 @@ function initEvents() {
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (appState.stateModal.open) closeStateModal();
-      if (!els.aboutModal.hidden) closeAboutModal();
+      if (els.aboutModal.classList.contains("visible")) closeAboutModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
     }
   });

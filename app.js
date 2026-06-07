@@ -59,8 +59,6 @@ const appState = {
 const els = {
   tapeViewport: document.getElementById("tapeViewport"),
   cellSizeSlider: document.getElementById("cellSizeSlider"),
-  programPreset: document.getElementById("programPreset"),
-  btnLoadProgram: document.getElementById("btnLoadProgram"),
   btnAddRow: document.getElementById("btnAddRow"),
   btnRemoveRow: document.getElementById("btnRemoveRow"),
   btnResetTape: document.getElementById("btnResetTape"),
@@ -84,7 +82,14 @@ const els = {
   stateIsAccept: document.getElementById("stateIsAccept"),
   stateIsReject: document.getElementById("stateIsReject"),
   btnStateModalCancel: document.getElementById("btnStateModalCancel"),
-  btnStateModalSave: document.getElementById("btnStateModalSave")
+  btnStateModalSave: document.getElementById("btnStateModalSave"),
+  btnHamburger: document.getElementById("btnHamburger"),
+  appMenu: document.getElementById("appMenu"),
+  menuExamplesToggle: document.getElementById("menuExamplesToggle"),
+  menuExamplesList: document.getElementById("menuExamplesList"),
+  menuAbout: document.getElementById("menuAbout"),
+  aboutModal: document.getElementById("aboutModal"),
+  btnAboutClose: document.getElementById("btnAboutClose")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -523,8 +528,8 @@ function triggerCellWriteMorph(row, col, fromSymbol, toSymbol) {
   startHeadPulseLoop();
 }
 
-function loadSelectedProgram() {
-  const preset = DEFAULT_PROGRAMS[els.programPreset.value];
+function loadPreset(key) {
+  const preset = DEFAULT_PROGRAMS[key];
   if (!preset) {
     appState.message = "Preset not found.";
     renderAll();
@@ -554,8 +559,13 @@ function loadSelectedProgram() {
 
   syncMachineConfigInputs();
 
-  appState.message = `Loaded preset: ${els.programPreset.options[els.programPreset.selectedIndex].text}.`;
+  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo" };
+  appState.message = `Loaded: ${labels[key] || key}.`;
   renderAll();
+}
+
+function loadSelectedProgram() {
+  loadPreset(Object.keys(DEFAULT_PROGRAMS)[0]);
 }
 
 function updateMachineConfigFromInputs() {
@@ -1609,9 +1619,23 @@ function addRule() {
   renderAll();
 }
 
+function openAboutModal() {
+  els.aboutModal.hidden = false;
+}
+
+function closeAboutModal() {
+  els.aboutModal.hidden = true;
+}
+
+function toggleMenu(open) {
+  const isOpen = open !== undefined ? open : !els.appMenu.classList.contains("is-open");
+  els.appMenu.classList.toggle("is-open", isOpen);
+  els.btnHamburger.setAttribute("aria-expanded", String(isOpen));
+  els.btnHamburger.classList.toggle("is-open", isOpen);
+}
+
 function initEvents() {
   initTapeInteractions();
-  els.btnLoadProgram.addEventListener("click", loadSelectedProgram);
 
   els.cellSizeSlider.addEventListener("input", () => {
     appState.cellSize = Number(els.cellSizeSlider.value);
@@ -1658,6 +1682,38 @@ function initEvents() {
     syncTapeViewToHead();
     appState.message = `Rows: ${appState.rows}.`;
     renderAll();
+  });
+
+  els.btnHamburger.addEventListener("click", () => toggleMenu());
+
+  els.menuExamplesToggle.addEventListener("click", () => {
+    const expanded = els.menuExamplesToggle.getAttribute("aria-expanded") === "true";
+    els.menuExamplesToggle.setAttribute("aria-expanded", String(!expanded));
+    els.menuExamplesList.hidden = expanded;
+    els.menuExamplesToggle.querySelector(".concertina-arrow").textContent = expanded ? "▸" : "▾";
+  });
+
+  document.querySelectorAll(".menu-preset-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      loadPreset(btn.dataset.preset);
+      toggleMenu(false);
+    });
+  });
+
+  els.menuAbout.addEventListener("click", () => {
+    openAboutModal();
+    toggleMenu(false);
+  });
+
+  els.btnAboutClose.addEventListener("click", closeAboutModal);
+  els.aboutModal.addEventListener("click", (event) => {
+    if (event.target === els.aboutModal) closeAboutModal();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
+      toggleMenu(false);
+    }
   });
 
   els.btnAddRule.addEventListener("click", addRule);
@@ -1724,8 +1780,10 @@ function initEvents() {
   });
 
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && appState.stateModal.open) {
-      closeStateModal();
+    if (event.key === "Escape") {
+      if (appState.stateModal.open) closeStateModal();
+      if (!els.aboutModal.hidden) closeAboutModal();
+      if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
     }
   });
 
@@ -1743,7 +1801,7 @@ function seedExampleTape() {
 
 function init() {
   document.body.setAttribute("data-theme", "dark");
-  loadSelectedProgram();
+  loadPreset("scan-right");
   autoFitCellSize();
   initEvents();
   renderAll();

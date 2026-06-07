@@ -13,16 +13,28 @@
         <h1>Chewring</h1>
         <p>Classroom Turing Machine Draft</p>
       </div>
-      <div class="controls">
-        <select id="programPreset" title="Default programs">
-          <option value="scan-right">Scan Right Until Blank</option>
-          <option value="unary-increment">Unary Increment</option>
-          <option value="binary-invert">Binary Invert</option>
-          <option value="two-row-copy">Two-Row Copy Demo</option>
-        </select>
-        <button id="btnLoadProgram">Load Program</button>
-      </div>
+      <button id="btnHamburger" class="hamburger-btn" aria-label="Open menu" aria-expanded="false" aria-controls="appMenu" type="button">
+        <span></span><span></span><span></span>
+      </button>
     </header>
+
+    <nav id="appMenu" class="app-menu" aria-label="Application menu">
+      <div class="menu-header">
+        <span class="menu-title">MENU</span>
+      </div>
+      <div class="menu-inner">
+        <button class="menu-concertina-trigger" id="menuExamplesToggle" aria-expanded="false" aria-controls="menuExamplesList" type="button">
+          Examples <span class="concertina-arrow">▸</span>
+        </button>
+        <ul id="menuExamplesList" class="menu-concertina-list" hidden>
+          <li><button class="menu-preset-btn" data-preset="scan-right" type="button">Scan Right Until Blank</button></li>
+          <li><button class="menu-preset-btn" data-preset="unary-increment" type="button">Unary Increment</button></li>
+          <li><button class="menu-preset-btn" data-preset="binary-invert" type="button">Binary Invert</button></li>
+          <li><button class="menu-preset-btn" data-preset="two-row-copy" type="button">Two-Row Copy Demo</button></li>
+        </ul>
+        <button class="menu-item-btn" id="menuAbout" type="button">About</button>
+      </div>
+    </nav>
 
     <main class="layout">
       <section class="tape-panel card">
@@ -120,6 +132,16 @@
           <div class="modal-actions">
             <button id="btnStateModalCancel" type="button">Cancel</button>
             <button id="btnStateModalSave" type="button">Save</button>
+          </div>
+        </div>
+      </div>
+      <div id="aboutModal" class="modal-backdrop" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+          <h3 id="aboutModalTitle">About Chewring</h3>
+          <p>Chewring is a classroom Turing machine simulator built for teaching and exploring theoretical computer science concepts.</p>
+          <p>Built by Neil Kendall &mdash; <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
+          <div class="modal-actions">
+            <button id="btnAboutClose" type="button">Close</button>
           </div>
         </div>
       </div>

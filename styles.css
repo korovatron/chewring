@@ -130,6 +130,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 66px;
   background: linear-gradient(
     135deg,
     var(--header-grad-start) 0%,
@@ -159,6 +160,158 @@ body {
   flex-wrap: wrap;
 }
 
+/* Hamburger button */
+.hamburger-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  position: relative;
+  z-index: 31;
+}
+
+.hamburger-btn span {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ink);
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.hamburger-btn.is-open span:nth-child(1) {
+  transform: translateY(9.5px) rotate(45deg);
+}
+
+.hamburger-btn.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-btn.is-open span:nth-child(3) {
+  transform: translateY(-9.5px) rotate(-45deg);
+}
+
+/* Slide-in menu */
+.app-menu {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  bottom: 0;
+  width: 260px;
+  background: linear-gradient(
+    180deg,
+    var(--tile-grad-start) 0%,
+    var(--tile-grad-mid) 100%
+  );
+  border-left: 1px solid var(--line);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 16px;
+  transform: translateX(100%);
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0ms 260ms;
+  visibility: hidden;
+}
+
+.app-menu.is-open {
+  transform: translateX(0);
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0ms 0ms;
+  visibility: visible;
+}
+
+.app-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  height: 66px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+
+.menu-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.menu-concertina-trigger,
+.menu-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 1.1rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-concertina-trigger:hover,
+.menu-item-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+}
+
+.concertina-arrow {
+  font-size: 0.8rem;
+  transition: transform 180ms ease;
+}
+
+.menu-concertina-list {
+  list-style: none;
+  margin: 2px 0 6px;
+  padding: 0;
+}
+
+.menu-concertina-list[hidden] {
+  display: none;
+}
+
+.menu-preset-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 24px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  border-color: transparent;
+}
+
 button,
 select,
 input {
@@ -180,7 +333,7 @@ input {
   padding: 4px 6px;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled):not(.hamburger-btn) {
   border-color: var(--accent);
   background: var(--control-hover);
 }

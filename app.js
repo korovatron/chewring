@@ -298,9 +298,9 @@ function autoFitCellSize() {
   const verticalGap = TAPE_ROW_PAD_Y * 2;
   const minCols = 5;
 
-  // Size cells so they fill ~65% of available vertical space.
+  // Size cells so they fill ~50% of available vertical space.
   const sizeFromHeight = Math.floor(
-    (height * 0.65 - (appState.rows - 1) * verticalGap) / Math.max(1, appState.rows)
+    (height * 0.5 - (appState.rows - 1) * verticalGap) / Math.max(1, appState.rows)
   );
   // Cap: never so large that fewer than minCols fit across.
   const maxSizeFromWidth = Math.floor((width - minCols * horizontalGap) / minCols);

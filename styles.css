@@ -782,11 +782,11 @@ button.tape-cell:hover:not(:disabled) {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.7);
   z-index: 1000;
-  padding: 16px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -797,6 +797,7 @@ button.tape-cell:hover:not(:disabled) {
 
 .modal {
   width: min(420px, calc(100vw - 24px));
+  margin-top: 0;
   padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -809,6 +810,7 @@ button.tape-cell:hover:not(:disabled) {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
   max-height: calc(100dvh - 32px);
   overflow: auto;
+  transform: translateZ(0);
 }
 
 .modal h3 {

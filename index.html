@@ -6,7 +6,7 @@
   <title>Chewring - Turing Machine Classroom Draft</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body data-theme="dark">
   <div class="app-shell">
     <header class="top-bar">
       <div class="brand">
@@ -21,14 +21,6 @@
           <option value="two-row-copy">Two-Row Copy Demo</option>
         </select>
         <button id="btnLoadProgram">Load Program</button>
-        <button id="btnTheme">Dark: Off</button>
-        <button id="btnAddRow" title="Add a workspace row">+ Row</button>
-        <button id="btnRemoveRow" title="Remove last row">- Row</button>
-        <button id="btnResetTape">Reset Tape</button>
-        <button id="btnResetMachine">Reset Machine</button>
-        <button id="btnStep">Step</button>
-        <button id="btnRun">Run</button>
-        <button id="btnPause" disabled>Pause</button>
       </div>
     </header>
 
@@ -36,26 +28,29 @@
       <section class="tape-panel card">
         <div class="panel-head">
           <h2>Tape Workspace</h2>
-          <div class="panel-actions">
-            <label for="symbolPalette">Paint:</label>
-            <select id="symbolPalette">
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="□" selected>blank (□)</option>
-              <option value="X">X</option>
-              <option value="#">#</option>
-            </select>
-            <label for="cellSizeSlider">Cell size:</label>
-            <input id="cellSizeSlider" type="range" min="28" max="132" step="2" value="46" />
-            <span id="cellSizeValue">46px</span>
+          <div class="panel-actions transport-controls" aria-label="Machine controls">
+            <button id="btnResetTape" class="symbol-btn" title="Reset tape" aria-label="Reset tape" type="button">↺</button>
+            <button id="btnResetMachine" class="symbol-btn" title="Stop and reset machine" aria-label="Stop and reset machine" type="button">⏹</button>
+            <button id="btnStep" class="symbol-btn" title="Step" aria-label="Step" type="button">⏭</button>
+            <button id="btnRun" class="symbol-btn" title="Run" aria-label="Run" type="button">▶</button>
+            <button id="btnPause" class="symbol-btn" title="Pause" aria-label="Pause" type="button" disabled>⏸</button>
           </div>
         </div>
         <div id="tapeViewport" class="tape-viewport"></div>
         <div class="status-row">
-          <span id="statusState">State: q0</span>
-          <span id="statusHead">Head: r0, c0</span>
-          <span id="statusStep">Step: 0</span>
-          <span id="statusMessage">Ready.</span>
+          <div class="status-main">
+            <span id="statusState">State: q0</span>
+            <span id="statusStep">Step: 0</span>
+            <span id="statusMessage">Ready.</span>
+          </div>
+          <div class="status-tools">
+            <span class="status-label">Rows</span>
+            <button id="btnRemoveRow" class="symbol-btn" title="Remove tape row" aria-label="Remove tape row" type="button">−</button>
+            <button id="btnAddRow" class="symbol-btn" title="Add tape row" aria-label="Add tape row" type="button">+</button>
+            <span class="status-tools-sep"></span>
+            <label for="cellSizeSlider">Cell size</label>
+            <input id="cellSizeSlider" type="range" min="28" max="132" step="2" value="46" />
+          </div>
         </div>
       </section>
 
@@ -64,15 +59,9 @@
           <div class="panel-head">
             <h2>Delta Rules</h2>
             <div class="panel-actions compact">
-              <label>Start
-                <input id="startState" value="q0" />
-              </label>
-              <label>Accept
-                <input id="acceptStates" value="qa" />
-              </label>
-              <label>Reject
-                <input id="rejectStates" value="qr" />
-              </label>
+              <span class="state-pill" id="stateStartBadge" title="Start state">Start: q0</span>
+              <span class="state-pill" id="stateAcceptBadge" title="Accept states">Accept: qa</span>
+              <span class="state-pill" id="stateRejectBadge" title="Reject states">Reject: qr</span>
               <button id="btnAddRule">+ Rule</button>
             </div>
           </div>
@@ -96,10 +85,44 @@
         <section class="diagram-panel card">
           <div class="panel-head">
             <h2>Finite State Diagram</h2>
+            <div class="panel-actions compact">
+              <button id="btnAddState" type="button">+ State</button>
+            </div>
           </div>
           <svg id="diagram" viewBox="0 0 640 360" aria-label="State diagram"></svg>
         </section>
       </section>
+
+      <footer class="workspace-footer" aria-label="Site footer">
+        &copy; 2026 Neil Kendall More @
+        <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a>
+      </footer>
+
+      <div id="stateModal" class="modal-backdrop" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stateModalTitle">
+          <h3 id="stateModalTitle">State Settings</h3>
+          <label for="stateNameInput">State name</label>
+          <input id="stateNameInput" type="text" autocomplete="off" />
+
+          <label class="modal-check">
+            <input id="stateIsStart" type="checkbox" />
+            <span>Start state</span>
+          </label>
+          <label class="modal-check">
+            <input id="stateIsAccept" type="checkbox" />
+            <span>Accept state</span>
+          </label>
+          <label class="modal-check">
+            <input id="stateIsReject" type="checkbox" />
+            <span>Reject state</span>
+          </label>
+
+          <div class="modal-actions">
+            <button id="btnStateModalCancel" type="button">Cancel</button>
+            <button id="btnStateModalSave" type="button">Save</button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 

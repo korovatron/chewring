@@ -9,6 +9,18 @@ const TAPE_ROW_PAD_X = 4;
 const TAPE_ROW_PAD_Y = 3;
 const CELL_SIZE_MIN = 28;
 const CELL_SIZE_MAX = 132;
+const SUBSCRIPT_DIGITS = {
+  "0": "₀",
+  "1": "₁",
+  "2": "₂",
+  "3": "₃",
+  "4": "₄",
+  "5": "₅",
+  "6": "₆",
+  "7": "₇",
+  "8": "₈",
+  "9": "₉"
+};
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -17,10 +29,11 @@ const appState = {
   tape: new Map(),
   head: { row: 0, col: 0 },
   startHead: { row: 0, col: 0 },
-  startState: "q0",
-  currentState: "q0",
-  acceptStates: ["qa"],
-  rejectStates: ["qr"],
+  startState: "s0",
+  currentState: "s0",
+  acceptStates: ["sa"],
+  rejectStates: ["sr"],
+  states: ["s0", "sa", "sr"],
   steps: 0,
   running: false,
   runTimer: null,
@@ -35,21 +48,19 @@ const appState = {
   writeMorph: null,
   lastPlacedSymbol: "0",
   activeRuleId: null,
+  stateModal: { open: false, originalName: null },
   message: "Ready.",
   rules: [
-    { id: crypto.randomUUID(), current: "q0", read: "1", write: "1", move: "R", next: "q0" },
-    { id: crypto.randomUUID(), current: "q0", read: BLANK, write: BLANK, move: "S", next: "qa" }
+    { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
+    { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
   ]
 };
 
 const els = {
   tapeViewport: document.getElementById("tapeViewport"),
-  symbolPalette: document.getElementById("symbolPalette"),
   cellSizeSlider: document.getElementById("cellSizeSlider"),
-  cellSizeValue: document.getElementById("cellSizeValue"),
   programPreset: document.getElementById("programPreset"),
   btnLoadProgram: document.getElementById("btnLoadProgram"),
-  btnTheme: document.getElementById("btnTheme"),
   btnAddRow: document.getElementById("btnAddRow"),
   btnRemoveRow: document.getElementById("btnRemoveRow"),
   btnResetTape: document.getElementById("btnResetTape"),
@@ -58,83 +69,78 @@ const els = {
   btnRun: document.getElementById("btnRun"),
   btnPause: document.getElementById("btnPause"),
   statusState: document.getElementById("statusState"),
-  statusHead: document.getElementById("statusHead"),
   statusStep: document.getElementById("statusStep"),
   statusMessage: document.getElementById("statusMessage"),
   rulesTableBody: document.querySelector("#rulesTable tbody"),
   btnAddRule: document.getElementById("btnAddRule"),
-  startState: document.getElementById("startState"),
-  acceptStates: document.getElementById("acceptStates"),
-  rejectStates: document.getElementById("rejectStates"),
-  diagram: document.getElementById("diagram")
+  stateStartBadge: document.getElementById("stateStartBadge"),
+  stateAcceptBadge: document.getElementById("stateAcceptBadge"),
+  stateRejectBadge: document.getElementById("stateRejectBadge"),
+  diagram: document.getElementById("diagram"),
+  btnAddState: document.getElementById("btnAddState"),
+  stateModal: document.getElementById("stateModal"),
+  stateNameInput: document.getElementById("stateNameInput"),
+  stateIsStart: document.getElementById("stateIsStart"),
+  stateIsAccept: document.getElementById("stateIsAccept"),
+  stateIsReject: document.getElementById("stateIsReject"),
+  btnStateModalCancel: document.getElementById("btnStateModalCancel"),
+  btnStateModalSave: document.getElementById("btnStateModalSave")
 };
-
-function applyTheme(theme) {
-  const nextTheme = theme === "dark" ? "dark" : "light";
-  document.body.setAttribute("data-theme", nextTheme);
-  els.btnTheme.textContent = nextTheme === "dark" ? "Dark: On" : "Dark: Off";
-  localStorage.setItem("chewring-theme", nextTheme);
-}
-
-function toggleTheme() {
-  const current = document.body.getAttribute("data-theme") || "light";
-  applyTheme(current === "dark" ? "light" : "dark");
-}
 
 const DEFAULT_PROGRAMS = {
   "scan-right": {
     rows: 1,
-    startState: "q0",
-    acceptStates: ["qa"],
-    rejectStates: ["qr"],
+    startState: "s0",
+    acceptStates: ["sa"],
+    rejectStates: ["sr"],
     head: { row: 0, col: 0 },
     tapeRows: ["101101"],
     rules: [
-      { id: crypto.randomUUID(), current: "q0", read: "0", write: "0", move: "R", next: "q0" },
-      { id: crypto.randomUUID(), current: "q0", read: "1", write: "1", move: "R", next: "q0" },
-      { id: crypto.randomUUID(), current: "q0", read: BLANK, write: BLANK, move: "S", next: "qa" }
+      { id: crypto.randomUUID(), current: "s0", read: "0", write: "0", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
     ]
   },
   "unary-increment": {
     rows: 1,
-    startState: "q0",
-    acceptStates: ["qa"],
-    rejectStates: ["qr"],
+    startState: "s0",
+    acceptStates: ["sa"],
+    rejectStates: ["sr"],
     head: { row: 0, col: 0 },
     tapeRows: ["1111"],
     rules: [
-      { id: crypto.randomUUID(), current: "q0", read: "1", write: "1", move: "R", next: "q0" },
-      { id: crypto.randomUUID(), current: "q0", read: BLANK, write: "1", move: "S", next: "qa" }
+      { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: "1", move: "S", next: "sa" }
     ]
   },
   "binary-invert": {
     rows: 1,
-    startState: "q0",
-    acceptStates: ["qa"],
-    rejectStates: ["qr"],
+    startState: "s0",
+    acceptStates: ["sa"],
+    rejectStates: ["sr"],
     head: { row: 0, col: 0 },
     tapeRows: ["101001"],
     rules: [
-      { id: crypto.randomUUID(), current: "q0", read: "0", write: "1", move: "R", next: "q0" },
-      { id: crypto.randomUUID(), current: "q0", read: "1", write: "0", move: "R", next: "q0" },
-      { id: crypto.randomUUID(), current: "q0", read: BLANK, write: BLANK, move: "S", next: "qa" }
+      { id: crypto.randomUUID(), current: "s0", read: "0", write: "1", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "s0", read: "1", write: "0", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
     ]
   },
   "two-row-copy": {
     rows: 2,
-    startState: "q0",
-    acceptStates: ["qa"],
-    rejectStates: ["qr"],
+    startState: "s0",
+    acceptStates: ["sa"],
+    rejectStates: ["sr"],
     head: { row: 0, col: 0 },
     tapeRows: ["10110", ""],
     rules: [
-      { id: crypto.randomUUID(), current: "q0", read: "0", write: "0", move: "D", next: "qd0" },
-      { id: crypto.randomUUID(), current: "q0", read: "1", write: "1", move: "D", next: "qd1" },
-      { id: crypto.randomUUID(), current: "q0", read: BLANK, write: BLANK, move: "S", next: "qa" },
-      { id: crypto.randomUUID(), current: "qd0", read: BLANK, write: "0", move: "U", next: "qu" },
-      { id: crypto.randomUUID(), current: "qd1", read: BLANK, write: "1", move: "U", next: "qu" },
-      { id: crypto.randomUUID(), current: "qu", read: "0", write: "0", move: "R", next: "q0" },
-      { id: crypto.randomUUID(), current: "qu", read: "1", write: "1", move: "R", next: "q0" }
+      { id: crypto.randomUUID(), current: "s0", read: "0", write: "0", move: "D", next: "sd0" },
+      { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "D", next: "sd1" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" },
+      { id: crypto.randomUUID(), current: "sd0", read: BLANK, write: "0", move: "U", next: "su" },
+      { id: crypto.randomUUID(), current: "sd1", read: BLANK, write: "1", move: "U", next: "su" },
+      { id: crypto.randomUUID(), current: "su", read: "0", write: "0", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "su", read: "1", write: "1", move: "R", next: "s0" }
     ]
   }
 };
@@ -218,7 +224,6 @@ function applyCellSize() {
   document.documentElement.style.setProperty("--tape-cell-size", `${size}px`);
   els.cellSizeSlider.max = String(maxAllowed);
   els.cellSizeSlider.value = String(size);
-  els.cellSizeValue.textContent = `${size}px`;
 }
 
 function changeCellSizeBy(delta) {
@@ -269,6 +274,167 @@ function loadTapeRows(rowStrings) {
 
 function cloneRules(rules) {
   return rules.map((rule) => ({ ...rule, id: crypto.randomUUID() }));
+}
+
+function formatStateName(rawName) {
+  const trimmed = (rawName || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const letterAndDigits = trimmed.match(/^([a-zA-Z])(\d+)$/);
+  if (letterAndDigits) {
+    const letter = letterAndDigits[1].toUpperCase();
+    const digits = letterAndDigits[2]
+      .split("")
+      .map((digit) => SUBSCRIPT_DIGITS[digit] || digit)
+      .join("");
+    return `${letter}${digits}`;
+  }
+
+  return `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`;
+}
+
+function normalizeRuleStateNames(rules) {
+  return rules.map((rule) => ({
+    ...rule,
+    current: formatStateName(rule.current),
+    next: formatStateName(rule.next)
+  }));
+}
+
+function uniqueStateList(names) {
+  const seen = new Set();
+  const ordered = [];
+  for (const raw of names) {
+    const name = (raw || "").trim();
+    if (!name || seen.has(name)) {
+      continue;
+    }
+    seen.add(name);
+    ordered.push(name);
+  }
+  return ordered;
+}
+
+function getAvailableStates() {
+  return uniqueStateList([
+    ...appState.states,
+    appState.startState,
+    ...appState.acceptStates,
+    ...appState.rejectStates,
+    ...appState.rules.flatMap((rule) => [rule.current, rule.next])
+  ]);
+}
+
+function syncStateRegistry() {
+  appState.states = getAvailableStates();
+}
+
+function syncMachineConfigInputs() {
+  const startLabel = appState.startState || "(none)";
+  const acceptLabel = appState.acceptStates.length ? appState.acceptStates.join(", ") : "(none)";
+  const rejectLabel = appState.rejectStates.length ? appState.rejectStates.join(", ") : "(none)";
+  els.stateStartBadge.textContent = `Start: ${startLabel}`;
+  els.stateAcceptBadge.textContent = `Accept: ${acceptLabel}`;
+  els.stateRejectBadge.textContent = `Reject: ${rejectLabel}`;
+}
+
+function setStateRoleMembership(stateName, enabled, listName) {
+  const set = new Set(appState[listName]);
+  if (enabled) {
+    set.add(stateName);
+  } else {
+    set.delete(stateName);
+  }
+  appState[listName] = Array.from(set);
+}
+
+function renameStateReferences(fromName, toName) {
+  appState.states = appState.states.map((state) => (state === fromName ? toName : state));
+  appState.rules = appState.rules.map((rule) => ({
+    ...rule,
+    current: rule.current === fromName ? toName : rule.current,
+    next: rule.next === fromName ? toName : rule.next
+  }));
+  appState.acceptStates = appState.acceptStates.map((state) => (state === fromName ? toName : state));
+  appState.rejectStates = appState.rejectStates.map((state) => (state === fromName ? toName : state));
+  if (appState.startState === fromName) {
+    appState.startState = toName;
+  }
+  if (appState.currentState === fromName) {
+    appState.currentState = toName;
+  }
+}
+
+function openStateModal(existingStateName = "") {
+  appState.stateModal.open = true;
+  appState.stateModal.originalName = existingStateName || null;
+
+  els.stateNameInput.value = existingStateName;
+  els.stateIsStart.checked = Boolean(existingStateName && appState.startState === existingStateName);
+  els.stateIsAccept.checked = Boolean(existingStateName && appState.acceptStates.includes(existingStateName));
+  els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
+
+  els.stateModal.hidden = false;
+  els.stateNameInput.focus();
+  els.stateNameInput.select();
+}
+
+function closeStateModal() {
+  appState.stateModal.open = false;
+  appState.stateModal.originalName = null;
+  els.stateModal.hidden = true;
+}
+
+function saveStateModal() {
+  const originalName = appState.stateModal.originalName;
+  const proposedName = formatStateName(els.stateNameInput.value || "");
+  const isStart = els.stateIsStart.checked;
+  const isAccept = els.stateIsAccept.checked;
+  const isReject = els.stateIsReject.checked;
+
+  if (!proposedName) {
+    appState.message = "State name is required.";
+    updateStatus();
+    return;
+  }
+
+  if (isAccept && isReject) {
+    appState.message = "A state cannot be both accept and reject.";
+    updateStatus();
+    return;
+  }
+
+  const availableStates = new Set(getAvailableStates());
+  if (originalName !== proposedName && availableStates.has(proposedName)) {
+    appState.message = `State '${proposedName}' already exists.`;
+    updateStatus();
+    return;
+  }
+
+  if (originalName && originalName !== proposedName) {
+    renameStateReferences(originalName, proposedName);
+  }
+
+  if (!originalName) {
+    appState.states.push(proposedName);
+  }
+
+  if (isStart) {
+    appState.startState = proposedName;
+  }
+
+  setStateRoleMembership(proposedName, isAccept, "acceptStates");
+  setStateRoleMembership(proposedName, isReject, "rejectStates");
+
+  syncStateRegistry();
+  syncMachineConfigInputs();
+  appState.message = originalName
+    ? `Updated state '${proposedName}'.`
+    : `Added state '${proposedName}'.`;
+  closeStateModal();
+  renderAll();
 }
 
 function syncTapeViewToHead() {
@@ -367,31 +533,44 @@ function loadSelectedProgram() {
 
   stopRunLoop();
   appState.rows = preset.rows;
-  appState.startState = preset.startState;
-  appState.currentState = preset.startState;
-  appState.acceptStates = [...preset.acceptStates];
-  appState.rejectStates = [...preset.rejectStates];
+  appState.startState = formatStateName(preset.startState);
+  appState.currentState = appState.startState;
+  appState.acceptStates = preset.acceptStates.map((state) => formatStateName(state));
+  appState.rejectStates = preset.rejectStates.map((state) => formatStateName(state));
   appState.head = { ...preset.head };
   appState.startHead = { ...preset.head };
   syncTapeViewToHead();
   appState.steps = 0;
   appState.activeRuleId = null;
-  appState.rules = cloneRules(preset.rules);
+  appState.rules = normalizeRuleStateNames(cloneRules(preset.rules));
+  appState.states = uniqueStateList([
+    appState.startState,
+    ...appState.acceptStates,
+    ...appState.rejectStates,
+    ...appState.rules.flatMap((rule) => [rule.current, rule.next])
+  ]);
 
   loadTapeRows(preset.tapeRows);
 
-  els.startState.value = appState.startState;
-  els.acceptStates.value = appState.acceptStates.join(",");
-  els.rejectStates.value = appState.rejectStates.join(",");
+  syncMachineConfigInputs();
 
   appState.message = `Loaded preset: ${els.programPreset.options[els.programPreset.selectedIndex].text}.`;
   renderAll();
 }
 
 function updateMachineConfigFromInputs() {
-  appState.startState = els.startState.value.trim() || "q0";
-  appState.acceptStates = parseCsvStates(els.acceptStates.value);
-  appState.rejectStates = parseCsvStates(els.rejectStates.value);
+  appState.startState = formatStateName(appState.startState);
+  appState.currentState = formatStateName(appState.currentState);
+  appState.states = appState.states.map((state) => formatStateName(state));
+  appState.rules = normalizeRuleStateNames(appState.rules);
+  appState.acceptStates = appState.acceptStates.map((state) => formatStateName(state));
+  appState.rejectStates = appState.rejectStates.map((state) => formatStateName(state));
+  appState.acceptStates = uniqueStateList(appState.acceptStates);
+  appState.rejectStates = uniqueStateList(appState.rejectStates).filter((state) => !appState.acceptStates.includes(state));
+  if (!appState.startState) {
+    appState.startState = appState.states[0] || formatStateName("s0");
+  }
+  syncStateRegistry();
 }
 
 function movementOptions() {
@@ -769,6 +948,8 @@ function renderRulesTable() {
   tbody.innerHTML = "";
 
   const moveChoices = movementOptions();
+  const stateChoices = getAvailableStates();
+  const alphabetChoices = getAvailableAlphabet();
 
   for (const rule of appState.rules) {
     const tr = document.createElement("tr");
@@ -776,11 +957,11 @@ function renderRulesTable() {
       tr.classList.add("active-rule");
     }
 
-    tr.appendChild(ruleInputCell(rule, "current", "text"));
-    tr.appendChild(ruleInputCell(rule, "read", "text"));
-    tr.appendChild(ruleInputCell(rule, "write", "text"));
+    tr.appendChild(ruleStateSelectCell(rule, "current", stateChoices));
+    tr.appendChild(ruleSymbolSelectCell(rule, "read", alphabetChoices));
+    tr.appendChild(ruleSymbolSelectCell(rule, "write", alphabetChoices));
     tr.appendChild(ruleSelectCell(rule, "move", moveChoices));
-    tr.appendChild(ruleInputCell(rule, "next", "text"));
+    tr.appendChild(ruleStateSelectCell(rule, "next", stateChoices));
 
     const delCell = document.createElement("td");
     const delBtn = document.createElement("button");
@@ -796,18 +977,77 @@ function renderRulesTable() {
   }
 }
 
-function ruleInputCell(rule, field, type) {
+function getAvailableAlphabet() {
+  const values = [];
+  const seen = new Set();
+
+  const pushSymbol = (rawSymbol) => {
+    const normalized = normalizeSymbol(rawSymbol) || BLANK;
+    if (seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    values.push(normalized);
+  };
+
+  TAPE_SYMBOL_CYCLE.forEach(pushSymbol);
+  for (const rule of appState.rules) {
+    pushSymbol(rule.read);
+    pushSymbol(rule.write);
+  }
+  for (const symbol of appState.tape.values()) {
+    pushSymbol(symbol);
+  }
+
+  return values;
+}
+
+function ruleStateSelectCell(rule, field, options) {
   const td = document.createElement("td");
-  const input = document.createElement("input");
-  input.type = type;
-  input.value = field === "read" || field === "write" ? symbolForDisplay(rule[field]) : rule[field];
-  input.addEventListener("change", () => {
-    const clean = (input.value || "").trim();
-    rule[field] = field === "read" || field === "write" ? normalizeSymbol(clean) : clean;
+  const select = document.createElement("select");
+  const values = options.includes(rule[field]) ? options : [...options, rule[field]].filter(Boolean);
+
+  for (const option of values) {
+    const el = document.createElement("option");
+    el.value = option;
+    el.textContent = option;
+    if (option === rule[field]) {
+      el.selected = true;
+    }
+    select.appendChild(el);
+  }
+
+  select.addEventListener("change", () => {
+    rule[field] = select.value;
     renderDiagram();
-    input.value = field === "read" || field === "write" ? symbolForDisplay(rule[field]) : rule[field];
   });
-  td.appendChild(input);
+
+  td.appendChild(select);
+  return td;
+}
+
+function ruleSymbolSelectCell(rule, field, options) {
+  const td = document.createElement("td");
+  const select = document.createElement("select");
+  const current = symbolForDisplay(rule[field]);
+  const values = options.includes(current) ? options : [...options, current];
+
+  for (const option of values) {
+    const el = document.createElement("option");
+    el.value = option;
+    el.textContent = option === BLANK ? `blank (${BLANK})` : option;
+    if (option === current) {
+      el.selected = true;
+    }
+    select.appendChild(el);
+  }
+
+  select.addEventListener("change", () => {
+    rule[field] = normalizeSymbol(select.value) || BLANK;
+    renderDiagram();
+  });
+
+  td.appendChild(select);
   return td;
 }
 
@@ -1087,7 +1327,6 @@ function resetMachine() {
   stopTapeSnap();
   stopHeadPulse();
   clearTapeMoveDelay();
-  updateMachineConfigFromInputs();
   appState.currentState = appState.startState;
   appState.head = { ...appState.startHead };
   syncTapeViewToHead();
@@ -1145,14 +1384,7 @@ function renderDiagram() {
 
   setupDiagramDefs(svg);
 
-  const states = new Set([appState.startState, ...appState.acceptStates, ...appState.rejectStates]);
-  for (const rule of appState.rules) {
-    const clean = parseAndCleanRule(rule);
-    if (clean.current) states.add(clean.current);
-    if (clean.next) states.add(clean.next);
-  }
-
-  const list = Array.from(states).filter(Boolean);
+  const list = getAvailableStates();
   if (list.length === 0) {
     return;
   }
@@ -1292,6 +1524,17 @@ function renderDiagram() {
   }
 
   for (const [name, pos] of positions.entries()) {
+    const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    nodeGroup.setAttribute("class", "state-node-group");
+
+    const nodeTooltip = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    nodeTooltip.textContent = `Click to edit state ${name}`;
+    nodeGroup.appendChild(nodeTooltip);
+
+    nodeGroup.addEventListener("click", () => {
+      openStateModal(name);
+    });
+
     const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circle.setAttribute("cx", String(pos.x));
     circle.setAttribute("cy", String(pos.y));
@@ -1308,7 +1551,7 @@ function renderDiagram() {
       circle.classList.add("current");
     }
 
-    svg.appendChild(circle);
+    nodeGroup.appendChild(circle);
 
     if (appState.acceptStates.includes(name)) {
       const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -1316,7 +1559,7 @@ function renderDiagram() {
       inner.setAttribute("cy", String(pos.y));
       inner.setAttribute("r", String(Math.max(12, nodeRadius - 6 * sizeScale)));
       inner.setAttribute("class", "state-node accept-inner");
-      svg.appendChild(inner);
+      nodeGroup.appendChild(inner);
     }
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1325,13 +1568,13 @@ function renderDiagram() {
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("class", "label");
     text.textContent = name;
-    svg.appendChild(text);
+    nodeGroup.appendChild(text);
+    svg.appendChild(nodeGroup);
   }
 }
 
 function updateStatus() {
   els.statusState.textContent = `State: ${appState.currentState}`;
-  els.statusHead.textContent = `Head: r${appState.head.row}, c${appState.head.col}`;
   els.statusStep.textContent = `Step: ${appState.steps}`;
   els.statusMessage.textContent = appState.message;
 
@@ -1343,6 +1586,9 @@ function updateStatus() {
 
 function renderAll() {
   normalizeRulesForRows();
+  updateMachineConfigFromInputs();
+  syncStateRegistry();
+  syncMachineConfigInputs();
   renderTape();
   renderRulesTable();
   renderDiagram();
@@ -1350,13 +1596,15 @@ function renderAll() {
 }
 
 function addRule() {
+  const availableStates = getAvailableStates();
+  const defaultState = appState.currentState || availableStates[0] || "s0";
   appState.rules.push({
     id: crypto.randomUUID(),
-    current: appState.currentState,
+    current: defaultState,
     read: BLANK,
     write: BLANK,
     move: "S",
-    next: appState.currentState
+    next: defaultState
   });
   renderAll();
 }
@@ -1364,7 +1612,6 @@ function addRule() {
 function initEvents() {
   initTapeInteractions();
   els.btnLoadProgram.addEventListener("click", loadSelectedProgram);
-  els.btnTheme.addEventListener("click", toggleTheme);
 
   els.cellSizeSlider.addEventListener("input", () => {
     appState.cellSize = Number(els.cellSizeSlider.value);
@@ -1414,6 +1661,7 @@ function initEvents() {
   });
 
   els.btnAddRule.addEventListener("click", addRule);
+  els.btnAddState.addEventListener("click", () => openStateModal());
   els.btnResetTape.addEventListener("click", resetTape);
   els.btnResetMachine.addEventListener("click", resetMachine);
 
@@ -1428,7 +1676,6 @@ function initEvents() {
       appState.steps = 0;
       appState.activeRuleId = null;
     }
-    updateMachineConfigFromInputs();
     applyStepWithVisuals();
   });
 
@@ -1442,7 +1689,6 @@ function initEvents() {
       appState.steps = 0;
       appState.activeRuleId = null;
     }
-    updateMachineConfigFromInputs();
     startRunLoop();
     renderAll();
   });
@@ -1453,9 +1699,35 @@ function initEvents() {
     renderAll();
   });
 
-  els.startState.addEventListener("change", updateMachineConfigFromInputs);
-  els.acceptStates.addEventListener("change", updateMachineConfigFromInputs);
-  els.rejectStates.addEventListener("change", updateMachineConfigFromInputs);
+  els.btnStateModalCancel.addEventListener("click", closeStateModal);
+  els.btnStateModalSave.addEventListener("click", saveStateModal);
+  els.stateModal.addEventListener("click", (event) => {
+    if (event.target === els.stateModal) {
+      closeStateModal();
+    }
+  });
+  els.stateNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveStateModal();
+    }
+  });
+  els.stateIsAccept.addEventListener("change", () => {
+    if (els.stateIsAccept.checked) {
+      els.stateIsReject.checked = false;
+    }
+  });
+  els.stateIsReject.addEventListener("change", () => {
+    if (els.stateIsReject.checked) {
+      els.stateIsAccept.checked = false;
+    }
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && appState.stateModal.open) {
+      closeStateModal();
+    }
+  });
 
   window.addEventListener("resize", () => {
     autoFitCellSize();
@@ -1470,8 +1742,7 @@ function seedExampleTape() {
 }
 
 function init() {
-  applyTheme(localStorage.getItem("chewring-theme") || "light");
-  updateMachineConfigFromInputs();
+  document.body.setAttribute("data-theme", "dark");
   loadSelectedProgram();
   autoFitCellSize();
   initEvents();

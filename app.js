@@ -50,6 +50,7 @@ const appState = {
   lastPlacedSymbol: "0",
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
+  modalOpenedAt: 0,
   message: "Ready.",
   rules: [
     { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
@@ -393,9 +394,14 @@ function openStateModal(existingStateName = "") {
   els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
   els.btnStateModalDelete.hidden = !existingStateName;
 
+  appState.modalOpenedAt = Date.now();
   els.stateModal.hidden = false;
-  els.stateNameInput.focus();
-  els.stateNameInput.select();
+  try {
+    els.stateNameInput.focus();
+    els.stateNameInput.select();
+  } catch {
+    // iOS can reject immediate focus/select during touch activation.
+  }
 }
 
 function closeStateModal() {
@@ -1014,7 +1020,10 @@ function initTapeInteractions() {
       animateTapeToHead(180);
       updateStatus();
     } else if (!cancelled && drag.pressedCell) {
-      const cell = event.target.closest(".tape-cell") || drag.pressedCell;
+      const eventTarget = event && event.target && typeof event.target.closest === "function"
+        ? event.target
+        : null;
+      const cell = (eventTarget && eventTarget.closest(".tape-cell")) || drag.pressedCell;
       handleTapeCellActivate(cell);
     }
 
@@ -1024,10 +1033,14 @@ function initTapeInteractions() {
   viewport.addEventListener("pointerup", (event) => finishPointer(event, false));
   viewport.addEventListener("pointercancel", (event) => finishPointer(event, true));
   viewport.addEventListener("lostpointercapture", (event) => finishPointer(event, true));
+  viewport.addEventListener("touchend", () => finishPointer({ pointerId: appState.tapeDrag?.pointerId }, false), { passive: true });
+  viewport.addEventListener("touchcancel", () => finishPointer({ pointerId: appState.tapeDrag?.pointerId }, true), { passive: true });
 
   // Fallbacks for mobile Safari cases where up/cancel may dispatch off-element.
   window.addEventListener("pointerup", (event) => finishPointer(event, false));
   window.addEventListener("pointercancel", (event) => finishPointer(event, true));
+  window.addEventListener("touchend", () => finishPointer({ pointerId: appState.tapeDrag?.pointerId }, false), { passive: true });
+  window.addEventListener("touchcancel", () => finishPointer({ pointerId: appState.tapeDrag?.pointerId }, true), { passive: true });
 }
 
 function renderRulesTable() {
@@ -1709,6 +1722,7 @@ function addRule() {
 }
 
 function openAboutModal() {
+  appState.modalOpenedAt = Date.now();
   els.aboutModal.hidden = false;
 }
 
@@ -1845,6 +1859,9 @@ function initEvents() {
 
   bindTap(els.btnAboutClose, closeAboutModal);
   els.aboutModal.addEventListener("click", (event) => {
+    if (Date.now() - appState.modalOpenedAt < 450) {
+      return;
+    }
     if (event.target === els.aboutModal) closeAboutModal();
   });
 
@@ -1902,6 +1919,9 @@ function initEvents() {
   });
   bindTap(els.btnStateModalSave, saveStateModal);
   els.stateModal.addEventListener("click", (event) => {
+    if (Date.now() - appState.modalOpenedAt < 450) {
+      return;
+    }
     if (event.target === els.stateModal) {
       closeStateModal();
     }

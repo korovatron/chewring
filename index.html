@@ -152,43 +152,44 @@
         <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a>
       </footer>
 
-      <div id="stateModal" class="modal-backdrop" hidden>
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stateModalTitle">
-          <h3 id="stateModalTitle">State Settings</h3>
-          <label for="stateNameInput">State name</label>
-          <input id="stateNameInput" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" spellcheck="false" />
-
-          <label class="modal-check">
-            <input id="stateIsStart" type="checkbox" />
-            <span>Start state</span>
-          </label>
-          <label class="modal-check">
-            <input id="stateIsAccept" type="checkbox" />
-            <span>Accept state</span>
-          </label>
-          <label class="modal-check">
-            <input id="stateIsReject" type="checkbox" />
-            <span>Reject state</span>
-          </label>
-
-          <div class="modal-actions">
-            <button id="btnStateModalDelete" class="danger-btn" type="button" hidden>Delete</button>
-            <button id="btnStateModalCancel" type="button">Cancel</button>
-            <button id="btnStateModalSave" type="button">Save</button>
-          </div>
-        </div>
-      </div>
-      <div id="aboutModal" class="modal-backdrop" hidden>
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
-          <h3 id="aboutModalTitle">About Chewring</h3>
-          <p>Chewring is a classroom Turing machine simulator built for teaching and exploring theoretical computer science concepts.</p>
-          <p>Built by Neil Kendall &mdash; <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
-          <div class="modal-actions">
-            <button id="btnAboutClose" type="button">Close</button>
-          </div>
-        </div>
-      </div>
     </main>
+  </div>
+
+  <div id="stateModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stateModalTitle">
+      <h3 id="stateModalTitle">State Settings</h3>
+      <label for="stateNameInput">State name</label>
+      <input id="stateNameInput" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" spellcheck="false" />
+
+      <label class="modal-check">
+        <input id="stateIsStart" type="checkbox" />
+        <span>Start state</span>
+      </label>
+      <label class="modal-check">
+        <input id="stateIsAccept" type="checkbox" />
+        <span>Accept state</span>
+      </label>
+      <label class="modal-check">
+        <input id="stateIsReject" type="checkbox" />
+        <span>Reject state</span>
+      </label>
+
+      <div class="modal-actions">
+        <button id="btnStateModalDelete" class="danger-btn" type="button" hidden>Delete</button>
+        <button id="btnStateModalCancel" type="button">Cancel</button>
+        <button id="btnStateModalSave" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+  <div id="aboutModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+      <h3 id="aboutModalTitle">About Chewring</h3>
+      <p>Chewring is a classroom Turing machine simulator built for teaching and exploring theoretical computer science concepts.</p>
+      <p>Built by Neil Kendall &mdash; <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
+      <div class="modal-actions">
+        <button id="btnAboutClose" type="button">Close</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js?v=20260607"></script>

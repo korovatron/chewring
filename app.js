@@ -642,6 +642,9 @@ function normalizeRulesForRows() {
 
 function renderTape() {
   const viewport = els.tapeViewport;
+  if (!appState.tapeDrag && !appState.tapeSnapRaf) {
+    appState.tapeViewRow = Math.max(0, Math.min(appState.rows - 1, Math.round(appState.tapeViewRow)));
+  }
   const width = viewport.clientWidth || 1000;
   const cellPitch = appState.cellSize + 4;
   const rowPitch = appState.cellSize + TAPE_ROW_PAD_Y * 2;
@@ -941,7 +944,11 @@ function initTapeInteractions() {
       pressedCell: cell || null
     };
     viewport.classList.add("dragging");
-    viewport.setPointerCapture(event.pointerId);
+    try {
+      viewport.setPointerCapture(event.pointerId);
+    } catch {
+      // iOS Safari may reject capture in some sequences; drag still works via direct events.
+    }
     event.preventDefault();
   });
 
@@ -974,11 +981,18 @@ function initTapeInteractions() {
 
   const finishPointer = (event, cancelled) => {
     const drag = appState.tapeDrag;
-    if (!drag || event.pointerId !== drag.pointerId) {
+    if (!drag) {
       return;
     }
-    if (viewport.hasPointerCapture(event.pointerId)) {
-      viewport.releasePointerCapture(event.pointerId);
+
+    const pointerId = event?.pointerId;
+    const samePointer = pointerId === drag.pointerId;
+    if (!samePointer && !cancelled) {
+      return;
+    }
+
+    if (viewport.hasPointerCapture(drag.pointerId)) {
+      viewport.releasePointerCapture(drag.pointerId);
     }
     viewport.classList.remove("dragging");
 
@@ -1009,6 +1023,11 @@ function initTapeInteractions() {
 
   viewport.addEventListener("pointerup", (event) => finishPointer(event, false));
   viewport.addEventListener("pointercancel", (event) => finishPointer(event, true));
+  viewport.addEventListener("lostpointercapture", (event) => finishPointer(event, true));
+
+  // Fallbacks for mobile Safari cases where up/cancel may dispatch off-element.
+  window.addEventListener("pointerup", (event) => finishPointer(event, false));
+  window.addEventListener("pointercancel", (event) => finishPointer(event, true));
 }
 
 function renderRulesTable() {

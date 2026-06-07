@@ -783,20 +783,23 @@ button.tape-cell:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.7);
   z-index: 1000;
   padding: 16px;
-  overflow-y: auto;
   opacity: 0;
   visibility: hidden;
-  -webkit-overflow-scrolling: touch;
+  pointer-events: none;
+  transition: opacity 160ms ease, visibility 160ms ease;
 }
 
 .modal-backdrop.visible {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .modal {
   width: min(420px, calc(100vw - 24px));
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
   padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--line);

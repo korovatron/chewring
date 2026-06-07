@@ -232,13 +232,18 @@ function canAddAnotherRow() {
 }
 
 function applyCellSize() {
-  const maxAllowed = maxCellSizeForViewportHeight();
-  const size = Math.max(CELL_SIZE_MIN, Math.min(maxAllowed, appState.cellSize));
+  let size;
+  if (isMobileViewport()) {
+    size = Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, appState.cellSize));
+  } else {
+    const maxAllowed = maxCellSizeForViewportHeight();
+    size = Math.max(CELL_SIZE_MIN, Math.min(maxAllowed, appState.cellSize));
+    els.cellSizeSlider.max = String(maxAllowed);
+    els.cellSizeSlider.value = String(size);
+  }
   appState.cellSize = size;
   document.documentElement.style.setProperty("--tape-cell-size", `${size}px`);
   document.documentElement.style.setProperty("--tape-rows", String(appState.rows));
-  els.cellSizeSlider.max = String(maxAllowed);
-  els.cellSizeSlider.value = String(size);
 }
 
 function changeCellSizeBy(delta) {

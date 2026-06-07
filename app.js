@@ -1698,43 +1698,25 @@ function bindTap(target, handler) {
     return;
   }
 
-  let lastTouchActivation = 0;
+  let lastActivationAt = 0;
 
-  const activateFromTouch = (event) => {
-    if (event.cancelable) {
-      event.preventDefault();
+  const activate = (event) => {
+    const now = Date.now();
+    if (now - lastActivationAt < 300) {
+      return;
     }
-    lastTouchActivation = Date.now();
+    lastActivationAt = now;
     handler(event);
   };
 
+  // Click remains the primary path so keyboard and assistive tech keep working.
+  target.addEventListener("click", activate);
+
+  // iOS can occasionally miss click synthesis after touch. Pointer fallback closes that gap.
   target.addEventListener("pointerup", (event) => {
-    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
-      return;
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      activate(event);
     }
-    activateFromTouch(event);
-  });
-
-  target.addEventListener(
-    "touchend",
-    (event) => {
-      if (Date.now() - lastTouchActivation < 250) {
-        return;
-      }
-      activateFromTouch(event);
-    },
-    { passive: false }
-  );
-
-  target.addEventListener("touchcancel", () => {
-    lastTouchActivation = Date.now();
-  });
-
-  target.addEventListener("click", (event) => {
-    if (Date.now() - lastTouchActivation < 400) {
-      return;
-    }
-    handler(event);
   });
 }
 

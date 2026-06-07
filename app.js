@@ -7,6 +7,8 @@ const CELL_WRITE_MORPH_MS = 280;
 const MOVE_AFTER_WRITE_DELAY_MS = HEAD_WRITE_PULSE_MS;
 const TAPE_ROW_PAD_X = 4;
 const TAPE_ROW_PAD_Y = 3;
+const CELL_SIZE_MIN = 28;
+const CELL_SIZE_MAX = 132;
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -176,10 +178,45 @@ function setSymbol(row, col, symbol) {
   appState.tape.set(tapeKey(row, col), normalized);
 }
 
+function maxCellSizeForViewportHeight() {
+  const viewport = els.tapeViewport;
+  if (!viewport) {
+    return CELL_SIZE_MAX;
+  }
+
+  const viewportStyles = getComputedStyle(viewport);
+  const padTop = Number.parseFloat(viewportStyles.paddingTop) || 0;
+  const padBottom = Number.parseFloat(viewportStyles.paddingBottom) || 0;
+  const contentHeight = Math.max(1, viewport.clientHeight - padTop - padBottom);
+  const rows = Math.max(1, appState.rows);
+  const maxByHeight = Math.floor(contentHeight / rows - TAPE_ROW_PAD_Y * 2);
+  return Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, maxByHeight));
+}
+
+function maxRowsForViewportAtMinCellSize() {
+  const viewport = els.tapeViewport;
+  if (!viewport) {
+    return 1;
+  }
+
+  const viewportStyles = getComputedStyle(viewport);
+  const padTop = Number.parseFloat(viewportStyles.paddingTop) || 0;
+  const padBottom = Number.parseFloat(viewportStyles.paddingBottom) || 0;
+  const contentHeight = Math.max(1, viewport.clientHeight - padTop - padBottom);
+  const rowPitchAtMin = CELL_SIZE_MIN + TAPE_ROW_PAD_Y * 2;
+  return Math.max(1, Math.floor(contentHeight / rowPitchAtMin));
+}
+
+function canAddAnotherRow() {
+  return appState.rows < maxRowsForViewportAtMinCellSize();
+}
+
 function applyCellSize() {
-  const size = Math.max(28, Math.min(132, appState.cellSize));
+  const maxAllowed = maxCellSizeForViewportHeight();
+  const size = Math.max(CELL_SIZE_MIN, Math.min(maxAllowed, appState.cellSize));
   appState.cellSize = size;
   document.documentElement.style.setProperty("--tape-cell-size", `${size}px`);
+  els.cellSizeSlider.max = String(maxAllowed);
   els.cellSizeSlider.value = String(size);
   els.cellSizeValue.textContent = `${size}px`;
 }
@@ -201,12 +238,12 @@ function autoFitCellSize() {
 
   const targetCols = 24;
   const horizontalGap = 4;
-  const verticalGap = 6;
+  const verticalGap = TAPE_ROW_PAD_Y * 2;
 
   const sizeFromWidth = Math.floor((width - targetCols * horizontalGap) / targetCols);
   const sizeFromHeight = Math.floor((height - (appState.rows - 1) * verticalGap) / Math.max(1, appState.rows));
 
-  appState.cellSize = Math.max(28, Math.min(132, Math.min(sizeFromWidth, sizeFromHeight)));
+  appState.cellSize = Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, Math.min(sizeFromWidth, sizeFromHeight)));
   applyCellSize();
 }
 
@@ -703,8 +740,15 @@ function initTapeInteractions() {
     viewport.classList.remove("dragging");
 
     if (!cancelled && drag.moved) {
-      appState.head.col = Math.round(appState.tapeViewCol);
-      appState.head.row = Math.max(0, Math.min(appState.rows - 1, Math.round(appState.tapeViewRow)));
+      const snappedCol = Math.round(appState.tapeViewCol);
+      const snappedRow = Math.max(0, Math.min(appState.rows - 1, Math.round(appState.tapeViewRow)));
+      const previousHeadRow = appState.head.row;
+      const rowDelta = snappedRow - previousHeadRow;
+
+      // Preserve current visual offset at release, then animate back to canonical framing.
+      appState.head.col = snappedCol;
+      appState.head.row = snappedRow;
+      appState.tapeViewRow += rowDelta;
       appState.startHead = { ...appState.head };
       animateTapeToHead(220);
       updateStatus();
@@ -1293,6 +1337,7 @@ function updateStatus() {
 
   els.btnRun.disabled = appState.running;
   els.btnPause.disabled = !appState.running;
+  els.btnAddRow.disabled = !canAddAnotherRow();
   els.btnRemoveRow.disabled = appState.rows <= 1;
 }
 
@@ -1341,6 +1386,11 @@ function initEvents() {
   );
 
   els.btnAddRow.addEventListener("click", () => {
+    if (!canAddAnotherRow()) {
+      appState.message = `Cannot add more rows: minimum cell size (${CELL_SIZE_MIN}px) reached for current viewport height.`;
+      updateStatus();
+      return;
+    }
     appState.rows += 1;
     autoFitCellSize();
     syncTapeViewToHead();

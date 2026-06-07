@@ -506,8 +506,4 @@ tr.active-rule {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
   }
-
-  .tape-row {
-    grid-auto-columns: minmax(34px, 1fr);
-  }
 }

@@ -395,12 +395,10 @@ function openStateModal(existingStateName = "") {
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
-  setModalVisible(els.stateModal, true);
-  appState.message = "Modal debug: state modal open called.";
-  updateStatus();
+  els.stateModal.showModal();
 
   requestAnimationFrame(() => {
-    if (!appState.stateModal.open) {
+    if (!els.stateModal.open) {
       return;
     }
     els.stateNameInput.focus({ preventScroll: true });
@@ -411,21 +409,9 @@ function closeStateModal() {
   appState.stateModal.open = false;
   appState.stateModal.originalName = null;
   els.btnStateModalDelete.hidden = true;
-  setModalVisible(els.stateModal, false);
-  appState.message = "Modal debug: state modal close called.";
-  updateStatus();
+  els.stateModal.close();
 }
 
-function setModalVisible(modalElement, isVisible) {
-  if (!modalElement) {
-    return;
-  }
-
-  modalElement.classList.toggle("visible", isVisible);
-  modalElement.style.display = isVisible ? "flex" : "none";
-  modalElement.style.opacity = isVisible ? "1" : "0";
-  modalElement.style.pointerEvents = isVisible ? "auto" : "none";
-}
 
 function deleteState(stateName) {
   const remainingStates = getAvailableStates().filter((state) => state !== stateName);
@@ -1739,15 +1725,11 @@ function addRule() {
 
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
-  setModalVisible(els.aboutModal, true);
-  appState.message = "Modal debug: about modal open called.";
-  updateStatus();
+  els.aboutModal.showModal();
 }
 
 function closeAboutModal() {
-  setModalVisible(els.aboutModal, false);
-  appState.message = "Modal debug: about modal close called.";
-  updateStatus();
+  els.aboutModal.close();
 }
 
 function bindModalActivate(target, handler) {
@@ -1990,8 +1972,6 @@ function initEvents() {
       return;
     }
     if (event.target === els.stateModal) {
-      appState.message = "Modal debug: backdrop click close fired.";
-      updateStatus();
       closeStateModal();
     }
   });
@@ -2012,10 +1992,18 @@ function initEvents() {
     }
   });
 
+  els.stateModal.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeStateModal();
+  });
+
+  els.aboutModal.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeAboutModal();
+  });
+
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      if (appState.stateModal.open) closeStateModal();
-      if (els.aboutModal.classList.contains("visible")) closeAboutModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
     }
   });

@@ -50,7 +50,6 @@ const appState = {
   lastPlacedSymbol: "0",
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
-  modalOpenedAt: 0,
   message: "Ready.",
   rules: [
     { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
@@ -394,8 +393,6 @@ function openStateModal(existingStateName = "") {
   els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
   els.btnStateModalDelete.hidden = !existingStateName;
 
-  appState.modalOpenedAt = performance.now();
-  document.body.classList.add("modal-open");
   els.stateModal.hidden = false;
 }
 
@@ -404,9 +401,6 @@ function closeStateModal() {
   appState.stateModal.originalName = null;
   els.btnStateModalDelete.hidden = true;
   els.stateModal.hidden = true;
-  if (els.aboutModal.hidden) {
-    document.body.classList.remove("modal-open");
-  }
 }
 
 function deleteState(stateName) {
@@ -1720,26 +1714,11 @@ function addRule() {
 }
 
 function openAboutModal() {
-  appState.modalOpenedAt = performance.now();
-  document.body.classList.add("modal-open");
   els.aboutModal.hidden = false;
 }
 
 function closeAboutModal() {
   els.aboutModal.hidden = true;
-  if (els.stateModal.hidden) {
-    document.body.classList.remove("modal-open");
-  }
-}
-
-function handleBackdropDismiss(backdrop, closeFn, event) {
-  if (event.target !== backdrop) {
-    return;
-  }
-  if (performance.now() - appState.modalOpenedAt < 300) {
-    return;
-  }
-  closeFn();
 }
 
 function bindTap(target, handler) {
@@ -1864,15 +1843,15 @@ function initEvents() {
     });
   });
 
-  bindTap(els.menuAbout, () => {
+  els.menuAbout.addEventListener("click", () => {
     openAboutModal();
     toggleMenu(false);
   });
 
-  bindTap(els.btnAboutClose, closeAboutModal);
-  els.aboutModal.addEventListener("pointerup", (event) => handleBackdropDismiss(els.aboutModal, closeAboutModal, event));
-  els.aboutModal.addEventListener("touchend", (event) => handleBackdropDismiss(els.aboutModal, closeAboutModal, event), { passive: true });
-  els.aboutModal.addEventListener("click", (event) => handleBackdropDismiss(els.aboutModal, closeAboutModal, event));
+  els.btnAboutClose.addEventListener("click", closeAboutModal);
+  els.aboutModal.addEventListener("click", (event) => {
+    if (event.target === els.aboutModal) closeAboutModal();
+  });
 
   document.addEventListener("click", (event) => {
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
@@ -1881,7 +1860,7 @@ function initEvents() {
   });
 
   els.btnAddRule.addEventListener("click", addRule);
-  bindTap(els.btnAddState, () => openStateModal());
+  els.btnAddState.addEventListener("click", () => openStateModal());
   els.btnResetTape.addEventListener("click", resetTape);
   els.btnResetMachine.addEventListener("click", resetMachine);
 
@@ -1919,17 +1898,19 @@ function initEvents() {
     renderAll();
   });
 
-  bindTap(els.btnStateModalCancel, closeStateModal);
-  bindTap(els.btnStateModalDelete, () => {
+  els.btnStateModalCancel.addEventListener("click", closeStateModal);
+  els.btnStateModalDelete.addEventListener("click", () => {
     if (!appState.stateModal.originalName) {
       return;
     }
     deleteState(appState.stateModal.originalName);
   });
-  bindTap(els.btnStateModalSave, saveStateModal);
-  els.stateModal.addEventListener("pointerup", (event) => handleBackdropDismiss(els.stateModal, closeStateModal, event));
-  els.stateModal.addEventListener("touchend", (event) => handleBackdropDismiss(els.stateModal, closeStateModal, event), { passive: true });
-  els.stateModal.addEventListener("click", (event) => handleBackdropDismiss(els.stateModal, closeStateModal, event));
+  els.btnStateModalSave.addEventListener("click", saveStateModal);
+  els.stateModal.addEventListener("click", (event) => {
+    if (event.target === els.stateModal) {
+      closeStateModal();
+    }
+  });
   els.stateNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();

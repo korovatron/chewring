@@ -414,10 +414,14 @@ function openStateModal(existingStateName = "") {
 }
 
 function closeStateModal() {
-  appState.stateModal.open = false;
-  appState.stateModal.originalName = null;
-  els.btnStateModalDelete.hidden = true;
-  els.stateModal.style.display = "none";
+  // DISABLED FOR DIAGNOSIS - logging close call time
+  const sinceOpen = Math.round(performance.now() - appState.modalOpenedAt);
+  appState.message = `close called ${sinceOpen}ms after open - NOT closing`;
+  updateStatus();
+  // appState.stateModal.open = false;
+  // appState.stateModal.originalName = null;
+  // els.btnStateModalDelete.hidden = true;
+  // els.stateModal.style.display = "none";
 }
 
 

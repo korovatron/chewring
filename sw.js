@@ -1,4 +1,4 @@
-const CACHE_VERSION = "chewring-v3";
+const CACHE_VERSION = "chewring-v4";
 const CACHE_NAME = `chewring-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -10,6 +10,7 @@ const APP_SHELL = [
   "./images/appIcon.png",
   "./images/preview.png"
 ];
+const APP_SHELL_PATHS = new Set(["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -37,6 +38,21 @@ self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  if (APP_SHELL_PATHS.has(requestUrl.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === "basic") {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match("./index.html")))
+    );
     return;
   }
 

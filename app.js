@@ -1694,15 +1694,40 @@ function closeAboutModal() {
 }
 
 function bindTap(target, handler) {
+  if (!target) {
+    return;
+  }
+
   let lastTouchActivation = 0;
+
+  const activateFromTouch = (event) => {
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    lastTouchActivation = Date.now();
+    handler(event);
+  };
 
   target.addEventListener("pointerup", (event) => {
     if (event.pointerType !== "touch" && event.pointerType !== "pen") {
       return;
     }
-    event.preventDefault();
+    activateFromTouch(event);
+  });
+
+  target.addEventListener(
+    "touchend",
+    (event) => {
+      if (Date.now() - lastTouchActivation < 250) {
+        return;
+      }
+      activateFromTouch(event);
+    },
+    { passive: false }
+  );
+
+  target.addEventListener("touchcancel", () => {
     lastTouchActivation = Date.now();
-    handler(event);
   });
 
   target.addEventListener("click", (event) => {

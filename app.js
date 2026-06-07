@@ -1730,6 +1730,8 @@ function bindModalActivate(target, handler) {
   }
 
   let lastActivationAt = 0;
+  let suppressClickUntil = 0;
+
   const activate = (event) => {
     const now = Date.now();
     if (now - lastActivationAt < 250) {
@@ -1739,13 +1741,34 @@ function bindModalActivate(target, handler) {
     handler(event);
   };
 
-  target.addEventListener("click", activate);
+  target.addEventListener("click", (event) => {
+    if (Date.now() < suppressClickUntil) {
+      return;
+    }
+    activate(event);
+  });
+
   target.addEventListener("pointerup", (event) => {
     if (event.pointerType === "touch" || event.pointerType === "pen") {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      suppressClickUntil = Date.now() + 900;
       activate(event);
     }
   });
-  target.addEventListener("touchend", activate, { passive: true });
+
+  target.addEventListener(
+    "touchend",
+    (event) => {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      suppressClickUntil = Date.now() + 900;
+      activate(event);
+    },
+    { passive: false }
+  );
 }
 
 function bindTap(target, handler) {

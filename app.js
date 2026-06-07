@@ -733,9 +733,13 @@ function renderTapeCellContent(cell, row, col, currentSymbol) {
 function buildHeadIndicator(headCenterX, centerCol, centerRow) {
   const indicator = document.createElement("div");
   indicator.className = "tape-head-indicator";
+  const headStroke = Math.max(3, Math.min(8, Math.round(appState.cellSize * 0.09)));
+  const pulseRing = Math.max(2, Math.round(headStroke * 0.6));
+  const pulseBlur = Math.max(14, Math.round(headStroke * 4));
   indicator.style.width = `${appState.cellSize}px`;
   indicator.style.height = `${appState.cellSize}px`;
   indicator.style.left = `${headCenterX - appState.cellSize / 2}px`;
+  indicator.style.borderWidth = `${headStroke}px`;
 
   const rowPitch = appState.cellSize + TAPE_ROW_PAD_Y * 2;
   const viewportStyles = getComputedStyle(els.tapeViewport);
@@ -755,7 +759,7 @@ function buildHeadIndicator(headCenterX, centerCol, centerRow) {
     const progress = 1 - remaining / HEAD_WRITE_PULSE_MS;
     const pulseColour = rgbPulseColour(progress);
     indicator.style.borderColor = pulseColour;
-    indicator.style.boxShadow = `0 0 0 2px ${pulseColour}66, 0 0 14px ${pulseColour}88`;
+    indicator.style.boxShadow = `0 0 0 ${pulseRing}px ${pulseColour}66, 0 0 ${pulseBlur}px ${pulseColour}88`;
   }
   indicator.style.top = `${topStart + indicatorRow * rowPitch + TAPE_ROW_PAD_Y}px`;
 

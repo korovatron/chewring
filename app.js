@@ -396,7 +396,7 @@ function openStateModal(existingStateName = "") {
 
   appState.modalOpenedAt = performance.now();
   document.body.appendChild(els.stateModal);
-  els.stateModal.style.display = "flex";
+  els.stateModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
 
   requestAnimationFrame(() => {
     if (els.stateModal.style.display !== "flex") {
@@ -1727,7 +1727,7 @@ function addRule() {
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
   document.body.appendChild(els.aboutModal);
-  els.aboutModal.style.display = "flex";
+  els.aboutModal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
 }
 
 function closeAboutModal() {

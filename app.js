@@ -1839,9 +1839,25 @@ function openDiagramModal() {
   if (appState.running || appState.diagramModalOpen || !els.diagramModal) {
     return;
   }
+  appState.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.diagramModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeDiagramModal();
+  });
+  document.body.appendChild(overlay);
+  appState.diagramModalOverlay = overlay;
   appState.diagramModalOpen = true;
-  els.diagramModal.classList.add("is-open");
-  renderDiagram(els.diagramExpanded);
+  requestAnimationFrame(() => {
+    if (appState.diagramModalOpen) {
+      renderDiagram(els.diagramExpanded);
+    }
+  });
 }
 
 function closeDiagramModal() {
@@ -1849,7 +1865,14 @@ function closeDiagramModal() {
     return;
   }
   appState.diagramModalOpen = false;
-  els.diagramModal.classList.remove("is-open");
+  if (appState.diagramModalOverlay) {
+    const content = appState.diagramModalOverlay.firstElementChild;
+    if (content) {
+      els.diagramModal.appendChild(content);
+    }
+    appState.diagramModalOverlay.remove();
+    appState.diagramModalOverlay = null;
+  }
 }
 
 function updateStatus() {

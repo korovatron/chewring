@@ -117,7 +117,9 @@
               <span class="state-pill" id="stateStartBadge" title="Start state">Start: q0</span>
               <span class="state-pill" id="stateAcceptBadge" title="Accept states">Accept: qa</span>
               <span class="state-pill" id="stateRejectBadge" title="Reject states">Reject: qr</span>
-              <button id="btnAddRule">+ Rule</button>
+              <button id="btnAddRule" type="button" aria-label="Add rule" title="Add rule">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </button>
             </div>
           </div>
           <div class="rules-table-wrap">
@@ -141,8 +143,24 @@
           <div class="panel-head">
             <h2>Finite State Diagram</h2>
             <div class="panel-actions compact">
-              <button id="btnAddState" type="button">+ State</button>
-              <button id="btnExpandDiagram" type="button" aria-haspopup="dialog" aria-controls="diagramModal">Expand</button>
+              <button id="btnClearStates" class="btn-clear-states" type="button" aria-label="Delete all states" title="Delete all states">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6l1 2h4v2H4V5h4l1-2z"/><path d="M7 7l1 13h8l1-13"/><path d="M10 10v7"/><path d="M14 10v7"/></svg>
+              </button>
+              <button id="btnExpandDiagram" type="button" aria-haspopup="dialog" aria-controls="diagramModal" aria-label="Expand diagram" title="Expand diagram">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M8 3H3v5" />
+                  <path d="M3 3l7 7" />
+                  <path d="M16 3h5v5" />
+                  <path d="M21 3l-7 7" />
+                  <path d="M3 16v5h5" />
+                  <path d="M3 21l7-7" />
+                  <path d="M21 16v5h-5" />
+                  <path d="M21 21l-7-7" />
+                </svg>
+              </button>
+              <button id="btnAddState" type="button" aria-label="Add state" title="Add state">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </button>
             </div>
           </div>
           <svg id="diagram" viewBox="0 0 640 360" aria-label="State diagram"></svg>
@@ -160,6 +178,7 @@
   <div id="stateModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="stateModalTitle">
     <div class="modal">
       <h3 id="stateModalTitle">State Settings</h3>
+      <button id="btnStateModalCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close state settings" title="Close state settings">×</button>
       <label for="stateNameInput">State name</label>
       <input id="stateNameInput" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" spellcheck="false" />
       <p id="stateModalFeedback" class="modal-feedback" role="status" aria-live="polite" hidden></p>
@@ -187,10 +206,19 @@
   <div id="aboutModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
     <div class="modal">
       <h3 id="aboutModalTitle">About Chewring</h3>
+      <button id="btnAboutCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close about" title="Close about">×</button>
       <p>Chewring is a simple Turing machine simulator for A-level Computer Science, designed for quick classroom demos with a clear interface and no steep learning curve.</p>
       <p>&copy; 2026 Neil Kendall - More @ <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
+    </div>
+  </div>
+
+  <div id="deleteAllConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="deleteAllConfirmTitle">
+    <div class="modal">
+      <h3 id="deleteAllConfirmTitle">Delete All States?</h3>
+      <p id="deleteAllConfirmMessage" class="confirm-message">This action cannot be undone.</p>
       <div class="modal-actions">
-        <button id="btnAboutClose" type="button">Close</button>
+        <button id="btnDeleteAllConfirmCancel" type="button">Cancel</button>
+        <button id="btnDeleteAllConfirmConfirm" class="danger-btn-inline" type="button">Delete All</button>
       </div>
     </div>
   </div>
@@ -198,10 +226,9 @@
   <div id="diagramModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="diagramModalTitle">
     <div class="modal diagram-modal">
       <div class="diagram-modal-head">
-        <h3 id="diagramModalTitle">Finite State Diagram - Expanded View</h3>
+        <h3 id="diagramModalTitle">Finite State Diagram<span class="diagram-modal-title-suffix"> - Expanded View</span></h3>
         <div class="diagram-modal-actions">
-          <button id="btnAddStateExpanded" type="button">+ State</button>
-          <button id="btnDiagramModalClose" type="button">Close</button>
+          <button id="btnDiagramModalClose" class="rule-del-btn" type="button" aria-label="Close expanded diagram" title="Close expanded diagram">×</button>
         </div>
       </div>
       <div class="diagram-modal-body">

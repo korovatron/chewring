@@ -406,14 +406,14 @@ select {
   padding-right: 24px;
 }
 
-button:hover:not(:disabled):not(.hamburger-btn):not(.tape-cell) {
+button:hover:not(:disabled):not(.hamburger-btn):not(.tape-cell):not(.rule-del-btn):not(.btn-clear-states) {
   border-color: #b8adff;
   background: linear-gradient(180deg, var(--button-hover-top), var(--button-hover-bottom));
   box-shadow: 0 6px 14px var(--button-shadow);
   transform: translateY(-1px);
 }
 
-button:focus-visible:not(.hamburger-btn):not(.tape-cell) {
+button:focus-visible:not(.hamburger-btn):not(.tape-cell):not(.rule-del-btn):not(.btn-clear-states) {
   outline: 2px solid #c9c0ff;
   outline-offset: 2px;
 }
@@ -779,6 +779,49 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 
 .status-tools input[type="range"] {
   width: min(220px, 38vw);
+  accent-color: var(--edge-label-badge-border);
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 18px;
+}
+
+.status-tools input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #000000;
+  border: 1px solid var(--line);
+}
+
+.status-tools input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--edge-label-badge-border);
+  border: 1px solid #000000;
+}
+
+.status-tools input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #000000;
+  border: 1px solid var(--line);
+}
+
+.status-tools input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--edge-label-badge-border);
+  border: 1px solid #000000;
+}
+
+.status-tools input[type="range"]:focus-visible {
+  outline: 2px solid #fff3a6;
+  outline-offset: 2px;
 }
 
 .status-tools-sep {
@@ -881,6 +924,13 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 
 .modal h3 {
   margin: 0 0 10px;
+  padding-right: 42px;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
 }
 
 .modal label {
@@ -966,6 +1016,24 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   background: linear-gradient(180deg, #ff6c6c, #d62c2c);
 }
 
+.danger-btn-inline {
+  border-color: var(--warn);
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff5a5a, #c92222);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.danger-btn-inline:hover:not(:disabled) {
+  border-color: #ff9c9c;
+  background: linear-gradient(180deg, #ff6c6c, #d62c2c);
+}
+
+.confirm-message {
+  margin: 6px 0 2px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
 .state-node-group {
   cursor: pointer;
 }
@@ -1046,6 +1114,13 @@ td {
   text-align: left;
 }
 
+#rulesTable th:last-child,
+#rulesTable td:last-child {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
 th {
   position: sticky;
   top: 0;
@@ -1056,6 +1131,92 @@ th {
 td input,
 td select {
   width: 100%;
+}
+
+.rule-del-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #8f1c1c;
+  background: #cf2a2a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.rule-del-btn:hover:not(:disabled) {
+  background: #e13c3c;
+  border-color: #a52323;
+  box-shadow: 0 5px 12px rgba(207, 42, 42, 0.45);
+  transform: translateY(-1px);
+}
+
+.rule-del-btn:focus-visible {
+  outline: 2px solid #fff3a6;
+  outline-offset: 1px;
+}
+
+.btn-clear-states {
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-color: #8f1c1c;
+  background: linear-gradient(180deg, #f15454, #b32020);
+  color: #ffffff;
+}
+
+#btnClearStates,
+#btnAddState,
+#btnAddRule,
+#btnExpandDiagram {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+#btnClearStatesExpanded,
+#btnAddStateExpanded {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.btn-clear-states svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#btnAddState svg,
+#btnAddRule svg,
+#btnAddStateExpanded svg,
+#btnExpandDiagram svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn-clear-states:hover:not(:disabled) {
+  border-color: #a52323;
+  background: linear-gradient(180deg, #ff6666, #c32727);
+  box-shadow: 0 5px 12px rgba(207, 42, 42, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-clear-states:focus-visible {
+  outline: 2px solid #fff3a6;
+  outline-offset: 2px;
 }
 
 tr.active-rule {
@@ -1100,6 +1261,12 @@ tr.active-rule {
 
 .diagram-modal-head h3 {
   margin: 0;
+}
+
+@media (max-width: 700px) {
+  .diagram-modal-title-suffix {
+    display: none;
+  }
 }
 
 .diagram-modal-body {

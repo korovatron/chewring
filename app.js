@@ -80,9 +80,11 @@ const els = {
   stateRejectBadge: document.getElementById("stateRejectBadge"),
   diagram: document.getElementById("diagram"),
   diagramExpanded: document.getElementById("diagramExpanded"),
+  btnClearStates: document.getElementById("btnClearStates"),
   btnAddState: document.getElementById("btnAddState"),
   btnExpandDiagram: document.getElementById("btnExpandDiagram"),
   diagramModal: document.getElementById("diagramModal"),
+  btnClearStatesExpanded: document.getElementById("btnClearStatesExpanded"),
   btnAddStateExpanded: document.getElementById("btnAddStateExpanded"),
   btnDiagramModalClose: document.getElementById("btnDiagramModalClose"),
   stateModal: document.getElementById("stateModal"),
@@ -91,6 +93,7 @@ const els = {
   stateIsStart: document.getElementById("stateIsStart"),
   stateIsAccept: document.getElementById("stateIsAccept"),
   stateIsReject: document.getElementById("stateIsReject"),
+  btnStateModalCloseX: document.getElementById("btnStateModalCloseX"),
   btnStateModalDelete: document.getElementById("btnStateModalDelete"),
   btnStateModalCancel: document.getElementById("btnStateModalCancel"),
   btnStateModalSave: document.getElementById("btnStateModalSave"),
@@ -100,7 +103,11 @@ const els = {
   menuExamplesList: document.getElementById("menuExamplesList"),
   menuAbout: document.getElementById("menuAbout"),
   aboutModal: document.getElementById("aboutModal"),
-  btnAboutClose: document.getElementById("btnAboutClose")
+  btnAboutCloseX: document.getElementById("btnAboutCloseX"),
+  deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
+  deleteAllConfirmMessage: document.getElementById("deleteAllConfirmMessage"),
+  btnDeleteAllConfirmCancel: document.getElementById("btnDeleteAllConfirmCancel"),
+  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -505,11 +512,6 @@ function closeStateModal() {
 
 function deleteState(stateName) {
   const remainingStates = getAvailableStates().filter((state) => state !== stateName);
-  if (remainingStates.length === 0) {
-    appState.message = "Cannot delete the only remaining state.";
-    updateStatus();
-    return;
-  }
 
   stopRunLoop();
   appState.rules = appState.rules.filter((rule) => rule.current !== stateName && rule.next !== stateName);
@@ -517,12 +519,12 @@ function deleteState(stateName) {
   appState.acceptStates = appState.acceptStates.filter((state) => state !== stateName);
   appState.rejectStates = appState.rejectStates.filter((state) => state !== stateName);
 
-  const fallbackState = remainingStates[0];
+  const fallbackState = remainingStates[0] || "";
   if (appState.startState === stateName) {
     appState.startState = fallbackState;
   }
   if (appState.currentState === stateName) {
-    appState.currentState = appState.startState || fallbackState;
+    appState.currentState = appState.startState || fallbackState || "";
   }
 
   appState.activeRuleId = null;
@@ -531,6 +533,64 @@ function deleteState(stateName) {
   appState.message = `Deleted state '${stateName}' and removed referenced rules.`;
   closeStateModal();
   renderAll();
+}
+
+function openDeleteAllConfirmModal(messageText) {
+  appState.modalOpenedAt = performance.now();
+  if (els.deleteAllConfirmMessage) {
+    els.deleteAllConfirmMessage.textContent = messageText;
+  }
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.deleteAllConfirmModal?.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeDeleteAllConfirmModal();
+  });
+  document.body.appendChild(overlay);
+  appState.deleteAllConfirmOverlay = overlay;
+}
+
+function closeDeleteAllConfirmModal() {
+  if (appState.deleteAllConfirmOverlay) {
+    const content = appState.deleteAllConfirmOverlay.firstElementChild;
+    if (content && els.deleteAllConfirmModal) {
+      els.deleteAllConfirmModal.appendChild(content);
+    }
+    appState.deleteAllConfirmOverlay.remove();
+    appState.deleteAllConfirmOverlay = null;
+  }
+}
+
+function performDeleteAllStates() {
+  stopRunLoop();
+  closeDeleteAllConfirmModal();
+  closeStateModal();
+  appState.rules = [];
+  appState.states = [];
+  appState.acceptStates = [];
+  appState.rejectStates = [];
+  appState.startState = "";
+  appState.currentState = "";
+  appState.activeRuleId = null;
+  appState.message = "Deleted all states and associated transition rules.";
+  renderAll();
+}
+
+function deleteAllStatesWithConfirm() {
+  const stateCount = getAvailableStates().length;
+  const ruleCount = appState.rules.length;
+  if (stateCount === 0 && ruleCount === 0) {
+    appState.message = "No states or transition rules to delete.";
+    updateStatus();
+    return;
+  }
+
+  const confirmText = `Delete all ${stateCount} state${stateCount === 1 ? "" : "s"} and ${ruleCount} transition rule${ruleCount === 1 ? "" : "s"}? This cannot be undone.`;
+  openDeleteAllConfirmModal(confirmText);
 }
 
 function saveStateModal() {
@@ -724,8 +784,15 @@ function updateMachineConfigFromInputs() {
   appState.rejectStates = appState.rejectStates.map((state) => formatStateName(state));
   appState.acceptStates = uniqueStateList(appState.acceptStates);
   appState.rejectStates = uniqueStateList(appState.rejectStates).filter((state) => !appState.acceptStates.includes(state));
-  if (!appState.startState) {
-    appState.startState = appState.states[0] || formatStateName("s0");
+  if (!appState.startState && appState.states.length > 0) {
+    appState.startState = appState.states[0];
+  }
+  const availableStates = getAvailableStates();
+  if (appState.currentState && !availableStates.includes(appState.currentState)) {
+    appState.currentState = appState.startState || "";
+  }
+  if (!appState.currentState && appState.startState) {
+    appState.currentState = appState.startState;
   }
   syncStateRegistry();
 }
@@ -1172,7 +1239,11 @@ function renderRulesTable() {
 
     const delCell = document.createElement("td");
     const delBtn = document.createElement("button");
-    delBtn.textContent = "Del";
+    delBtn.type = "button";
+    delBtn.className = "rule-del-btn";
+    delBtn.setAttribute("aria-label", "Delete rule");
+    delBtn.title = "Delete rule";
+    delBtn.textContent = "×";
     delBtn.addEventListener("click", () => {
       appState.rules = appState.rules.filter((r) => r.id !== rule.id);
       renderAll();
@@ -1886,6 +1957,12 @@ function updateStatus() {
   if (els.btnExpandDiagram) {
     els.btnExpandDiagram.disabled = appState.running;
   }
+  if (els.btnClearStates) {
+    els.btnClearStates.disabled = appState.running;
+  }
+  if (els.btnClearStatesExpanded) {
+    els.btnClearStatesExpanded.disabled = appState.running;
+  }
   els.btnAddRow.disabled = !canAddAnotherRow();
   els.btnRemoveRow.disabled = appState.rows <= 1;
 }
@@ -2125,8 +2202,12 @@ function initEvents() {
     toggleMenu(false);
   });
 
-  bindModalActivate(els.btnAboutClose, closeAboutModal);
+  bindModalActivate(els.btnAboutCloseX, closeAboutModal);
+  bindModalActivate(els.btnDeleteAllConfirmCancel, closeDeleteAllConfirmModal);
+  bindModalActivate(els.btnDeleteAllConfirmConfirm, performDeleteAllStates);
   bindModalActivate(els.btnExpandDiagram, openDiagramModal);
+  bindModalActivate(els.btnClearStates, deleteAllStatesWithConfirm);
+  bindModalActivate(els.btnClearStatesExpanded, deleteAllStatesWithConfirm);
   bindModalActivate(els.btnAddStateExpanded, () => openStateModal());
   bindModalActivate(els.btnDiagramModalClose, closeDiagramModal);
 
@@ -2183,6 +2264,7 @@ function initEvents() {
     renderAll();
   });
 
+  bindModalActivate(els.btnStateModalCloseX, closeStateModal);
   bindModalActivate(els.btnStateModalCancel, closeStateModal);
   bindModalActivate(els.btnStateModalDelete, () => {
     if (!appState.stateModal.originalName) {
@@ -2198,6 +2280,7 @@ function initEvents() {
     if (event.key === "Escape") {
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
+      if (appState.deleteAllConfirmOverlay) closeDeleteAllConfirmModal();
       if (appState.diagramModalOpen) closeDiagramModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
     }

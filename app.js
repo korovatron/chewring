@@ -106,7 +106,10 @@ const els = {
   appMenu: document.getElementById("appMenu"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
+  menuHelp: document.getElementById("menuHelp"),
   menuAbout: document.getElementById("menuAbout"),
+  helpModal: document.getElementById("helpModal"),
+  btnHelpCloseX: document.getElementById("btnHelpCloseX"),
   aboutModal: document.getElementById("aboutModal"),
   btnAboutCloseX: document.getElementById("btnAboutCloseX"),
   deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
@@ -2383,12 +2386,35 @@ function openAboutModal() {
   appState.aboutModalOverlay = overlay;
 }
 
+function openHelpModal() {
+  appState.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.helpModal.firstElementChild;
+  if (content) overlay.appendChild(content);
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeHelpModal();
+  });
+  document.body.appendChild(overlay);
+  appState.helpModalOverlay = overlay;
+}
+
 function closeAboutModal() {
   if (appState.aboutModalOverlay) {
     const content = appState.aboutModalOverlay.firstElementChild;
     if (content) els.aboutModal.appendChild(content);
     appState.aboutModalOverlay.remove();
     appState.aboutModalOverlay = null;
+  }
+}
+
+function closeHelpModal() {
+  if (appState.helpModalOverlay) {
+    const content = appState.helpModalOverlay.firstElementChild;
+    if (content) els.helpModal.appendChild(content);
+    appState.helpModalOverlay.remove();
+    appState.helpModalOverlay = null;
   }
 }
 
@@ -2573,7 +2599,13 @@ function initEvents() {
     toggleMenu(false);
   });
 
+  bindModalActivate(els.menuHelp, () => {
+    openHelpModal();
+    toggleMenu(false);
+  });
+
   bindModalActivate(els.btnAboutCloseX, closeAboutModal);
+  bindModalActivate(els.btnHelpCloseX, closeHelpModal);
   bindModalActivate(els.btnDeleteAllConfirmCancel, closeDeleteAllConfirmModal);
   bindModalActivate(els.btnDeleteAllConfirmConfirm, performDeleteAllStates);
   bindModalActivate(els.btnExpandDiagram, openDiagramModal);
@@ -2654,6 +2686,7 @@ function initEvents() {
       if (appState.workspaceFoundOverlay) startFreshWorkspaceChoice();
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
+      if (appState.helpModalOverlay) closeHelpModal();
       if (appState.deleteAllConfirmOverlay) closeDeleteAllConfirmModal();
       if (appState.diagramModalOpen) closeDiagramModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);

@@ -65,6 +65,7 @@
           <li><button class="menu-preset-btn" data-preset="two-row-copy" type="button">Two-Row Copy Demo</button></li>
           <li><button class="menu-preset-btn" data-preset="ones-complement" type="button">Ones' Complement (Bit Flip)</button></li>
         </ul>
+        <button class="menu-item-btn" id="menuHelp" type="button">Help</button>
         <button class="menu-item-btn" id="menuAbout" type="button">About</button>
       </div>
     </nav>
@@ -220,6 +221,25 @@
     </div>
   </div>
 
+  <div id="helpModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+    <div class="modal">
+      <h3 id="helpModalTitle">Quick Help</h3>
+      <button id="btnHelpCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close help" title="Close help">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+      </button>
+      <p><strong>Tape editing</strong><br />
+      Tap or click a cell to cycle symbols: □, 0, 1, #, X. Right-click a cell to place your last selected symbol quickly.</p>
+      <p><strong>Rules</strong><br />
+      Use the + button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. Use the red X to delete a rule.</p>
+      <p><strong>States</strong><br />
+      Use the + button in Finite State Diagram to add a state. Click a state node to edit name and start/accept/reject options. In that dialog, use Delete to remove the state.</p>
+      <p><strong>Multiple rows</strong><br />
+      Use the row + and - controls in Tape Workspace. With more than one row, machine rules can move Up (U) and Down (D) between rows.</p>
+      <p><strong>Run controls</strong><br />
+      Run executes continuously, Pause stops, and Step executes one transition at a time when not halted.</p>
+    </div>
+  </div>
+
   <div id="deleteAllConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="deleteAllConfirmTitle">
     <div class="modal">
       <h3 id="deleteAllConfirmTitle">Delete All States?</h3>
@@ -235,7 +255,7 @@
     <div class="modal">
       <h3 id="workspaceFoundTitle">Previous Work Found</h3>
       <p id="workspaceFoundMessage" class="confirm-message">Saved local work was found from a previous session.</p>
-      <div class="modal-actions">
+      <div class="modal-actions workspace-found-actions">
         <button id="btnWorkspaceStartFresh" type="button">Start Fresh</button>
         <button id="btnWorkspaceDeleteSaved" class="danger-btn-inline" type="button">Delete Saved</button>
         <button id="btnWorkspaceLoadSaved" type="button">Load Saved</button>

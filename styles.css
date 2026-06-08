@@ -1046,6 +1046,10 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   margin-top: 12px;
 }
 
+.workspace-found-actions {
+  justify-content: center;
+}
+
 .danger-btn {
   border-color: var(--warn);
   color: #ffffff;
@@ -1075,6 +1079,21 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   margin: 6px 0 2px;
   line-height: 1.4;
   color: var(--ink);
+}
+
+#helpModal p {
+  margin: 8px 0;
+}
+
+#helpModal p strong {
+  display: inline-block;
+  margin-bottom: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #161616;
+  color: #fff3a6;
+  letter-spacing: 0.01em;
 }
 
 .state-node-group {

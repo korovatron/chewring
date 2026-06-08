@@ -1112,6 +1112,33 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   transform: translateY(-1px);
 }
 
+@keyframes halted-state-breath {
+  0%,
+  100% {
+    transform: scale(1);
+    stroke-width: 5;
+  }
+  50% {
+    transform: scale(1.06);
+    stroke-width: 5.8;
+  }
+}
+
+.state-node-group.halted-node .state-node.current,
+.state-node-group.halted-node .state-node.accept-inner {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: halted-state-breath 1300ms ease-in-out infinite;
+}
+
+.state-node-group.halted-node .state-node.accept {
+  filter: drop-shadow(0 0 12px rgba(57, 255, 122, 0.55));
+}
+
+.state-node-group.halted-node .state-node.reject {
+  filter: drop-shadow(0 0 12px rgba(255, 59, 59, 0.55));
+}
+
 .state-pill {
   display: inline-flex;
   align-items: center;

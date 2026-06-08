@@ -48,6 +48,7 @@ const appState = {
   headPulseRaf: null,
   writeMorph: null,
   lastPlacedSymbol: "0",
+  haltedStatePulse: false,
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
   modalOpenedAt: 0,
@@ -137,6 +138,26 @@ const DEFAULT_PROGRAMS = {
       { id: crypto.randomUUID(), current: "s0", read: BLANK, write: "1", move: "S", next: "sa" }
     ]
   },
+  "parity-even-ones": {
+    rows: 1,
+    startState: "qe",
+    acceptStates: ["sa"],
+    rejectStates: ["sr"],
+    head: { row: 0, col: 0 },
+    tapeRows: ["1010"],
+    rules: [
+      { id: crypto.randomUUID(), current: "qe", read: "0", write: "0", move: "R", next: "qe" },
+      { id: crypto.randomUUID(), current: "qe", read: "1", write: "1", move: "R", next: "qo" },
+      { id: crypto.randomUUID(), current: "qe", read: "#", write: "#", move: "S", next: "sr" },
+      { id: crypto.randomUUID(), current: "qe", read: "X", write: "X", move: "S", next: "sr" },
+      { id: crypto.randomUUID(), current: "qe", read: BLANK, write: BLANK, move: "S", next: "sa" },
+      { id: crypto.randomUUID(), current: "qo", read: "0", write: "0", move: "R", next: "qo" },
+      { id: crypto.randomUUID(), current: "qo", read: "1", write: "1", move: "R", next: "qe" },
+      { id: crypto.randomUUID(), current: "qo", read: "#", write: "#", move: "S", next: "sr" },
+      { id: crypto.randomUUID(), current: "qo", read: "X", write: "X", move: "S", next: "sr" },
+      { id: crypto.randomUUID(), current: "qo", read: BLANK, write: BLANK, move: "S", next: "sr" }
+    ]
+  },
   "binary-invert": {
     rows: 1,
     startState: "s0",
@@ -147,6 +168,8 @@ const DEFAULT_PROGRAMS = {
     rules: [
       { id: crypto.randomUUID(), current: "s0", read: "0", write: "1", move: "R", next: "s0" },
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "0", move: "R", next: "s0" },
+      { id: crypto.randomUUID(), current: "s0", read: "#", write: "#", move: "S", next: "sr" },
+      { id: crypto.randomUUID(), current: "s0", read: "X", write: "X", move: "S", next: "sr" },
       { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
     ]
   },
@@ -228,6 +251,10 @@ function setSymbol(row, col, symbol) {
     return;
   }
   appState.tape.set(tapeKey(row, col), normalized);
+}
+
+function clearHaltedStatePulse() {
+  appState.haltedStatePulse = false;
 }
 
 function maxCellSizeForViewportHeight() {
@@ -466,6 +493,7 @@ function setStateModalFeedback(message = "") {
 }
 
 function openStateModal(existingStateName = "") {
+  clearHaltedStatePulse();
   appState.stateModal.open = true;
   appState.stateModal.originalName = existingStateName || null;
   setStateModalFeedback("");
@@ -512,6 +540,7 @@ function closeStateModal() {
 
 
 function deleteState(stateName) {
+  clearHaltedStatePulse();
   const remainingStates = getAvailableStates().filter((state) => state !== stateName);
 
   stopRunLoop();
@@ -567,6 +596,7 @@ function closeDeleteAllConfirmModal() {
 }
 
 function performDeleteAllStates() {
+  clearHaltedStatePulse();
   stopRunLoop();
   closeDeleteAllConfirmModal();
   closeStateModal();
@@ -640,6 +670,7 @@ function saveStateModal() {
 
   syncStateRegistry();
   syncMachineConfigInputs();
+  clearHaltedStatePulse();
   setStateModalFeedback("");
   appState.message = originalName
     ? `Updated state '${proposedName}'.`
@@ -743,6 +774,7 @@ function loadPreset(key) {
   }
 
   stopRunLoop();
+  clearHaltedStatePulse();
   appState.rows = preset.rows;
   appState.startState = formatStateName(preset.startState);
   appState.currentState = appState.startState;
@@ -766,7 +798,7 @@ function loadPreset(key) {
 
   syncMachineConfigInputs();
 
-  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo", "ones-complement": "Ones' Complement (Bit Flip)" };
+  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "parity-even-ones": "Parity Check (Even 1s)", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo", "ones-complement": "Ones' Complement (Bit Flip)" };
   appState.message = `Loaded: ${labels[key] || key}.`;
   autoFitCellSize();
   renderAll();
@@ -974,6 +1006,7 @@ function buildTargetGhost(headCenterX, centerCol, centerRow, headTop) {
 }
 
 function cycleTapeCell(row, col) {
+  clearHaltedStatePulse();
   const current = symbolForDisplay(getSymbol(row, col));
   const index = TAPE_SYMBOL_CYCLE.indexOf(current);
   const next = TAPE_SYMBOL_CYCLE[(index + 1 + TAPE_SYMBOL_CYCLE.length) % TAPE_SYMBOL_CYCLE.length] || TAPE_SYMBOL_CYCLE[0];
@@ -986,6 +1019,7 @@ function cycleTapeCell(row, col) {
 }
 
 function placeRememberedSymbol(row, col) {
+  clearHaltedStatePulse();
   const symbol = normalizeSymbol(appState.lastPlacedSymbol) || "0";
   setSymbol(row, col, symbol);
   if (!appState.running) {
@@ -1256,6 +1290,7 @@ function renderRulesTable() {
     delIcon.appendChild(delPathB);
     delBtn.appendChild(delIcon);
     delBtn.addEventListener("click", () => {
+      clearHaltedStatePulse();
       appState.rules = appState.rules.filter((r) => r.id !== rule.id);
       renderAll();
     });
@@ -1307,6 +1342,7 @@ function ruleStateSelectCell(rule, field, options) {
   }
 
   select.addEventListener("change", () => {
+    clearHaltedStatePulse();
     rule[field] = select.value;
     renderDiagram();
   });
@@ -1332,6 +1368,7 @@ function ruleSymbolSelectCell(rule, field, options) {
   }
 
   select.addEventListener("change", () => {
+    clearHaltedStatePulse();
     rule[field] = normalizeSymbol(select.value) || BLANK;
     renderDiagram();
   });
@@ -1356,6 +1393,7 @@ function ruleSelectCell(rule, field, options) {
   }
 
   select.addEventListener("change", () => {
+    clearHaltedStatePulse();
     rule[field] = select.value;
     renderDiagram();
   });
@@ -1501,12 +1539,14 @@ function applyMove(move) {
 function machineStep() {
   if (appState.acceptStates.includes(appState.currentState)) {
     appState.message = `Machine already accepted in state ${appState.currentState}.`;
+    appState.haltedStatePulse = true;
     appState.running = false;
     return;
   }
 
   if (appState.rejectStates.includes(appState.currentState)) {
     appState.message = `Machine already rejected in state ${appState.currentState}.`;
+    appState.haltedStatePulse = true;
     appState.running = false;
     return;
   }
@@ -1545,12 +1585,14 @@ function machineStep() {
 
   if (appState.acceptStates.includes(appState.currentState)) {
     appState.message = `Accepted in ${appState.currentState} after ${appState.steps} steps.`;
+    appState.haltedStatePulse = true;
     appState.running = false;
     return;
   }
 
   if (appState.rejectStates.includes(appState.currentState)) {
     appState.message = `Rejected in ${appState.currentState} after ${appState.steps} steps.`;
+    appState.haltedStatePulse = true;
     appState.running = false;
     return;
   }
@@ -1613,6 +1655,7 @@ function stopRunLoop() {
 }
 
 function resetMachine() {
+  clearHaltedStatePulse();
   stopRunLoop();
   stopTapeSnap();
   stopHeadPulse();
@@ -1628,6 +1671,8 @@ function resetMachine() {
 }
 
 function resetTape() {
+  clearHaltedStatePulse();
+  stopRunLoop();
   stopTapeSnap();
   stopHeadPulse();
   clearTapeMoveDelay();
@@ -1915,6 +1960,14 @@ function renderDiagram(targetSvg = els.diagram) {
       circle.classList.add("current");
     }
 
+    const haltedCurrentState = appState.haltedStatePulse
+      && !appState.running
+      && name === appState.currentState
+      && (appState.acceptStates.includes(name) || appState.rejectStates.includes(name));
+    if (haltedCurrentState) {
+      nodeGroup.classList.add("halted-node");
+    }
+
     nodeGroup.appendChild(circle);
 
     if (appState.acceptStates.includes(name)) {
@@ -2015,6 +2068,7 @@ function renderAll() {
 }
 
 function addRule() {
+  clearHaltedStatePulse();
   const availableStates = getAvailableStates();
   const defaultState = appState.currentState || availableStates[0] || "s0";
   appState.rules.push({
@@ -2165,6 +2219,7 @@ function initEvents() {
   initTapeInteractions();
 
   els.cellSizeSlider.addEventListener("input", () => {
+    clearHaltedStatePulse();
     appState.cellSize = Number(els.cellSizeSlider.value);
     applyCellSize();
     renderTape();
@@ -2187,6 +2242,7 @@ function initEvents() {
   );
 
   bindTap(els.btnAddRow, () => {
+    clearHaltedStatePulse();
     if (!canAddAnotherRow()) {
       appState.message = `Cannot add more rows: minimum cell size (${CELL_SIZE_MIN}px) reached for current viewport height.`;
       updateStatus();
@@ -2200,6 +2256,7 @@ function initEvents() {
   });
 
   els.btnRemoveRow.addEventListener("click", () => {
+    clearHaltedStatePulse();
     if (appState.rows <= 1) {
       return;
     }
@@ -2265,6 +2322,7 @@ function initEvents() {
   els.btnResetMachine.addEventListener("click", resetMachine);
 
   els.btnStep.addEventListener("click", () => {
+    clearHaltedStatePulse();
     stopRunLoop();
     if (appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState)) {
       stopTapeSnap();
@@ -2279,6 +2337,7 @@ function initEvents() {
   });
 
   els.btnRun.addEventListener("click", () => {
+    clearHaltedStatePulse();
     if (appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState)) {
       stopTapeSnap();
       stopHeadPulse();
@@ -2293,6 +2352,7 @@ function initEvents() {
   });
 
   els.btnPause.addEventListener("click", () => {
+    clearHaltedStatePulse();
     stopRunLoop();
     appState.message = "Paused.";
     renderAll();
@@ -2337,7 +2397,7 @@ function seedExampleTape() {
 
 function init() {
   document.body.setAttribute("data-theme", "dark");
-  loadPreset("scan-right");
+  loadPreset("parity-even-ones");
   autoFitCellSize();
   initEvents();
   renderAll();

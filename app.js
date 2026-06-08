@@ -1,7 +1,7 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.1";
+const APP_VERSION = "V1.0.2";
 const LEGACY_BLANK = "_";
-const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X"];
+const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X", "!", "?"];
 const DRAG_THRESHOLD_PX = 6;
 const HEAD_WRITE_PULSE_MS = 280;
 const CELL_WRITE_MORPH_MS = 280;
@@ -157,7 +157,7 @@ const DEFAULT_PROGRAMS = {
     acceptStates: ["sa"],
     rejectStates: ["sr"],
     head: { row: 0, col: 0 },
-    tapeRows: ["1010"],
+    tapeRows: ["10101010"],
     rules: [
       { id: crypto.randomUUID(), current: "qe", read: "0", write: "0", move: "R", next: "qe" },
       { id: crypto.randomUUID(), current: "qe", read: "1", write: "1", move: "R", next: "qo" },

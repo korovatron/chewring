@@ -86,6 +86,7 @@ const els = {
   btnDiagramModalClose: document.getElementById("btnDiagramModalClose"),
   stateModal: document.getElementById("stateModal"),
   stateNameInput: document.getElementById("stateNameInput"),
+  stateModalFeedback: document.getElementById("stateModalFeedback"),
   stateIsStart: document.getElementById("stateIsStart"),
   stateIsAccept: document.getElementById("stateIsAccept"),
   stateIsReject: document.getElementById("stateIsReject"),
@@ -447,9 +448,18 @@ function renameStateReferences(fromName, toName) {
   }
 }
 
+function setStateModalFeedback(message = "") {
+  if (!els.stateModalFeedback) {
+    return;
+  }
+  els.stateModalFeedback.textContent = message;
+  els.stateModalFeedback.hidden = !message;
+}
+
 function openStateModal(existingStateName = "") {
   appState.stateModal.open = true;
   appState.stateModal.originalName = existingStateName || null;
+  setStateModalFeedback("");
 
   els.stateNameInput.value = existingStateName;
   els.stateIsStart.checked = Boolean(existingStateName && appState.startState === existingStateName);
@@ -481,6 +491,7 @@ function openStateModal(existingStateName = "") {
 function closeStateModal() {
   appState.stateModal.open = false;
   appState.stateModal.originalName = null;
+  setStateModalFeedback("");
   els.btnStateModalDelete.hidden = true;
   if (appState.stateModalOverlay) {
     const content = appState.stateModalOverlay.firstElementChild;
@@ -530,12 +541,14 @@ function saveStateModal() {
 
   if (!proposedName) {
     appState.message = "State name is required.";
+    setStateModalFeedback(appState.message);
     updateStatus();
     return;
   }
 
   if (isAccept && isReject) {
     appState.message = "A state cannot be both accept and reject.";
+    setStateModalFeedback(appState.message);
     updateStatus();
     return;
   }
@@ -543,6 +556,7 @@ function saveStateModal() {
   const availableStates = new Set(getAvailableStates());
   if (originalName !== proposedName && availableStates.has(proposedName)) {
     appState.message = `State '${proposedName}' already exists.`;
+    setStateModalFeedback(appState.message);
     updateStatus();
     return;
   }
@@ -564,6 +578,7 @@ function saveStateModal() {
 
   syncStateRegistry();
   syncMachineConfigInputs();
+  setStateModalFeedback("");
   appState.message = originalName
     ? `Updated state '${proposedName}'.`
     : `Added state '${proposedName}'.`;
@@ -1665,8 +1680,12 @@ function renderDiagram(targetSvg = els.diagram) {
 
       if (isSelfLoop) {
         const sideLevel = Math.floor(index / 2);
-        const loopDepth = 46 + sideLevel * 12;
-        const loopSpread = 44 + sideLevel * 8;
+        const loopDepth = (46 + sideLevel * 12) * sizeScale;
+        const loopSpread = (44 + sideLevel * 8) * sizeScale;
+        const loopAnchorYOffset = Math.min(nodeRadius * 0.62, 16 * sizeScale);
+        const loopAnchorXOffset = Math.sqrt(
+          Math.max(0, nodeRadius * nodeRadius - loopAnchorYOffset * loopAnchorYOffset)
+        );
         const spaceLeft = from.x;
         const spaceRight = diagramWidth - from.x;
         const preferredSide = spaceRight >= spaceLeft ? 1 : -1;
@@ -1674,10 +1693,10 @@ function renderDiagram(targetSvg = els.diagram) {
         const loopPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
         loopPath.setAttribute(
           "d",
-          `M ${from.x + side * nodeRadius} ${from.y - 16} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * nodeRadius} ${from.y + 16}`
+          `M ${from.x + side * loopAnchorXOffset} ${from.y - loopAnchorYOffset} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * loopAnchorXOffset} ${from.y + loopAnchorYOffset}`
         );
-        labelX = from.x + side * (nodeRadius + loopDepth + 24);
-        labelY = from.y + 4 + sideLevel * 12;
+        labelX = from.x + side * (nodeRadius + loopDepth + 24 * sizeScale);
+        labelY = from.y + 4 * sizeScale + sideLevel * 12 * sizeScale;
         loopPath.setAttribute("class", "edge");
         loopPath.setAttribute("marker-end", "url(#arrow)");
 
@@ -2147,6 +2166,9 @@ function initEvents() {
     deleteState(appState.stateModal.originalName);
   });
   bindModalActivate(els.btnStateModalSave, saveStateModal);
+  if (els.stateNameInput) {
+    els.stateNameInput.addEventListener("input", () => setStateModalFeedback(""));
+  }
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (appState.stateModal.open) closeStateModal();

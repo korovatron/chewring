@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.0";
+const APP_VERSION = "V1.0.1";
 const LEGACY_BLANK = "_";
 const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X"];
 const DRAG_THRESHOLD_PX = 6;
@@ -1577,6 +1577,40 @@ function renderRulesTable() {
     tr.appendChild(delCell);
 
     tbody.appendChild(tr);
+  }
+
+  if (appState.activeRuleId) {
+    scrollActiveRuleIntoView();
+  }
+}
+
+function scrollActiveRuleIntoView() {
+  const wrap = els.rulesTableWrap;
+  if (!wrap || !appState.activeRuleId) {
+    return;
+  }
+
+  const activeRow = wrap.querySelector("tr.active-rule");
+  if (!activeRow) {
+    return;
+  }
+
+  const padding = 8;
+  const wrapRect = wrap.getBoundingClientRect();
+  const rowRect = activeRow.getBoundingClientRect();
+  const stickyHeader = wrap.querySelector("thead th");
+  const headerHeight = stickyHeader ? stickyHeader.getBoundingClientRect().height : 0;
+  const visibleTop = wrapRect.top + headerHeight + padding;
+  const visibleBottom = wrapRect.bottom - padding;
+  const rowAbove = rowRect.top < visibleTop;
+  const rowBelow = rowRect.bottom > visibleBottom;
+
+  if (rowAbove || rowBelow) {
+    if (rowAbove) {
+      wrap.scrollTop = Math.max(0, wrap.scrollTop - (visibleTop - rowRect.top));
+      return;
+    }
+    wrap.scrollTop = Math.max(0, wrap.scrollTop + (rowRect.bottom - visibleBottom));
   }
 }
 

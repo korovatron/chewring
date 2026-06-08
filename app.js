@@ -98,6 +98,7 @@ const els = {
   btnStateModalCancel: document.getElementById("btnStateModalCancel"),
   btnStateModalSave: document.getElementById("btnStateModalSave"),
   btnHamburger: document.getElementById("btnHamburger"),
+  btnMenuClose: document.getElementById("btnMenuClose"),
   appMenu: document.getElementById("appMenu"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
@@ -1375,8 +1376,8 @@ function parseAndCleanRule(rule) {
 }
 
 function moveToNotation(move) {
-  if (move === "L") return "⟵";
-  if (move === "R") return "⟶";
+  if (move === "L") return "←";
+  if (move === "R") return "→";
   if (move === "U") return "↑";
   if (move === "D") return "↓";
   return "";
@@ -1645,6 +1646,7 @@ function resetTape() {
 function setupDiagramDefs(svg, sizeScale = 1) {
   const markerScale = Math.max(1, Math.min(2.4, sizeScale));
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
   const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
   marker.setAttribute("id", "arrow");
   marker.setAttribute("viewBox", "0 0 10 10");
@@ -1761,24 +1763,45 @@ function renderDiagram(targetSvg = els.diagram) {
       let labelY = (from.y + to.y) / 2 - 4 + index * 14;
 
       if (isSelfLoop) {
-        const sideLevel = Math.floor(index / 2);
+        const sideLevel = Math.floor(index / 4);
+        const slotIndex = index % 4;
         const loopDepth = (46 + sideLevel * 12) * sizeScale;
         const loopSpread = (44 + sideLevel * 8) * sizeScale;
-        const loopAnchorYOffset = Math.min(nodeRadius * 0.62, 16 * sizeScale);
-        const loopAnchorXOffset = Math.sqrt(
-          Math.max(0, nodeRadius * nodeRadius - loopAnchorYOffset * loopAnchorYOffset)
+        const loopAnchorInset = Math.min(nodeRadius * 0.62, 16 * sizeScale);
+        const loopAnchorSpan = Math.sqrt(
+          Math.max(0, nodeRadius * nodeRadius - loopAnchorInset * loopAnchorInset)
         );
         const spaceLeft = from.x;
         const spaceRight = diagramWidth - from.x;
-        const preferredSide = spaceRight >= spaceLeft ? 1 : -1;
-        const side = index % 2 === 0 ? preferredSide : -preferredSide;
+        const preferredHorizontal = spaceRight >= spaceLeft ? 1 : -1;
+        const spaceTop = from.y;
+        const spaceBottom = diagramHeight - from.y;
+        const preferredVertical = spaceBottom >= spaceTop ? 1 : -1;
+        const loopSides = [
+          { axis: "x", dir: preferredHorizontal },
+          { axis: "x", dir: -preferredHorizontal },
+          { axis: "y", dir: preferredVertical },
+          { axis: "y", dir: -preferredVertical }
+        ];
+        const sideChoice = loopSides[slotIndex];
         const loopPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        loopPath.setAttribute(
-          "d",
-          `M ${from.x + side * loopAnchorXOffset} ${from.y - loopAnchorYOffset} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * loopAnchorXOffset} ${from.y + loopAnchorYOffset}`
-        );
-        labelX = from.x + side * (nodeRadius + loopDepth + 24 * sizeScale);
-        labelY = from.y + 4 * sizeScale + sideLevel * 12 * sizeScale;
+        if (sideChoice.axis === "x") {
+          const side = sideChoice.dir;
+          loopPath.setAttribute(
+            "d",
+            `M ${from.x + side * loopAnchorSpan} ${from.y - loopAnchorInset} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * loopAnchorSpan} ${from.y + loopAnchorInset}`
+          );
+          labelX = from.x + side * (nodeRadius + loopDepth + 24 * sizeScale);
+          labelY = from.y + 4 * sizeScale + sideLevel * 10 * sizeScale;
+        } else {
+          const vertical = sideChoice.dir;
+          loopPath.setAttribute(
+            "d",
+            `M ${from.x - loopAnchorInset} ${from.y + vertical * loopAnchorSpan} C ${from.x - loopSpread} ${from.y + vertical * (nodeRadius + loopDepth)}, ${from.x + loopSpread} ${from.y + vertical * (nodeRadius + loopDepth)}, ${from.x + loopAnchorInset} ${from.y + vertical * loopAnchorSpan}`
+          );
+          labelX = from.x;
+          labelY = from.y + vertical * (nodeRadius + loopDepth + 12 * sizeScale) + sideLevel * 6 * sizeScale;
+        }
         loopPath.setAttribute("class", "edge");
         loopPath.setAttribute("marker-end", "url(#arrow)");
 
@@ -2192,6 +2215,7 @@ function initEvents() {
   });
 
   els.btnHamburger.addEventListener("click", () => toggleMenu());
+  els.btnMenuClose.addEventListener("click", () => toggleMenu(false));
 
   els.menuExamplesToggle.addEventListener("click", () => {
     const expanded = els.menuExamplesToggle.getAttribute("aria-expanded") === "true";

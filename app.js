@@ -1243,7 +1243,17 @@ function renderRulesTable() {
     delBtn.className = "rule-del-btn";
     delBtn.setAttribute("aria-label", "Delete rule");
     delBtn.title = "Delete rule";
-    delBtn.textContent = "×";
+    const delIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    delIcon.setAttribute("viewBox", "0 0 24 24");
+    delIcon.setAttribute("aria-hidden", "true");
+    delIcon.setAttribute("focusable", "false");
+    const delPathA = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    delPathA.setAttribute("d", "M7 7l10 10");
+    const delPathB = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    delPathB.setAttribute("d", "M17 7L7 17");
+    delIcon.appendChild(delPathA);
+    delIcon.appendChild(delPathB);
+    delBtn.appendChild(delIcon);
     delBtn.addEventListener("click", () => {
       appState.rules = appState.rules.filter((r) => r.id !== rule.id);
       renderAll();

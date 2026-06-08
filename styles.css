@@ -21,12 +21,12 @@
   --control-bg: #ffffff;
   --control-border: #c9c3b5;
   --control-hover: #f4efe2;
-  --button-top: #5d529e;
-  --button-bottom: #43377f;
-  --button-border: #8478c6;
-  --button-hover-top: #6a60ae;
-  --button-hover-bottom: #4e4291;
-  --button-shadow: rgba(32, 24, 72, 0.42);
+  --button-top: #5f6773;
+  --button-bottom: #454d59;
+  --button-border: #9099a8;
+  --button-hover-top: #6d7683;
+  --button-hover-bottom: #515a68;
+  --button-shadow: rgba(20, 24, 34, 0.42);
 
   --start: #00b7ff;
   --accent: #b3442a;
@@ -78,11 +78,11 @@ body[data-theme="dark"] {
   --control-bg: #24303a;
   --control-border: #3c4b57;
   --control-hover: #2b3944;
-  --button-top: #5e52a6;
-  --button-bottom: #3f347d;
-  --button-border: #8b80d2;
-  --button-hover-top: #7165bc;
-  --button-hover-bottom: #4f4395;
+  --button-top: #656f7e;
+  --button-bottom: #4a5363;
+  --button-border: #98a5b9;
+  --button-hover-top: #758092;
+  --button-hover-bottom: #566173;
   --button-shadow: rgba(0, 0, 0, 0.48);
 
   --start: #19b5ff;
@@ -407,14 +407,14 @@ select {
 }
 
 button:hover:not(:disabled):not(.hamburger-btn):not(.tape-cell):not(.rule-del-btn):not(.btn-clear-states) {
-  border-color: #b8adff;
+  border-color: #bcc7db;
   background: linear-gradient(180deg, var(--button-hover-top), var(--button-hover-bottom));
   box-shadow: 0 6px 14px var(--button-shadow);
   transform: translateY(-1px);
 }
 
 button:focus-visible:not(.hamburger-btn):not(.tape-cell):not(.rule-del-btn):not(.btn-clear-states) {
-  outline: 2px solid #c9c0ff;
+  outline: 2px solid #d7e0f2;
   outline-offset: 2px;
 }
 
@@ -463,6 +463,11 @@ button:disabled {
   border-bottom: 1px solid var(--line);
   padding: 8px 10px;
   background: linear-gradient(180deg, var(--panel-head-top), var(--panel-head-bottom));
+}
+
+.rules-panel .panel-head,
+.diagram-panel .panel-head {
+  min-height: 51px;
 }
 
 .panel-head h2 {
@@ -911,13 +916,8 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--line);
-  background: linear-gradient(
-    135deg,
-    var(--tile-grad-start) 0%,
-    var(--tile-grad-mid) 50%,
-    var(--tile-grad-end) 100%
-  );
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  background: #000000;
+  box-shadow: 0 8px 20px rgba(10, 6, 30, 0.4);
   max-height: calc(100dvh - 32px);
   overflow: auto;
 }
@@ -925,6 +925,15 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 .modal h3 {
   margin: 0 0 10px;
   padding-right: 42px;
+}
+
+.modal > h3 {
+  margin: -14px -14px 10px;
+  padding: 10px 46px 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-head-top), var(--panel-head-bottom));
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 .modal-close-x {
@@ -1137,12 +1146,15 @@ td select {
   min-width: 28px;
   height: 28px;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #8f1c1c;
   background: #cf2a2a;
   color: #ffffff;
   font-weight: 700;
   font-size: 1.35rem;
-  line-height: 1;
+  line-height: 0.9;
 }
 
 .rule-del-btn:hover:not(:disabled) {
@@ -1155,6 +1167,21 @@ td select {
 .rule-del-btn:focus-visible {
   outline: 2px solid #fff3a6;
   outline-offset: 1px;
+}
+
+.rule-del-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+#rulesTable tbody .rule-del-btn {
+  font-size: 0;
+  line-height: 1;
 }
 
 .btn-clear-states {
@@ -1176,6 +1203,44 @@ td select {
   padding: 0;
 }
 
+#btnExpandDiagram {
+  display: inline-grid;
+  place-items: center;
+}
+
+#btnAddState {
+  display: inline-grid;
+  place-items: center;
+}
+
+#btnAddRule {
+  display: inline-grid;
+  place-items: center;
+}
+
+#btnAddState,
+#btnAddRule,
+#btnRun {
+  border-color: #1f7a3a;
+  background: linear-gradient(180deg, #39b764, #1e7f3f);
+  color: #ffffff;
+}
+
+#btnAddState:hover:not(:disabled),
+#btnAddRule:hover:not(:disabled),
+#btnRun:hover:not(:disabled) {
+  border-color: #269548;
+  background: linear-gradient(180deg, #45c671, #239349);
+  box-shadow: 0 6px 14px rgba(37, 140, 72, 0.45);
+}
+
+#btnAddState:focus-visible,
+#btnAddRule:focus-visible,
+#btnRun:focus-visible {
+  outline: 2px solid #d8ffd8;
+  outline-offset: 2px;
+}
+
 #btnClearStatesExpanded,
 #btnAddStateExpanded {
   width: 28px;
@@ -1185,8 +1250,8 @@ td select {
 }
 
 .btn-clear-states svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
@@ -1206,6 +1271,14 @@ td select {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+#btnExpandDiagram svg {
+  display: block;
+  position: relative;
+  left: 0.5px;
+  top: -0.5px;
+}
+
 
 .btn-clear-states:hover:not(:disabled) {
   border-color: #a52323;
@@ -1240,10 +1313,10 @@ tr.active-rule {
   height: calc(100dvh - 24px);
   max-width: calc(100vw - 24px);
   max-height: calc(100dvh - 24px);
-  padding: 10px;
+  padding: 14px;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .diagram-modal-head {
@@ -1251,16 +1324,28 @@ tr.active-rule {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin: -14px -14px 0;
+  padding: 10px 46px 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-head-top), var(--panel-head-bottom));
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  position: relative;
 }
 
 .diagram-modal-actions {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
 }
 
 .diagram-modal-head h3 {
   margin: 0;
+  padding-right: 42px;
 }
 
 @media (max-width: 700px) {
@@ -1271,7 +1356,7 @@ tr.active-rule {
 
 .diagram-modal-body {
   min-height: 0;
-  border: 1px solid var(--line);
+  border: none;
   border-radius: 8px;
   overflow: hidden;
   background: #000000;
@@ -1419,6 +1504,11 @@ tr.active-rule {
 
   .panel-head {
     padding: 5px 8px;
+  }
+
+  .rules-panel .panel-head,
+  .diagram-panel .panel-head {
+    min-height: 45px;
   }
 
   .panel-head h2 {

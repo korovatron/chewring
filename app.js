@@ -253,6 +253,10 @@ function canAddAnotherRow() {
   return appState.rows < maxRowsForViewportAtMinCellSize();
 }
 
+function getZoomScaledStrokeWidth() {
+  return Math.max(3, Math.min(8, Math.round(appState.cellSize * 0.09)));
+}
+
 function applyCellSize() {
   let size;
   if (isMobileViewport()) {
@@ -264,8 +268,11 @@ function applyCellSize() {
     els.cellSizeSlider.value = String(size);
   }
   appState.cellSize = size;
+  const strokeWidth = getZoomScaledStrokeWidth();
   document.documentElement.style.setProperty("--tape-cell-size", `${size}px`);
   document.documentElement.style.setProperty("--tape-rows", String(appState.rows));
+  document.documentElement.style.setProperty("--tape-head-stroke", `${strokeWidth}px`);
+  document.documentElement.style.setProperty("--tape-hover-stroke", `${strokeWidth}px`);
 }
 
 function changeCellSizeBy(delta) {
@@ -809,7 +816,7 @@ function renderTapeCellContent(cell, row, col, currentSymbol) {
 function buildHeadIndicator(headCenterX, centerCol, centerRow) {
   const indicator = document.createElement("div");
   indicator.className = "tape-head-indicator";
-  const headStroke = Math.max(3, Math.min(8, Math.round(appState.cellSize * 0.09)));
+  const headStroke = getZoomScaledStrokeWidth();
   const pulseRing = Math.max(2, Math.round(headStroke * 0.6));
   const pulseBlur = Math.max(14, Math.round(headStroke * 4));
   indicator.style.width = `${appState.cellSize}px`;
@@ -971,7 +978,7 @@ function scheduleTapeMoveToHead(delayMs, duration, options = {}) {
   }, delayMs);
 }
 
-function handleTapeCellActivate(cell) {
+function handleTapeCellActivate(cell, pointerType = "") {
   if (!cell) {
     return;
   }
@@ -979,6 +986,10 @@ function handleTapeCellActivate(cell) {
   const col = Number(cell.dataset.col);
 
   cycleTapeCell(row, col);
+
+  if (pointerType === "touch" || pointerType === "pen") {
+    cell.blur();
+  }
 
   renderTape();
   updateStatus();
@@ -1001,6 +1012,12 @@ function initTapeInteractions() {
   });
 
   viewport.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      document.body.classList.add("touch-input");
+    } else if (event.pointerType === "mouse") {
+      document.body.classList.remove("touch-input");
+    }
+
     if (event.button !== 0 || appState.running) {
       return;
     }
@@ -1090,7 +1107,7 @@ function initTapeInteractions() {
         ? event.target
         : null;
       const cell = (eventTarget && eventTarget.closest(".tape-cell")) || drag.pressedCell;
-      handleTapeCellActivate(cell);
+      handleTapeCellActivate(cell, drag.pointerType || "");
     }
 
     appState.tapeDrag = null;

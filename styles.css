@@ -44,6 +44,8 @@
   --read-bg: #fff2b3;
   --head: #ff3b3b;
   --tape-cell-size: 46px;
+  --tape-head-stroke: 4px;
+  --tape-hover-stroke: 4px;
 
   --table-head: #f7f2e7;
   --table-row-border: #e3ddd0;
@@ -404,14 +406,14 @@ select {
   padding-right: 24px;
 }
 
-button:hover:not(:disabled):not(.hamburger-btn) {
+button:hover:not(:disabled):not(.hamburger-btn):not(.tape-cell) {
   border-color: #b8adff;
   background: linear-gradient(180deg, var(--button-hover-top), var(--button-hover-bottom));
   box-shadow: 0 6px 14px var(--button-shadow);
   transform: translateY(-1px);
 }
 
-button:focus-visible:not(.hamburger-btn) {
+button:focus-visible:not(.hamburger-btn):not(.tape-cell) {
   outline: 2px solid #c9c0ff;
   outline-offset: 2px;
 }
@@ -656,12 +658,44 @@ button:disabled {
   transition: opacity 60ms linear;
 }
 
-button.tape-cell:hover:not(:disabled) {
-  border-color: var(--tape-cell-hover-border);
-  background: transparent;
-  outline: 2px solid var(--tape-cell-hover-border);
-  outline-offset: -2px;
-  box-shadow: inset 0 0 0 2px var(--tape-cell-hover-border);
+@media (hover: hover) and (pointer: fine) {
+  button.tape-cell:hover:not(:disabled) {
+    border-color: var(--tape-cell-hover-border);
+    background: transparent;
+    outline: var(--tape-hover-stroke) solid var(--tape-cell-hover-border);
+    outline-offset: calc(-1 * var(--tape-hover-stroke));
+    box-shadow: inset 0 0 0 var(--tape-hover-stroke) var(--tape-cell-hover-border);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .tape-cell {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button.tape-cell:focus,
+  button.tape-cell:focus-visible,
+  button.tape-cell:active,
+  button.tape-cell:focus-visible:not(:disabled):not(.hamburger-btn) {
+    outline: none;
+    box-shadow: inset 0 0 0 0 transparent;
+    background: transparent;
+    border-color: var(--cell-border);
+  }
+}
+
+body.touch-input .tape-cell {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.touch-input button.tape-cell:focus,
+body.touch-input button.tape-cell:focus-visible,
+body.touch-input button.tape-cell:active,
+body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-btn) {
+  outline: none !important;
+  box-shadow: inset 0 0 0 0 transparent !important;
+  background: transparent !important;
+  border-color: var(--cell-border) !important;
 }
 
 .tape-cell.head {
@@ -671,7 +705,7 @@ button.tape-cell:hover:not(:disabled) {
 
 .tape-head-indicator {
   position: absolute;
-  border: 4px solid var(--head);
+  border: var(--tape-head-stroke) solid var(--head);
   border-radius: 6px;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),

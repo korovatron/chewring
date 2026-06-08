@@ -1,4 +1,5 @@
 const BLANK = "□";
+const APP_VERSION = "V1.0.0";
 const LEGACY_BLANK = "_";
 const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X"];
 const DRAG_THRESHOLD_PX = 6;
@@ -106,8 +107,10 @@ const els = {
   appMenu: document.getElementById("appMenu"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
+  btnFooterHelp: document.getElementById("btnFooterHelp"),
   menuHelp: document.getElementById("menuHelp"),
   menuAbout: document.getElementById("menuAbout"),
+  aboutVersion: document.getElementById("aboutVersion"),
   helpModal: document.getElementById("helpModal"),
   btnHelpCloseX: document.getElementById("btnHelpCloseX"),
   aboutModal: document.getElementById("aboutModal"),
@@ -119,8 +122,7 @@ const els = {
   workspaceFoundModal: document.getElementById("workspaceFoundModal"),
   workspaceFoundMessage: document.getElementById("workspaceFoundMessage"),
   btnWorkspaceLoadSaved: document.getElementById("btnWorkspaceLoadSaved"),
-  btnWorkspaceStartFresh: document.getElementById("btnWorkspaceStartFresh"),
-  btnWorkspaceDeleteSaved: document.getElementById("btnWorkspaceDeleteSaved")
+  btnWorkspaceStartFresh: document.getElementById("btnWorkspaceStartFresh")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -306,6 +308,20 @@ function readSavedWorkspace() {
   }
 }
 
+function hasMeaningfulSavedWorkspace(snapshot) {
+  if (!snapshot || snapshot.version !== 1) {
+    return false;
+  }
+
+  const hasTape = Array.isArray(snapshot.tape) && snapshot.tape.length > 0;
+  const hasStartTape = Array.isArray(snapshot.startTape) && snapshot.startTape.length > 0;
+  const hasRules = Array.isArray(snapshot.rules) && snapshot.rules.length > 0;
+  const hasStates = Array.isArray(snapshot.states) && snapshot.states.length > 0;
+  const hasStartState = typeof snapshot.startState === "string" && snapshot.startState.trim().length > 0;
+
+  return hasTape || hasStartTape || hasRules || hasStates || hasStartState;
+}
+
 function hasVisitedBefore() {
   try {
     return localStorage.getItem(VISITED_STORAGE_KEY) === "1";
@@ -330,14 +346,6 @@ function persistWorkspace() {
     localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(serialiseWorkspace()));
   } catch {
     // Ignore storage failures so app functionality is unaffected.
-  }
-}
-
-function deleteSavedWorkspace() {
-  try {
-    localStorage.removeItem(WORKSPACE_STORAGE_KEY);
-  } catch {
-    // Ignore storage failures.
   }
 }
 
@@ -481,7 +489,7 @@ function openWorkspaceFoundModal() {
 
 function startupWithSavedWorkspaceDecision() {
   const saved = readSavedWorkspace();
-  if (!saved) {
+  if (!saved || !hasMeaningfulSavedWorkspace(saved)) {
     if (hasVisitedBefore()) {
       startFreshWorkspace();
     } else {
@@ -494,6 +502,7 @@ function startupWithSavedWorkspaceDecision() {
   }
 
   markVisited();
+  startFreshWorkspace();
   appState.pendingSavedWorkspace = saved;
   openWorkspaceFoundModal();
   renderAll();
@@ -515,18 +524,6 @@ function startFreshWorkspaceChoice() {
   appState.pendingSavedWorkspace = null;
   closeWorkspaceFoundModal();
   startFreshWorkspace();
-  appState.workspaceSaveEnabled = true;
-  markVisited();
-  persistWorkspace();
-}
-
-function deleteSavedWorkspaceChoice() {
-  deleteSavedWorkspace();
-  appState.pendingSavedWorkspace = null;
-  closeWorkspaceFoundModal();
-  startFreshWorkspace();
-  appState.message = "Deleted saved work. Started fresh workspace.";
-  renderAll();
   appState.workspaceSaveEnabled = true;
   markVisited();
   persistWorkspace();
@@ -1398,6 +1395,7 @@ function handleTapeCellActivate(cell, pointerType = "") {
 
   renderTape();
   updateStatus();
+  persistWorkspace();
 }
 
 function initTapeInteractions() {
@@ -1414,6 +1412,7 @@ function initTapeInteractions() {
     placeRememberedSymbol(row, col);
     renderTape();
     updateStatus();
+    persistWorkspace();
   });
 
   viewport.addEventListener("pointerdown", (event) => {
@@ -1503,6 +1502,7 @@ function initTapeInteractions() {
       appState.startHead = { ...appState.head };
       animateTapeToHead(220);
       updateStatus();
+      persistWorkspace();
     } else if (cancelled && drag.moved) {
       // iOS can emit pointercancel mid-drag; re-align visual tape to integer head row/col.
       animateTapeToHead(180);
@@ -2604,6 +2604,8 @@ function initEvents() {
     toggleMenu(false);
   });
 
+  bindModalActivate(els.btnFooterHelp, openHelpModal);
+
   bindModalActivate(els.btnAboutCloseX, closeAboutModal);
   bindModalActivate(els.btnHelpCloseX, closeHelpModal);
   bindModalActivate(els.btnDeleteAllConfirmCancel, closeDeleteAllConfirmModal);
@@ -2680,7 +2682,6 @@ function initEvents() {
   }
   bindModalActivate(els.btnWorkspaceLoadSaved, loadSavedWorkspaceChoice);
   bindModalActivate(els.btnWorkspaceStartFresh, startFreshWorkspaceChoice);
-  bindModalActivate(els.btnWorkspaceDeleteSaved, deleteSavedWorkspaceChoice);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (appState.workspaceFoundOverlay) startFreshWorkspaceChoice();
@@ -2710,6 +2711,9 @@ function seedExampleTape() {
 
 function init() {
   document.body.setAttribute("data-theme", "dark");
+  if (els.aboutVersion) {
+    els.aboutVersion.textContent = APP_VERSION;
+  }
   initEvents();
   startupWithSavedWorkspaceDecision();
 

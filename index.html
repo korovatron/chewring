@@ -173,8 +173,11 @@
       </section>
 
       <footer class="workspace-footer" aria-label="Site footer">
-        &copy; 2026 Neil Kendall More @
-        <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a>
+        <div class="workspace-footer-copy">
+          &copy; 2026 Neil Kendall More @
+          <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a>
+        </div>
+        <button id="btnFooterHelp" type="button">Help</button>
       </footer>
 
     </main>
@@ -217,6 +220,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
       </button>
       <p>Chewring is a Turing machine simulator for A-level Computer Science, designed for quick classroom demos with a clear interface and no steep learning curve.</p>
+      <p>Version: <strong id="aboutVersion"></strong></p>
       <p>&copy; 2026 Neil Kendall - More @ <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
     </div>
   </div>
@@ -229,6 +233,8 @@
       </button>
       <p><strong>Tape editing</strong><br />
       Tap or click a cell to cycle symbols: □, 0, 1, #, X. Right-click a cell to place your last selected symbol quickly.</p>
+      <p><strong>Head position</strong><br />
+      Drag the tape with mouse or finger to move the read head to a new start position.</p>
       <p><strong>Rules</strong><br />
       Use the + button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. Use the red X to delete a rule.</p>
       <p><strong>States</strong><br />
@@ -257,7 +263,6 @@
       <p id="workspaceFoundMessage" class="confirm-message">Saved local work was found from a previous session.</p>
       <div class="modal-actions workspace-found-actions">
         <button id="btnWorkspaceStartFresh" type="button">Start Fresh</button>
-        <button id="btnWorkspaceDeleteSaved" class="danger-btn-inline" type="button">Delete Saved</button>
         <button id="btnWorkspaceLoadSaved" type="button">Load Saved</button>
       </div>
     </div>

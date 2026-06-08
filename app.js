@@ -245,7 +245,10 @@ function maxRowsForViewportAtMinCellSize() {
 }
 
 function isMobileViewport() {
-  return window.innerWidth <= 768 || window.innerHeight <= 500;
+  const touchLandscapePhone = window.matchMedia(
+    "(orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px)"
+  ).matches;
+  return window.innerWidth <= 768 || window.innerHeight <= 500 || touchLandscapePhone;
 }
 
 function canAddAnotherRow() {

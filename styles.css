@@ -1135,7 +1135,7 @@ tr.active-rule {
   }
 }
 
-@media (max-width: 768px), (max-height: 500px) {
+@media (max-width: 768px), (max-height: 500px), (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px) {
   .app-shell {
     height: auto;
     min-height: 100dvh;

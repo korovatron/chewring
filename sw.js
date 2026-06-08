@@ -1,4 +1,4 @@
-const CACHE_VERSION = "chewring-v61";
+const CACHE_VERSION = "chewring-v62";
 const CACHE_NAME = `chewring-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",

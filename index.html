@@ -142,6 +142,7 @@
             <h2>Finite State Diagram</h2>
             <div class="panel-actions compact">
               <button id="btnAddState" type="button">+ State</button>
+              <button id="btnExpandDiagram" type="button" aria-haspopup="dialog" aria-controls="diagramModal">Expand</button>
             </div>
           </div>
           <svg id="diagram" viewBox="0 0 640 360" aria-label="State diagram"></svg>
@@ -189,6 +190,18 @@
       <p>&copy; 2026 Neil Kendall - More @ <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
       <div class="modal-actions">
         <button id="btnAboutClose" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="diagramModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="diagramModalTitle">
+    <div class="modal diagram-modal">
+      <div class="diagram-modal-head">
+        <h3 id="diagramModalTitle">Finite State Diagram - Expanded View</h3>
+        <button id="btnDiagramModalClose" type="button">Close</button>
+      </div>
+      <div class="diagram-modal-body">
+        <svg id="diagramExpanded" viewBox="0 0 1200 720" aria-label="Expanded finite state diagram"></svg>
       </div>
     </div>
   </div>

@@ -51,6 +51,7 @@ const appState = {
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
   modalOpenedAt: 0,
+  diagramModalOpen: false,
   message: "Ready.",
   rules: [
     { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
@@ -78,7 +79,11 @@ const els = {
   stateAcceptBadge: document.getElementById("stateAcceptBadge"),
   stateRejectBadge: document.getElementById("stateRejectBadge"),
   diagram: document.getElementById("diagram"),
+  diagramExpanded: document.getElementById("diagramExpanded"),
   btnAddState: document.getElementById("btnAddState"),
+  btnExpandDiagram: document.getElementById("btnExpandDiagram"),
+  diagramModal: document.getElementById("diagramModal"),
+  btnDiagramModalClose: document.getElementById("btnDiagramModalClose"),
   stateModal: document.getElementById("stateModal"),
   stateNameInput: document.getElementById("stateNameInput"),
   stateIsStart: document.getElementById("stateIsStart"),
@@ -1540,15 +1545,16 @@ function resetTape() {
   renderAll();
 }
 
-function setupDiagramDefs(svg) {
+function setupDiagramDefs(svg, sizeScale = 1) {
+  const markerScale = Math.max(1, Math.min(2.4, sizeScale));
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
   const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
   marker.setAttribute("id", "arrow");
   marker.setAttribute("viewBox", "0 0 10 10");
   marker.setAttribute("refX", "9");
   marker.setAttribute("refY", "5");
-  marker.setAttribute("markerWidth", "7");
-  marker.setAttribute("markerHeight", "7");
+  marker.setAttribute("markerWidth", String(7 * markerScale));
+  marker.setAttribute("markerHeight", String(7 * markerScale));
   marker.setAttribute("orient", "auto-start-reverse");
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -1559,11 +1565,17 @@ function setupDiagramDefs(svg) {
   svg.appendChild(defs);
 }
 
-function renderDiagram() {
-  const svg = els.diagram;
+function renderDiagram(targetSvg = els.diagram) {
+  const svg = targetSvg;
+  if (!svg) {
+    return;
+  }
   const diagramWidth = Math.max(360, Math.round(svg.clientWidth || 640));
   const diagramHeight = Math.max(240, Math.round(svg.clientHeight || 360));
-  const sizeScale = Math.max(1.12, Math.min(1.5, Math.min(diagramWidth / 620, diagramHeight / 340)));
+  const isExpandedDiagram = svg === els.diagramExpanded;
+  const minScale = isExpandedDiagram ? 1.2 : 1.12;
+  const maxScale = isExpandedDiagram ? 2.4 : 1.5;
+  const sizeScale = Math.max(minScale, Math.min(maxScale, Math.min(diagramWidth / 620, diagramHeight / 340)));
   const labelFontSize = Math.round(12 * sizeScale);
   svg.setAttribute("viewBox", `0 0 ${diagramWidth} ${diagramHeight}`);
   svg.style.setProperty("--diagram-label-size", `${labelFontSize}px`);
@@ -1571,7 +1583,7 @@ function renderDiagram() {
     svg.removeChild(svg.firstChild);
   }
 
-  setupDiagramDefs(svg);
+  setupDiagramDefs(svg, sizeScale);
 
   const list = getAvailableStates();
   if (list.length === 0) {
@@ -1579,14 +1591,36 @@ function renderDiagram() {
   }
 
   const centerX = diagramWidth / 2;
-  const centerY = diagramHeight / 2;
+  const aspectRatio = diagramHeight / Math.max(1, diagramWidth);
+  const tallNarrowFactor = Math.max(0, Math.min(1, (aspectRatio - 1) / 0.9));
+  const desiredBias = list.length <= 3
+    ? 0.09 * tallNarrowFactor
+    : list.length === 4
+      ? 0.025 * tallNarrowFactor
+      : 0.012 * tallNarrowFactor;
+  const desiredCenterY = diagramHeight * (0.5 + desiredBias);
   const nodeRadius = 26 * sizeScale;
-  const padding = 56 * sizeScale;
-  const usableWidth = Math.max(140, diagramWidth - padding * 2);
-  const usableHeight = Math.max(120, diagramHeight - padding * 2);
-  const crowdFactor = list.length <= 8 ? 1 : Math.max(0.62, 8 / list.length);
-  const radiusX = Math.max(74, (usableWidth / 2 - nodeRadius - 8) * crowdFactor);
-  const radiusY = Math.max(62, (usableHeight / 2 - nodeRadius - 8) * crowdFactor);
+  const paddingX = 56 * sizeScale;
+  const basePaddingY = 56 * sizeScale;
+  const heightSurplus = Math.max(0, diagramHeight - 420);
+  const paddingY = Math.max(22 * sizeScale, basePaddingY - heightSurplus * 0.05);
+  const usableWidth = Math.max(140, diagramWidth - paddingX * 2);
+  const usableHeight = Math.max(120, diagramHeight - paddingY * 2);
+  const crowdFactorX = list.length <= 8 ? 1 : Math.max(0.62, 8 / list.length);
+  const crowdFactorY = list.length <= 8 ? 1 : Math.max(0.74, 9.5 / list.length);
+  const radiusX = Math.max(74, (usableWidth / 2 - nodeRadius - 8) * crowdFactorX);
+  const rawRadiusY = Math.max(62, (usableHeight / 2 - nodeRadius - 8) * crowdFactorY);
+  const topSafety = 74 * sizeScale;
+  const bottomSafety = 12 * sizeScale;
+  const minCenterY = topSafety + rawRadiusY;
+  const maxCenterY = diagramHeight - bottomSafety - rawRadiusY;
+  const centerY = minCenterY <= maxCenterY
+    ? Math.min(maxCenterY, Math.max(minCenterY, desiredCenterY))
+    : (topSafety + (diagramHeight - bottomSafety)) / 2;
+  const radiusY = Math.max(
+    40,
+    Math.min(rawRadiusY, centerY - topSafety, diagramHeight - centerY - bottomSafety)
+  );
   const startAngle = list.length === 2 ? 0 : -Math.PI / 2;
   const positions = new Map();
 
@@ -1597,6 +1631,24 @@ function renderDiagram() {
       y: centerY + radiusY * Math.sin(angle)
     });
   });
+
+  // Re-centre node envelope vertically so top/bottom gaps stay visually balanced.
+  const nodePoints = Array.from(positions.values());
+  const minNodeY = Math.min(...nodePoints.map((point) => point.y));
+  const maxNodeY = Math.max(...nodePoints.map((point) => point.y));
+  const topGap = minNodeY - nodeRadius;
+  const bottomGap = diagramHeight - (maxNodeY + nodeRadius);
+  const targetShiftY = (bottomGap - topGap) / 2;
+  const minOuterGap = 8 * sizeScale;
+  const maxShiftUp = Math.max(0, topGap - minOuterGap);
+  const maxShiftDown = Math.max(0, bottomGap - minOuterGap);
+  const shiftY = Math.max(-maxShiftUp, Math.min(targetShiftY, maxShiftDown));
+
+  if (Math.abs(shiftY) > 0.001) {
+    for (const point of nodePoints) {
+      point.y += shiftY;
+    }
+  }
 
   const edgeGroups = buildEdgeGroups();
   for (const groups of edgeGroups.values()) {
@@ -1764,6 +1816,23 @@ function renderDiagram() {
   }
 }
 
+function openDiagramModal() {
+  if (appState.running || appState.diagramModalOpen || !els.diagramModal) {
+    return;
+  }
+  appState.diagramModalOpen = true;
+  els.diagramModal.classList.add("is-open");
+  renderDiagram(els.diagramExpanded);
+}
+
+function closeDiagramModal() {
+  if (!appState.diagramModalOpen || !els.diagramModal) {
+    return;
+  }
+  appState.diagramModalOpen = false;
+  els.diagramModal.classList.remove("is-open");
+}
+
 function updateStatus() {
   els.statusState.textContent = `State: ${appState.currentState}`;
   els.statusStep.textContent = `Step: ${appState.steps}`;
@@ -1771,6 +1840,9 @@ function updateStatus() {
 
   els.btnRun.disabled = appState.running;
   els.btnPause.disabled = !appState.running;
+  if (els.btnExpandDiagram) {
+    els.btnExpandDiagram.disabled = appState.running;
+  }
   els.btnAddRow.disabled = !canAddAnotherRow();
   els.btnRemoveRow.disabled = appState.rows <= 1;
 }
@@ -1783,6 +1855,9 @@ function renderAll() {
   renderTape();
   renderRulesTable();
   renderDiagram();
+  if (appState.diagramModalOpen) {
+    renderDiagram(els.diagramExpanded);
+  }
   updateStatus();
 }
 
@@ -2008,6 +2083,16 @@ function initEvents() {
   });
 
   bindModalActivate(els.btnAboutClose, closeAboutModal);
+  bindModalActivate(els.btnExpandDiagram, openDiagramModal);
+  bindModalActivate(els.btnDiagramModalClose, closeDiagramModal);
+
+  if (els.diagramModal) {
+    els.diagramModal.addEventListener("click", (event) => {
+      if (event.target === els.diagramModal) {
+        closeDiagramModal();
+      }
+    });
+  }
 
   document.addEventListener("click", (event) => {
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
@@ -2066,6 +2151,7 @@ function initEvents() {
     if (event.key === "Escape") {
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
+      if (appState.diagramModalOpen) closeDiagramModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
     }
   });
@@ -2074,6 +2160,9 @@ function initEvents() {
     autoFitCellSize();
     renderTape();
     renderDiagram();
+    if (appState.diagramModalOpen) {
+      renderDiagram(els.diagramExpanded);
+    }
   });
 }
 

@@ -843,6 +843,10 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   color: var(--ink);
 }
 
+.modal-backdrop.is-open {
+  display: flex;
+}
+
 .modal {
   width: min(420px, calc(100vw - 24px));
   margin: 0 auto;
@@ -1047,6 +1051,43 @@ tr.active-rule {
 #diagram {
   width: 100%;
   height: 100%;
+  background: #000000;
+}
+
+.diagram-modal {
+  width: calc(100vw - 24px);
+  height: calc(100dvh - 24px);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 10px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 8px;
+}
+
+.diagram-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.diagram-modal-head h3 {
+  margin: 0;
+}
+
+.diagram-modal-body {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000000;
+}
+
+#diagramExpanded {
+  width: 100%;
+  height: 100%;
+  display: block;
   background: #000000;
 }
 

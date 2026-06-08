@@ -1505,6 +1505,33 @@ tr.active-rule td {
   }
 }
 
+@media (max-width: 920px) and (min-width: 769px) {
+  .status-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .status-main {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .status-tools {
+    margin-left: auto;
+    flex-wrap: nowrap;
+  }
+
+  #statusMessage,
+  .status-tools label[for="cellSizeSlider"],
+  #cellSizeSlider,
+  .status-tools .status-tools-sep {
+    display: none;
+  }
+}
+
 @media (max-width: 768px), (max-height: 500px), (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px) {
   .app-shell {
     height: auto;
@@ -1570,12 +1597,24 @@ tr.active-rule td {
     font-size: 0.78rem;
     padding: 5px 8px;
     gap: 8px;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+  }
+
+  .status-main {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  #statusMessage {
+    display: none;
   }
 
   .status-tools {
-    margin-left: 0;
+    margin-left: auto;
+    flex-wrap: nowrap;
   }
 
   .tape-panel {

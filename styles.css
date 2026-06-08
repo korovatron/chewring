@@ -494,6 +494,13 @@ button:disabled {
   gap: 7px;
 }
 
+.transport-controls .symbol-btn {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
 .symbol-btn {
   min-width: 42px;
   height: 40px;
@@ -765,6 +772,24 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   flex-wrap: wrap;
 }
 
+#statusState,
+#statusStep {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 10px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--control-bg);
+}
+
+#statusMessage {
+  display: inline-flex;
+  align-items: center;
+}
+
 .status-tools {
   display: inline-flex;
   align-items: center;
@@ -774,9 +799,10 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 
 .status-tools #btnAddRow,
 .status-tools #btnRemoveRow {
-  min-width: 32px;
-  height: 30px;
-  padding: 0 4px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
 }
 
 .status-tools #btnAddRow svg,

@@ -759,6 +759,19 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   margin-left: auto;
 }
 
+.status-tools #btnAddRow,
+.status-tools #btnRemoveRow {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 4px;
+}
+
+.status-tools #btnAddRow svg,
+.status-tools #btnRemoveRow svg {
+  width: 18px;
+  height: 18px;
+}
+
 .status-tools label {
   color: var(--muted);
   font-size: 0.85rem;
@@ -1077,6 +1090,12 @@ tr.active-rule {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.diagram-modal-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .diagram-modal-head h3 {

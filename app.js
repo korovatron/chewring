@@ -83,6 +83,7 @@ const els = {
   btnAddState: document.getElementById("btnAddState"),
   btnExpandDiagram: document.getElementById("btnExpandDiagram"),
   diagramModal: document.getElementById("diagramModal"),
+  btnAddStateExpanded: document.getElementById("btnAddStateExpanded"),
   btnDiagramModalClose: document.getElementById("btnDiagramModalClose"),
   stateModal: document.getElementById("stateModal"),
   stateNameInput: document.getElementById("stateNameInput"),
@@ -2126,6 +2127,7 @@ function initEvents() {
 
   bindModalActivate(els.btnAboutClose, closeAboutModal);
   bindModalActivate(els.btnExpandDiagram, openDiagramModal);
+  bindModalActivate(els.btnAddStateExpanded, () => openStateModal());
   bindModalActivate(els.btnDiagramModalClose, closeDiagramModal);
 
   if (els.diagramModal) {

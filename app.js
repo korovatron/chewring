@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.2";
+const APP_VERSION = "V1.0.3";
 const LEGACY_BLANK = "_";
 const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X", "!", "?"];
 const DRAG_THRESHOLD_PX = 6;
@@ -453,7 +453,7 @@ function startFreshWorkspace() {
   appState.activeRuleId = null;
   appState.rules = [];
   appState.message = "Started fresh workspace.";
-  applyCellSize();
+  autoFitCellSize();
   syncTapeViewToHead();
   renderAll();
 }

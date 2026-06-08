@@ -9,6 +9,8 @@ const TAPE_ROW_PAD_X = 4;
 const TAPE_ROW_PAD_Y = 3;
 const CELL_SIZE_MIN = 28;
 const CELL_SIZE_MAX = 280;
+const WORKSPACE_STORAGE_KEY = "chewring.workspace.v1";
+const VISITED_STORAGE_KEY = "chewring.visited.v1";
 const SUBSCRIPT_DIGITS = {
   "0": "₀",
   "1": "₁",
@@ -49,6 +51,7 @@ const appState = {
   writeMorph: null,
   lastPlacedSymbol: "0",
   haltedStatePulse: false,
+  workspaceSaveEnabled: false,
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
   modalOpenedAt: 0,
@@ -109,7 +112,12 @@ const els = {
   deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
   deleteAllConfirmMessage: document.getElementById("deleteAllConfirmMessage"),
   btnDeleteAllConfirmCancel: document.getElementById("btnDeleteAllConfirmCancel"),
-  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm")
+  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm"),
+  workspaceFoundModal: document.getElementById("workspaceFoundModal"),
+  workspaceFoundMessage: document.getElementById("workspaceFoundMessage"),
+  btnWorkspaceLoadSaved: document.getElementById("btnWorkspaceLoadSaved"),
+  btnWorkspaceStartFresh: document.getElementById("btnWorkspaceStartFresh"),
+  btnWorkspaceDeleteSaved: document.getElementById("btnWorkspaceDeleteSaved")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -251,6 +259,274 @@ function setSymbol(row, col, symbol) {
     return;
   }
   appState.tape.set(tapeKey(row, col), normalized);
+}
+
+function serialiseWorkspace() {
+  return {
+    version: 1,
+    rows: appState.rows,
+    cellSize: appState.cellSize,
+    tape: Array.from(appState.tape.entries()),
+    startTape: Array.from(appState.startTape.entries()),
+    head: { ...appState.head },
+    startHead: { ...appState.startHead },
+    startState: appState.startState,
+    currentState: appState.currentState,
+    acceptStates: [...appState.acceptStates],
+    rejectStates: [...appState.rejectStates],
+    states: [...appState.states],
+    steps: appState.steps,
+    lastPlacedSymbol: appState.lastPlacedSymbol,
+    rules: appState.rules.map((rule) => ({
+      current: rule.current,
+      read: rule.read,
+      write: rule.write,
+      move: rule.move,
+      next: rule.next
+    }))
+  };
+}
+
+function readSavedWorkspace() {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== 1) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function hasVisitedBefore() {
+  try {
+    return localStorage.getItem(VISITED_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markVisited() {
+  try {
+    localStorage.setItem(VISITED_STORAGE_KEY, "1");
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function persistWorkspace() {
+  if (!appState.workspaceSaveEnabled) {
+    return;
+  }
+  try {
+    localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(serialiseWorkspace()));
+  } catch {
+    // Ignore storage failures so app functionality is unaffected.
+  }
+}
+
+function deleteSavedWorkspace() {
+  try {
+    localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function parseSavedTape(entries) {
+  const result = new Map();
+  if (!Array.isArray(entries)) {
+    return result;
+  }
+  for (const entry of entries) {
+    if (!Array.isArray(entry) || entry.length !== 2) {
+      continue;
+    }
+    const key = String(entry[0]);
+    const symbol = normalizeSymbol(String(entry[1]));
+    if (!symbol || symbol === BLANK) {
+      continue;
+    }
+    result.set(key, symbol);
+  }
+  return result;
+}
+
+function applySavedWorkspace(snapshot) {
+  if (!snapshot) {
+    return false;
+  }
+
+  stopRunLoop();
+  stopTapeSnap();
+  stopHeadPulse();
+  clearTapeMoveDelay();
+  clearHaltedStatePulse();
+
+  appState.rows = Math.max(1, Number(snapshot.rows) || 1);
+  appState.cellSize = Math.max(CELL_SIZE_MIN, Math.min(CELL_SIZE_MAX, Number(snapshot.cellSize) || 46));
+  appState.tape = parseSavedTape(snapshot.tape);
+  appState.startTape = parseSavedTape(snapshot.startTape);
+  if (appState.startTape.size === 0) {
+    appState.startTape = new Map(appState.tape);
+  }
+
+  const headRow = Math.max(0, Math.min(appState.rows - 1, Number(snapshot.head?.row) || 0));
+  const startHeadRow = Math.max(0, Math.min(appState.rows - 1, Number(snapshot.startHead?.row) || 0));
+  appState.head = { row: headRow, col: Number(snapshot.head?.col) || 0 };
+  appState.startHead = { row: startHeadRow, col: Number(snapshot.startHead?.col) || 0 };
+
+  appState.startState = formatStateName(snapshot.startState || "");
+  appState.currentState = formatStateName(appState.startState || "");
+  appState.acceptStates = uniqueStateList((snapshot.acceptStates || []).map((state) => formatStateName(state)));
+  appState.rejectStates = uniqueStateList((snapshot.rejectStates || []).map((state) => formatStateName(state))).filter(
+    (state) => !appState.acceptStates.includes(state)
+  );
+  appState.states = uniqueStateList((snapshot.states || []).map((state) => formatStateName(state)));
+  appState.steps = 0;
+  appState.lastPlacedSymbol = normalizeSymbol(snapshot.lastPlacedSymbol || "0") || "0";
+  appState.activeRuleId = null;
+  appState.message = "Loaded previous local work.";
+
+  const rules = Array.isArray(snapshot.rules) ? snapshot.rules : [];
+  appState.rules = rules.map((rule) => ({
+    id: crypto.randomUUID(),
+    current: formatStateName(rule.current || ""),
+    read: normalizeSymbol(rule.read) || BLANK,
+    write: normalizeSymbol(rule.write) || BLANK,
+    move: (rule.move || "S").trim(),
+    next: formatStateName(rule.next || "")
+  }));
+
+  if (!appState.startState) {
+    const fallback = getAvailableStates()[0] || "";
+    appState.startState = fallback;
+    if (!appState.currentState) {
+      appState.currentState = fallback;
+    }
+  }
+
+  appState.head = { ...appState.startHead };
+
+  applyCellSize();
+  syncTapeViewToHead();
+  syncStateRegistry();
+  syncMachineConfigInputs();
+  renderAll();
+  return true;
+}
+
+function startFreshWorkspace() {
+  stopRunLoop();
+  stopTapeSnap();
+  stopHeadPulse();
+  clearTapeMoveDelay();
+  clearHaltedStatePulse();
+  appState.rows = 1;
+  appState.cellSize = 46;
+  appState.tape.clear();
+  appState.startTape = new Map();
+  appState.head = { row: 0, col: 0 };
+  appState.startHead = { row: 0, col: 0 };
+  appState.startState = "";
+  appState.currentState = "";
+  appState.acceptStates = [];
+  appState.rejectStates = [];
+  appState.states = [];
+  appState.steps = 0;
+  appState.activeRuleId = null;
+  appState.rules = [];
+  appState.message = "Started fresh workspace.";
+  applyCellSize();
+  syncTapeViewToHead();
+  renderAll();
+}
+
+function closeWorkspaceFoundModal() {
+  if (appState.workspaceFoundOverlay) {
+    const content = appState.workspaceFoundOverlay.firstElementChild;
+    if (content && els.workspaceFoundModal) {
+      els.workspaceFoundModal.appendChild(content);
+    }
+    appState.workspaceFoundOverlay.remove();
+    appState.workspaceFoundOverlay = null;
+  }
+}
+
+function openWorkspaceFoundModal() {
+  if (!els.workspaceFoundModal) {
+    return;
+  }
+  appState.modalOpenedAt = performance.now();
+  if (els.workspaceFoundMessage) {
+    els.workspaceFoundMessage.textContent = "Saved local work was found from a previous session.";
+  }
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.workspaceFoundModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  document.body.appendChild(overlay);
+  appState.workspaceFoundOverlay = overlay;
+}
+
+function startupWithSavedWorkspaceDecision() {
+  const saved = readSavedWorkspace();
+  if (!saved) {
+    if (hasVisitedBefore()) {
+      startFreshWorkspace();
+    } else {
+      loadPreset("parity-even-ones");
+    }
+    appState.workspaceSaveEnabled = true;
+    markVisited();
+    persistWorkspace();
+    return;
+  }
+
+  markVisited();
+  appState.pendingSavedWorkspace = saved;
+  openWorkspaceFoundModal();
+  renderAll();
+}
+
+function loadSavedWorkspaceChoice() {
+  const saved = appState.pendingSavedWorkspace;
+  appState.pendingSavedWorkspace = null;
+  closeWorkspaceFoundModal();
+  if (!applySavedWorkspace(saved)) {
+    startFreshWorkspace();
+  }
+  appState.workspaceSaveEnabled = true;
+  markVisited();
+  persistWorkspace();
+}
+
+function startFreshWorkspaceChoice() {
+  appState.pendingSavedWorkspace = null;
+  closeWorkspaceFoundModal();
+  startFreshWorkspace();
+  appState.workspaceSaveEnabled = true;
+  markVisited();
+  persistWorkspace();
+}
+
+function deleteSavedWorkspaceChoice() {
+  deleteSavedWorkspace();
+  appState.pendingSavedWorkspace = null;
+  closeWorkspaceFoundModal();
+  startFreshWorkspace();
+  appState.message = "Deleted saved work. Started fresh workspace.";
+  renderAll();
+  appState.workspaceSaveEnabled = true;
+  markVisited();
+  persistWorkspace();
 }
 
 function clearHaltedStatePulse() {
@@ -2038,7 +2314,10 @@ function updateStatus() {
   els.statusStep.textContent = `Step: ${appState.steps}`;
   els.statusMessage.textContent = appState.message;
 
+  const isHalted = appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState);
+
   els.btnRun.disabled = appState.running;
+  els.btnStep.disabled = appState.running || isHalted;
   els.btnPause.disabled = !appState.running;
   if (els.btnExpandDiagram) {
     els.btnExpandDiagram.disabled = appState.running;
@@ -2065,6 +2344,7 @@ function renderAll() {
     renderDiagram(els.diagramExpanded);
   }
   updateStatus();
+  persistWorkspace();
 }
 
 function addRule() {
@@ -2328,8 +2608,6 @@ function initEvents() {
       stopTapeSnap();
       stopHeadPulse();
       appState.currentState = appState.startState;
-      appState.head = { ...appState.startHead };
-      syncTapeViewToHead();
       appState.steps = 0;
       appState.activeRuleId = null;
     }
@@ -2342,8 +2620,6 @@ function initEvents() {
       stopTapeSnap();
       stopHeadPulse();
       appState.currentState = appState.startState;
-      appState.head = { ...appState.startHead };
-      syncTapeViewToHead();
       appState.steps = 0;
       appState.activeRuleId = null;
     }
@@ -2370,8 +2646,12 @@ function initEvents() {
   if (els.stateNameInput) {
     els.stateNameInput.addEventListener("input", () => setStateModalFeedback(""));
   }
+  bindModalActivate(els.btnWorkspaceLoadSaved, loadSavedWorkspaceChoice);
+  bindModalActivate(els.btnWorkspaceStartFresh, startFreshWorkspaceChoice);
+  bindModalActivate(els.btnWorkspaceDeleteSaved, deleteSavedWorkspaceChoice);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      if (appState.workspaceFoundOverlay) startFreshWorkspaceChoice();
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
       if (appState.deleteAllConfirmOverlay) closeDeleteAllConfirmModal();
@@ -2397,10 +2677,8 @@ function seedExampleTape() {
 
 function init() {
   document.body.setAttribute("data-theme", "dark");
-  loadPreset("parity-even-ones");
-  autoFitCellSize();
   initEvents();
-  renderAll();
+  startupWithSavedWorkspaceDecision();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {

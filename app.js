@@ -1607,7 +1607,10 @@ function saveAlphabetModal() {
   const nextSlots = readAlphabetModalSlots();
   const validationMessage = validateAlphabetSlots(nextSlots);
   if (validationMessage) {
+    // On validation failure (e.g. duplicate or using fixed symbol) revert inputs back
+    // to the previously saved alphabet slots so the UI doesn't leave invalid text in place.
     setAlphabetModalFeedback(validationMessage);
+    renderAlphabetModal();
     return;
   }
 

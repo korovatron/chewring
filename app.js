@@ -1562,19 +1562,32 @@ function openAlphabetModal() {
   appState.modalOpenedAt = performance.now();
   setAlphabetModalFeedback("");
   renderAlphabetModal();
-  if (els.alphabetModal) {
-    els.alphabetModal.classList.add("is-open");
-    requestAnimationFrame(() => {
-      els.alphabetModal.querySelector('input[data-slot-index="0"]')?.focus({ preventScroll: true });
-    });
-  }
+
+  // Create a body-fixed overlay and move the modal content into it (same pattern as About/Help)
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.alphabetModal?.firstElementChild;
+  if (content) overlay.appendChild(content);
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeAlphabetModal();
+  });
+  document.body.appendChild(overlay);
+  appState.alphabetModalOverlay = overlay;
+  // focus the first input after overlay is mounted
+  requestAnimationFrame(() => {
+    overlay.querySelector('input[data-slot-index="0"]')?.focus({ preventScroll: true });
+  });
 }
 
 function closeAlphabetModal() {
   appState.alphabetModal.open = false;
   setAlphabetModalFeedback("");
-  if (els.alphabetModal) {
-    els.alphabetModal.classList.remove("is-open");
+  if (appState.alphabetModalOverlay) {
+    const content = appState.alphabetModalOverlay.firstElementChild;
+    if (content) els.alphabetModal.appendChild(content);
+    appState.alphabetModalOverlay.remove();
+    appState.alphabetModalOverlay = null;
   }
 }
 

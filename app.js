@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.4";
+const APP_VERSION = "V1.0.5";
 const LEGACY_BLANK = "_";
 const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X", "!", "?"];
 const DRAG_THRESHOLD_PX = 6;
@@ -119,11 +119,7 @@ const els = {
   deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
   deleteAllConfirmMessage: document.getElementById("deleteAllConfirmMessage"),
   btnDeleteAllConfirmCancel: document.getElementById("btnDeleteAllConfirmCancel"),
-  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm"),
-  workspaceFoundModal: document.getElementById("workspaceFoundModal"),
-  workspaceFoundMessage: document.getElementById("workspaceFoundMessage"),
-  btnWorkspaceLoadSaved: document.getElementById("btnWorkspaceLoadSaved"),
-  btnWorkspaceStartFresh: document.getElementById("btnWorkspaceStartFresh")
+  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -459,35 +455,6 @@ function startFreshWorkspace() {
   renderAll();
 }
 
-function closeWorkspaceFoundModal() {
-  if (appState.workspaceFoundOverlay) {
-    const content = appState.workspaceFoundOverlay.firstElementChild;
-    if (content && els.workspaceFoundModal) {
-      els.workspaceFoundModal.appendChild(content);
-    }
-    appState.workspaceFoundOverlay.remove();
-    appState.workspaceFoundOverlay = null;
-  }
-}
-
-function openWorkspaceFoundModal() {
-  if (!els.workspaceFoundModal) {
-    return;
-  }
-  appState.modalOpenedAt = performance.now();
-  if (els.workspaceFoundMessage) {
-    els.workspaceFoundMessage.textContent = "Saved local work was found from a previous session.";
-  }
-  const overlay = document.createElement("div");
-  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
-  const content = els.workspaceFoundModal.firstElementChild;
-  if (content) {
-    overlay.appendChild(content);
-  }
-  document.body.appendChild(overlay);
-  appState.workspaceFoundOverlay = overlay;
-}
-
 function startupWithSavedWorkspaceDecision() {
   const saved = readSavedWorkspace();
   if (!saved || !hasMeaningfulSavedWorkspace(saved)) {
@@ -503,30 +470,10 @@ function startupWithSavedWorkspaceDecision() {
   }
 
   markVisited();
-  startFreshWorkspace();
-  appState.pendingSavedWorkspace = saved;
-  openWorkspaceFoundModal();
-  renderAll();
-}
-
-function loadSavedWorkspaceChoice() {
-  const saved = appState.pendingSavedWorkspace;
-  appState.pendingSavedWorkspace = null;
-  closeWorkspaceFoundModal();
   if (!applySavedWorkspace(saved)) {
     startFreshWorkspace();
   }
   appState.workspaceSaveEnabled = true;
-  markVisited();
-  persistWorkspace();
-}
-
-function startFreshWorkspaceChoice() {
-  appState.pendingSavedWorkspace = null;
-  closeWorkspaceFoundModal();
-  startFreshWorkspace();
-  appState.workspaceSaveEnabled = true;
-  markVisited();
   persistWorkspace();
 }
 
@@ -2725,12 +2672,16 @@ function initEvents() {
   bindModalActivate(els.btnStateModalSave, saveStateModal);
   if (els.stateNameInput) {
     els.stateNameInput.addEventListener("input", () => setStateModalFeedback(""));
+    els.stateNameInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+      event.preventDefault();
+      saveStateModal();
+    });
   }
-  bindModalActivate(els.btnWorkspaceLoadSaved, loadSavedWorkspaceChoice);
-  bindModalActivate(els.btnWorkspaceStartFresh, startFreshWorkspaceChoice);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      if (appState.workspaceFoundOverlay) startFreshWorkspaceChoice();
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
       if (appState.helpModalOverlay) closeHelpModal();

@@ -1,7 +1,11 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.5";
+const APP_VERSION = "V1.0.6";
 const LEGACY_BLANK = "_";
-const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X", "!", "?"];
+const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
+const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
+const USER_ALPHABET_SLOT_COUNT = 12;
+const TAPE_SYMBOL_CYCLE = [...CORE_TAPE_SYMBOLS];
+const TAPE_LONG_PRESS_MS = 500;
 const DRAG_THRESHOLD_PX = 6;
 const HEAD_WRITE_PULSE_MS = 280;
 const CELL_WRITE_MORPH_MS = 280;
@@ -46,6 +50,9 @@ const appState = {
   tapeDrag: null,
   tapeSnapRaf: null,
   tapeMoveDelayTimer: null,
+  tapeSymbolPicker: { open: false, row: null, col: null, cell: null },
+  alphabetModal: { open: false, originalSlots: null },
+  alphabetSlots: [...DEFAULT_USER_ALPHABET],
   headWritePulseUntil: 0,
   headPulseAnchor: null,
   headPulseRaf: null,
@@ -67,6 +74,8 @@ const appState = {
 
 const els = {
   tapeViewport: document.getElementById("tapeViewport"),
+  tapeSymbolPicker: document.getElementById("tapeSymbolPicker"),
+  tapeSymbolPickerGrid: document.getElementById("tapeSymbolPickerGrid"),
   cellSizeSlider: document.getElementById("cellSizeSlider"),
   btnAddRow: document.getElementById("btnAddRow"),
   btnRemoveRow: document.getElementById("btnRemoveRow"),
@@ -108,6 +117,7 @@ const els = {
   appMenu: document.getElementById("appMenu"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
+  menuAlphabet: document.getElementById("menuAlphabet"),
   btnFooterHelp: document.getElementById("btnFooterHelp"),
   menuHelp: document.getElementById("menuHelp"),
   menuAbout: document.getElementById("menuAbout"),
@@ -119,7 +129,14 @@ const els = {
   deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
   deleteAllConfirmMessage: document.getElementById("deleteAllConfirmMessage"),
   btnDeleteAllConfirmCancel: document.getElementById("btnDeleteAllConfirmCancel"),
-  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm")
+  btnDeleteAllConfirmConfirm: document.getElementById("btnDeleteAllConfirmConfirm"),
+  alphabetModal: document.getElementById("alphabetModal"),
+  alphabetModalGrid: document.getElementById("alphabetModalGrid"),
+  alphabetModalFeedback: document.getElementById("alphabetModalFeedback"),
+  btnAlphabetModalCloseX: document.getElementById("btnAlphabetModalCloseX"),
+  btnAlphabetModalCancel: document.getElementById("btnAlphabetModalCancel"),
+  btnAlphabetModalSave: document.getElementById("btnAlphabetModalSave"),
+  btnAlphabetModalReset: document.getElementById("btnAlphabetModalReset")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -249,6 +266,74 @@ function symbolForTape(symbol) {
   return display === BLANK ? "" : display;
 }
 
+function normaliseAlphabetSlot(symbol) {
+  const clean = normalizeSymbol(symbol);
+  if (!clean || clean === BLANK) {
+    return "";
+  }
+  if (CORE_TAPE_SYMBOLS.includes(clean)) {
+    return "";
+  }
+  return clean[0];
+}
+
+function normaliseAlphabetSlots(slots = []) {
+  const values = [];
+  const seen = new Set(CORE_TAPE_SYMBOLS);
+
+  for (let index = 0; index < USER_ALPHABET_SLOT_COUNT; index += 1) {
+    const symbol = normaliseAlphabetSlot(slots[index] || "");
+    if (!symbol || seen.has(symbol)) {
+      values.push("");
+      continue;
+    }
+    seen.add(symbol);
+    values.push(symbol);
+  }
+
+  return values;
+}
+
+function getPickerAlphabetSlots() {
+  return [...CORE_TAPE_SYMBOLS, ...appState.alphabetSlots];
+}
+
+function getRuleAlphabetChoices() {
+  const values = [...CORE_TAPE_SYMBOLS];
+  const seen = new Set(values);
+
+  for (const symbol of appState.alphabetSlots) {
+    const clean = normaliseAlphabetSlot(symbol);
+    if (!clean || seen.has(clean)) {
+      continue;
+    }
+    seen.add(clean);
+    values.push(clean);
+  }
+
+  for (const rule of appState.rules) {
+    for (const rawSymbol of [rule.read, rule.write]) {
+      const clean = normalizeSymbol(rawSymbol);
+      if (!clean || seen.has(clean)) {
+        continue;
+      }
+      seen.add(clean);
+      values.push(clean);
+    }
+  }
+
+  for (const symbol of appState.tape.values()) {
+    const clean = normalizeSymbol(symbol);
+    if (!clean || seen.has(clean)) {
+      continue;
+    }
+    seen.add(clean);
+    values.push(clean);
+  }
+
+  return values;
+}
+
 function getSymbol(row, col) {
   const value = appState.tape.get(tapeKey(row, col));
   return value ?? BLANK;
@@ -261,6 +346,20 @@ function setSymbol(row, col, symbol) {
     return;
   }
   appState.tape.set(tapeKey(row, col), normalized);
+}
+
+function commitTapeSymbol(row, col, symbol, message = "") {
+  clearHaltedStatePulse();
+  const normalized = normalizeSymbol(symbol) || BLANK;
+  setSymbol(row, col, normalized);
+  if (!appState.running) {
+    snapshotStartTape();
+  }
+  appState.lastPlacedSymbol = normalized;
+  appState.message = message || `Set r${row}, c${col} to '${symbolForDisplay(normalized)}'.`;
+  renderTape();
+  updateStatus();
+  persistWorkspace();
 }
 
 function serialiseWorkspace() {
@@ -279,6 +378,7 @@ function serialiseWorkspace() {
     states: [...appState.states],
     steps: appState.steps,
     lastPlacedSymbol: appState.lastPlacedSymbol,
+    alphabetSlots: [...appState.alphabetSlots],
     rules: appState.rules.map((rule) => ({
       current: rule.current,
       read: rule.read,
@@ -398,6 +498,7 @@ function applySavedWorkspace(snapshot) {
   appState.states = uniqueStateList((snapshot.states || []).map((state) => formatStateName(state)));
   appState.steps = 0;
   appState.lastPlacedSymbol = normalizeSymbol(snapshot.lastPlacedSymbol || "0") || "0";
+  appState.alphabetSlots = normaliseAlphabetSlots(snapshot.alphabetSlots || DEFAULT_USER_ALPHABET);
   appState.activeRuleId = null;
   appState.message = "Loaded previous local work.";
 
@@ -448,6 +549,7 @@ function startFreshWorkspace() {
   appState.states = [];
   appState.steps = 0;
   appState.activeRuleId = null;
+  appState.alphabetSlots = [...DEFAULT_USER_ALPHABET];
   appState.rules = [];
   appState.message = "Started fresh workspace.";
   autoFitCellSize();
@@ -1006,6 +1108,7 @@ function loadPreset(key) {
   appState.rejectStates = preset.rejectStates.map((state) => formatStateName(state));
   appState.head = { ...preset.head };
   appState.startHead = { ...preset.head };
+  appState.alphabetSlots = [...DEFAULT_USER_ALPHABET];
   syncTapeViewToHead();
   appState.steps = 0;
   appState.activeRuleId = null;
@@ -1230,27 +1333,287 @@ function buildTargetGhost(headCenterX, centerCol, centerRow, headTop) {
 }
 
 function cycleTapeCell(row, col) {
-  clearHaltedStatePulse();
   const current = symbolForDisplay(getSymbol(row, col));
   const index = TAPE_SYMBOL_CYCLE.indexOf(current);
   const next = TAPE_SYMBOL_CYCLE[(index + 1 + TAPE_SYMBOL_CYCLE.length) % TAPE_SYMBOL_CYCLE.length] || TAPE_SYMBOL_CYCLE[0];
-  setSymbol(row, col, next);
-  if (!appState.running) {
-    snapshotStartTape();
-  }
-  appState.lastPlacedSymbol = normalizeSymbol(next);
-  appState.message = `Set r${row}, c${col} to '${symbolForDisplay(next)}'.`;
+  commitTapeSymbol(row, col, next, `Set r${row}, c${col} to '${symbolForDisplay(next)}'.`);
 }
 
-function placeRememberedSymbol(row, col) {
-  clearHaltedStatePulse();
-  const symbol = normalizeSymbol(appState.lastPlacedSymbol) || "0";
-  setSymbol(row, col, symbol);
-  if (!appState.running) {
-    snapshotStartTape();
+function closeTapeSymbolPicker() {
+  if (!appState.tapeSymbolPicker.open) {
+    return;
   }
-  appState.lastPlacedSymbol = symbol;
-  appState.message = `Set r${row}, c${col} to remembered '${symbolForDisplay(symbol)}'.`;
+  appState.tapeSymbolPicker = { open: false, row: null, col: null, cell: null };
+  if (!els.tapeSymbolPicker) {
+    return;
+  }
+  els.tapeSymbolPicker.hidden = true;
+  els.tapeSymbolPicker.classList.remove("is-open");
+  els.tapeSymbolPicker.style.left = "";
+  els.tapeSymbolPicker.style.top = "";
+  els.tapeSymbolPicker.style.visibility = "";
+}
+
+function renderTapeSymbolPicker(row, col) {
+  if (!els.tapeSymbolPickerGrid) {
+    return;
+  }
+  els.tapeSymbolPickerGrid.innerHTML = "";
+
+  for (const symbol of getPickerAlphabetSlots()) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.className = "tape-symbol-choice";
+    choice.dataset.symbol = symbol;
+    choice.textContent = symbol ? symbolForDisplay(symbol) : "";
+    choice.title = symbol ? (symbol === BLANK ? "Blank" : symbol) : "Unused slot";
+    choice.setAttribute("aria-label", symbol ? (symbol === BLANK ? "Select blank" : `Select ${symbol}`) : "Unused slot");
+    if (!symbol) {
+      choice.disabled = true;
+      choice.classList.add("is-empty-slot");
+    }
+    const chooseSymbol = () => {
+      commitTapeSymbol(row, col, symbol);
+      closeTapeSymbolPicker();
+    };
+    choice.addEventListener("click", chooseSymbol);
+    choice.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      chooseSymbol();
+    });
+    els.tapeSymbolPickerGrid.appendChild(choice);
+  }
+}
+
+function positionTapeSymbolPicker(cell, trigger = {}) {
+  if (!els.tapeSymbolPicker || !cell) {
+    return;
+  }
+  const rect = cell.getBoundingClientRect();
+  const pickerRect = els.tapeSymbolPicker.getBoundingClientRect();
+  const anchorX = Number.isFinite(trigger.clientX) ? trigger.clientX : rect.left + rect.width / 2;
+  const anchorY = Number.isFinite(trigger.clientY) ? trigger.clientY : rect.bottom + 8;
+  const padding = 12;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  let left = anchorX - pickerRect.width / 2;
+  let top = anchorY + 10;
+
+  left = Math.max(padding, Math.min(left, viewportWidth - pickerRect.width - padding));
+  top = Math.max(padding, Math.min(top, viewportHeight - pickerRect.height - padding));
+
+  els.tapeSymbolPicker.style.left = `${Math.round(left)}px`;
+  els.tapeSymbolPicker.style.top = `${Math.round(top)}px`;
+}
+
+function openTapeSymbolPicker(cell, trigger = {}) {
+  if (!cell || appState.running || !els.tapeSymbolPicker) {
+    return;
+  }
+
+  const row = Number(cell.dataset.row);
+  const col = Number(cell.dataset.col);
+  appState.tapeSymbolPicker = { open: true, row, col, cell };
+
+  renderTapeSymbolPicker(row, col);
+  els.tapeSymbolPicker.hidden = false;
+  els.tapeSymbolPicker.classList.add("is-open");
+  els.tapeSymbolPicker.style.visibility = "hidden";
+  positionTapeSymbolPicker(cell, trigger);
+  els.tapeSymbolPicker.style.visibility = "visible";
+
+  requestAnimationFrame(() => {
+    const selectedSymbol = symbolForDisplay(appState.lastPlacedSymbol);
+    const buttons = Array.from(els.tapeSymbolPickerGrid?.querySelectorAll("button") || []);
+    const targetButton = buttons.find((button) => button.dataset.symbol === selectedSymbol) || buttons[0];
+    targetButton?.focus();
+  });
+}
+
+function clearTapeLongPressTimer(drag = appState.tapeDrag) {
+  if (!drag || !drag.longPressTimer) {
+    return;
+  }
+  clearTimeout(drag.longPressTimer);
+  drag.longPressTimer = null;
+}
+
+function setAlphabetModalFeedback(message = "") {
+  if (!els.alphabetModalFeedback) {
+    return;
+  }
+  els.alphabetModalFeedback.textContent = message;
+  els.alphabetModalFeedback.hidden = !message;
+}
+
+function renderAlphabetModal() {
+  if (!els.alphabetModalGrid) {
+    return;
+  }
+
+  els.alphabetModalGrid.innerHTML = "";
+
+  CORE_TAPE_SYMBOLS.forEach((symbol, index) => {
+    const label = document.createElement("div");
+    label.className = "alphabet-core-slot alphabet-core-fixed";
+    label.innerHTML = `<strong>${symbol}</strong>`;
+    label.title = "Not editable";
+    els.alphabetModalGrid.appendChild(label);
+  });
+
+  appState.alphabetSlots.forEach((value, index) => {
+    const wrap = document.createElement("label");
+    wrap.className = "alphabet-user-slot";
+    wrap.title = "Click to edit";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 1;
+    input.autocomplete = "off";
+    input.dataset.slotIndex = String(index);
+    input.value = value || "";
+    input.placeholder = "-";
+    input.title = "Click to edit";
+    wrap.appendChild(input);
+    els.alphabetModalGrid.appendChild(wrap);
+  });
+}
+
+function readAlphabetModalSlots() {
+  if (!els.alphabetModalGrid) {
+    return [...appState.alphabetSlots];
+  }
+
+  const inputs = Array.from(els.alphabetModalGrid.querySelectorAll('input[data-slot-index]'));
+  const nextSlots = Array(USER_ALPHABET_SLOT_COUNT).fill("");
+
+  for (const input of inputs) {
+    const index = Number(input.dataset.slotIndex);
+    if (!Number.isFinite(index) || index < 0 || index >= USER_ALPHABET_SLOT_COUNT) {
+      continue;
+    }
+    nextSlots[index] = normalizeSymbol(input.value).trim().slice(0, 1);
+  }
+
+  return nextSlots;
+}
+
+function validateAlphabetSlots(slots) {
+  const seen = new Set(CORE_TAPE_SYMBOLS);
+  for (let index = 0; index < slots.length; index += 1) {
+    const symbol = normalizeSymbol(slots[index]).trim().slice(0, 1);
+    if (!symbol) {
+      continue;
+    }
+    if (CORE_TAPE_SYMBOLS.includes(symbol)) {
+      return `Slot ${index + 1} cannot use fixed symbol ${symbol}.`;
+    }
+    if (seen.has(symbol)) {
+      return `Slot ${index + 1} duplicates an existing symbol.`;
+    }
+    seen.add(symbol);
+  }
+  return "";
+}
+
+function remapWorkspaceSymbols(remapEntries) {
+  if (!(remapEntries instanceof Map) || remapEntries.size === 0) {
+    return;
+  }
+
+  const remapSymbol = (symbol) => {
+    const clean = normalizeSymbol(symbol);
+    if (!clean) {
+      return clean;
+    }
+    return remapEntries.has(clean) ? remapEntries.get(clean) : clean;
+  };
+
+  const remapTapeMap = (map) => {
+    const nextMap = new Map();
+    for (const [key, symbol] of map.entries()) {
+      const remapped = remapSymbol(symbol);
+      if (!remapped || remapped === BLANK) {
+        continue;
+      }
+      nextMap.set(key, remapped);
+    }
+    return nextMap;
+  };
+
+  appState.tape = remapTapeMap(appState.tape);
+  appState.startTape = remapTapeMap(appState.startTape);
+  appState.rules = appState.rules.map((rule) => ({
+    ...rule,
+    read: remapSymbol(rule.read) || BLANK,
+    write: remapSymbol(rule.write) || BLANK
+  }));
+  appState.lastPlacedSymbol = remapSymbol(appState.lastPlacedSymbol) || BLANK;
+
+  if (appState.writeMorph) {
+    appState.writeMorph.fromSymbol = remapSymbol(appState.writeMorph.fromSymbol);
+    appState.writeMorph.toSymbol = remapSymbol(appState.writeMorph.toSymbol);
+  }
+}
+
+function openAlphabetModal() {
+  clearHaltedStatePulse();
+  closeTapeSymbolPicker();
+  appState.alphabetModal.open = true;
+  appState.modalOpenedAt = performance.now();
+  setAlphabetModalFeedback("");
+  renderAlphabetModal();
+  if (els.alphabetModal) {
+    els.alphabetModal.classList.add("is-open");
+    requestAnimationFrame(() => {
+      els.alphabetModal.querySelector('input[data-slot-index="0"]')?.focus({ preventScroll: true });
+    });
+  }
+}
+
+function closeAlphabetModal() {
+  appState.alphabetModal.open = false;
+  setAlphabetModalFeedback("");
+  if (els.alphabetModal) {
+    els.alphabetModal.classList.remove("is-open");
+  }
+}
+
+function resetAlphabetModal() {
+  if (!els.alphabetModalGrid) {
+    return;
+  }
+  const inputs = Array.from(els.alphabetModalGrid.querySelectorAll('input[data-slot-index]'));
+  inputs.forEach((input, index) => {
+    input.value = DEFAULT_USER_ALPHABET[index] || "";
+  });
+  setAlphabetModalFeedback("Reset to default alphabet slots.");
+}
+
+function saveAlphabetModal() {
+  const previousSlots = [...appState.alphabetSlots];
+  const nextSlots = readAlphabetModalSlots();
+  const validationMessage = validateAlphabetSlots(nextSlots);
+  if (validationMessage) {
+    setAlphabetModalFeedback(validationMessage);
+    return;
+  }
+
+  const remapEntries = new Map();
+  for (let index = 0; index < USER_ALPHABET_SLOT_COUNT; index += 1) {
+    const previousSymbol = normaliseAlphabetSlot(previousSlots[index] || "");
+    const nextSymbol = normaliseAlphabetSlot(nextSlots[index] || "");
+    if (previousSymbol && previousSymbol !== nextSymbol) {
+      remapEntries.set(previousSymbol, nextSymbol || BLANK);
+    }
+  }
+
+  remapWorkspaceSymbols(remapEntries);
+
+  appState.alphabetSlots = normaliseAlphabetSlots(nextSlots);
+  appState.message = remapEntries.size > 0 ? "Alphabet updated and existing symbols were remapped." : "Alphabet updated.";
+  closeAlphabetModal();
+  renderAll();
+  persistWorkspace();
 }
 
 function applyHeadFromTapeView() {
@@ -1340,10 +1703,6 @@ function handleTapeCellActivate(cell, pointerType = "") {
   if (pointerType === "touch" || pointerType === "pen") {
     cell.blur();
   }
-
-  renderTape();
-  updateStatus();
-  persistWorkspace();
 }
 
 function initTapeInteractions() {
@@ -1355,12 +1714,7 @@ function initTapeInteractions() {
       return;
     }
     event.preventDefault();
-    const row = Number(cell.dataset.row);
-    const col = Number(cell.dataset.col);
-    placeRememberedSymbol(row, col);
-    renderTape();
-    updateStatus();
-    persistWorkspace();
+    openTapeSymbolPicker(cell, event);
   });
 
   viewport.addEventListener("pointerdown", (event) => {
@@ -1375,6 +1729,7 @@ function initTapeInteractions() {
     }
     const cell = event.target.closest(".tape-cell");
     stopTapeSnap();
+    closeTapeSymbolPicker();
     appState.tapeDrag = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -1382,9 +1737,34 @@ function initTapeInteractions() {
       startCol: appState.tapeViewCol,
       startRow: Number.isFinite(appState.tapeViewRow) ? appState.tapeViewRow : appState.head.row,
       moved: false,
-      pressedCell: cell || null
+      pressedCell: cell || null,
+      pointerType: event.pointerType,
+      longPressTimer: null,
+      longPressActivated: false
     };
     viewport.classList.add("dragging");
+    if (cell && (event.pointerType === "touch" || event.pointerType === "pen")) {
+      const pointerId = event.pointerId;
+      const pressedCell = cell;
+      const pressX = event.clientX;
+      const pressY = event.clientY;
+      appState.tapeDrag.longPressTimer = window.setTimeout(() => {
+        const drag = appState.tapeDrag;
+        if (!drag || drag.pointerId !== pointerId || drag.moved || drag.longPressActivated || appState.running) {
+          return;
+        }
+        drag.longPressActivated = true;
+        openTapeSymbolPicker(pressedCell, { clientX: pressX, clientY: pressY });
+        try {
+          if (viewport.hasPointerCapture(pointerId)) {
+            viewport.releasePointerCapture(pointerId);
+          }
+        } catch {
+          // Ignore capture release failures on constrained touch stacks.
+        }
+        viewport.classList.remove("dragging");
+      }, TAPE_LONG_PRESS_MS);
+    }
     try {
       viewport.setPointerCapture(event.pointerId);
     } catch {
@@ -1398,12 +1778,16 @@ function initTapeInteractions() {
     if (!drag || event.pointerId !== drag.pointerId) {
       return;
     }
+    if (drag.longPressActivated) {
+      return;
+    }
     const dx = event.clientX - drag.startX;
     const dy = event.clientY - drag.startY;
 
     if (!drag.moved) {
       if (Math.hypot(dx, dy) >= DRAG_THRESHOLD_PX) {
         drag.moved = true;
+        clearTapeLongPressTimer(drag);
       }
     }
 
@@ -1436,6 +1820,12 @@ function initTapeInteractions() {
       viewport.releasePointerCapture(drag.pointerId);
     }
     viewport.classList.remove("dragging");
+    clearTapeLongPressTimer(drag);
+
+    if (drag.longPressActivated) {
+      appState.tapeDrag = null;
+      return;
+    }
 
     if (!cancelled && drag.moved) {
       const snappedCol = Math.round(appState.tapeViewCol);
@@ -1563,28 +1953,7 @@ function scrollActiveRuleIntoView() {
 }
 
 function getAvailableAlphabet() {
-  const values = [];
-  const seen = new Set();
-
-  const pushSymbol = (rawSymbol) => {
-    const normalized = normalizeSymbol(rawSymbol) || BLANK;
-    if (seen.has(normalized)) {
-      return;
-    }
-    seen.add(normalized);
-    values.push(normalized);
-  };
-
-  TAPE_SYMBOL_CYCLE.forEach(pushSymbol);
-  for (const rule of appState.rules) {
-    pushSymbol(rule.read);
-    pushSymbol(rule.write);
-  }
-  for (const symbol of appState.tape.values()) {
-    pushSymbol(symbol);
-  }
-
-  return values;
+  return getRuleAlphabetChoices();
 }
 
 function ruleStateSelectCell(rule, field, options) {
@@ -2584,6 +2953,11 @@ function initEvents() {
     });
   });
 
+  bindModalActivate(els.menuAlphabet, () => {
+    openAlphabetModal();
+    toggleMenu(false);
+  });
+
   bindModalActivate(els.menuAbout, () => {
     openAboutModal();
     toggleMenu(false);
@@ -2614,11 +2988,45 @@ function initEvents() {
     });
   }
 
+  if (els.alphabetModal) {
+    els.alphabetModal.addEventListener("click", (event) => {
+      if (performance.now() - appState.modalOpenedAt < 350) {
+        return;
+      }
+      if (event.target === els.alphabetModal) {
+        closeAlphabetModal();
+      }
+    });
+    els.alphabetModal.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+  }
+
+  if (els.tapeSymbolPicker) {
+    els.tapeSymbolPicker.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+  }
+
   document.addEventListener("click", (event) => {
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
       toggleMenu(false);
     }
   });
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (!appState.tapeSymbolPicker.open) {
+        return;
+      }
+      if (els.tapeSymbolPicker?.contains(event.target)) {
+        return;
+      }
+      closeTapeSymbolPicker();
+    },
+    true
+  );
 
   els.btnAddRule.addEventListener("click", addRule);
   bindModalActivate(els.btnAddState, () => openStateModal());
@@ -2670,6 +3078,10 @@ function initEvents() {
     deleteState(appState.stateModal.originalName);
   });
   bindModalActivate(els.btnStateModalSave, saveStateModal);
+  bindModalActivate(els.btnAlphabetModalCloseX, closeAlphabetModal);
+  bindModalActivate(els.btnAlphabetModalCancel, closeAlphabetModal);
+  bindModalActivate(els.btnAlphabetModalSave, saveAlphabetModal);
+  bindModalActivate(els.btnAlphabetModalReset, resetAlphabetModal);
   if (els.stateNameInput) {
     els.stateNameInput.addEventListener("input", () => setStateModalFeedback(""));
     els.stateNameInput.addEventListener("keydown", (event) => {
@@ -2682,6 +3094,14 @@ function initEvents() {
   }
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      if (appState.tapeSymbolPicker.open) {
+        closeTapeSymbolPicker();
+        return;
+      }
+      if (appState.alphabetModal.open) {
+        closeAlphabetModal();
+        return;
+      }
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
       if (appState.helpModalOverlay) closeHelpModal();
@@ -2695,6 +3115,9 @@ function initEvents() {
     autoFitCellSize();
     renderTape();
     renderDiagram();
+    if (appState.tapeSymbolPicker.open && appState.tapeSymbolPicker.cell) {
+      positionTapeSymbolPicker(appState.tapeSymbolPicker.cell, appState.tapeSymbolPicker);
+    }
     if (appState.diagramModalOpen) {
       renderDiagram(els.diagramExpanded);
     }

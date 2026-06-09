@@ -30,7 +30,7 @@
   <link rel="shortcut icon" href="images/chewRingLogo.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="images/appIcon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=20260609-50" />
+  <link rel="stylesheet" href="styles.css?v=20260609-60" />
 </head>
 <body data-theme="dark">
   <div class="app-shell">
@@ -248,21 +248,21 @@
   </div>
 
   <div id="helpModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
-    <div class="modal">
+    <div class="modal help-modal">
       <h3 id="helpModalTitle">Quick Help</h3>
       <button id="btnHelpCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close help" title="Close help">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
       </button>
       <p><strong>Tape editing</strong><br />
-      Tap or click a cell to cycle symbols: □, 0, 1, #. Right-click a cell, or long-press on touch, to open a symbol picker.</p>
+      Tap or click a cell to cycle symbols: <span class="help-symbol-chip help-symbol-chip-blank" role="img" aria-label="space">&nbsp;</span> <span class="help-symbol-chip">0</span> <span class="help-symbol-chip">1</span> <span class="help-symbol-chip">#</span>. Right-click a cell, or long-press on touch devices, to open a symbol picker. You can change the available symbols by selecting 'Alphabet' from the main menu.</p>
       <p><strong>Head position</strong><br />
       Drag the tape with mouse or finger to move the read head to a new start position.</p>
       <p><strong>Rules</strong><br />
-      Use the + button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. Use the red X to delete a rule.</p>
+      Use the <span class="help-action-chip help-action-chip-add">+</span> button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. Use the red X to delete a rule.</p>
       <p><strong>States</strong><br />
-      Use the + button in Finite State Diagram to add a state. Click a state node to edit name and start/accept/reject options. In that dialog, use Delete to remove the state.</p>
+      Use the <span class="help-action-chip help-action-chip-add">+</span> button in Finite State Diagram to add a state. Click a state node to edit name and start/accept/reject options. In that dialog, use Delete to remove the state.</p>
       <p><strong>Multiple rows</strong><br />
-      Use the row + and - controls in Tape Workspace. With more than one row, machine rules can move Up (U) and Down (D) between rows.</p>
+      Use the row <span class="help-action-chip help-action-chip-row">+</span> and <span class="help-action-chip help-action-chip-row">-</span> controls in Tape Workspace. With more than one row, machine rules can move Up (U) and Down (D) between rows.</p>
       <p><strong>Run controls</strong><br />
       Run executes continuously, Pause stops, and Step executes one transition at a time when not halted.</p>
     </div>
@@ -295,7 +295,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260609-55"></script>
+  <script src="app.js?v=20260609-60"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"3fd947bc782243ada1dbd315a9feca0e"}'></script>
   <!-- End Cloudflare Web Analytics -->

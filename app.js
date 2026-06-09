@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.3";
+const APP_VERSION = "V1.0.4";
 const LEGACY_BLANK = "_";
 const TAPE_SYMBOL_CYCLE = [BLANK, "0", "1", "#", "X", "!", "?"];
 const DRAG_THRESHOLD_PX = 6;
@@ -52,6 +52,7 @@ const appState = {
   writeMorph: null,
   lastPlacedSymbol: "0",
   haltedStatePulse: false,
+  haltedReason: null,
   workspaceSaveEnabled: false,
   activeRuleId: null,
   stateModal: { open: false, originalName: null },
@@ -1853,6 +1854,7 @@ function machineStep() {
   if (appState.acceptStates.includes(appState.currentState)) {
     appState.message = `Machine already accepted in state ${appState.currentState}.`;
     appState.haltedStatePulse = true;
+    appState.haltedReason = "terminal";
     appState.running = false;
     return;
   }
@@ -1860,6 +1862,7 @@ function machineStep() {
   if (appState.rejectStates.includes(appState.currentState)) {
     appState.message = `Machine already rejected in state ${appState.currentState}.`;
     appState.haltedStatePulse = true;
+    appState.haltedReason = "terminal";
     appState.running = false;
     return;
   }
@@ -1868,6 +1871,7 @@ function machineStep() {
   if (!rule) {
     appState.message = `No rule for state ${appState.currentState} and symbol ${getSymbol(appState.head.row, appState.head.col)}. Halt.`;
     appState.running = false;
+    appState.haltedReason = "no-rule";
     appState.activeRuleId = null;
     return;
   }
@@ -1890,6 +1894,7 @@ function machineStep() {
   appState.tapeViewRow = appState.head.row;
   appState.currentState = rule.next;
   appState.steps += 1;
+  appState.haltedReason = null;
   if (wroteChanged) {
     scheduleTapeMoveToHead(MOVE_AFTER_WRITE_DELAY_MS, appState.running ? 180 : 200, { includeRow: false });
   } else {
@@ -1899,6 +1904,7 @@ function machineStep() {
   if (appState.acceptStates.includes(appState.currentState)) {
     appState.message = `Accepted in ${appState.currentState} after ${appState.steps} steps.`;
     appState.haltedStatePulse = true;
+    appState.haltedReason = "terminal";
     appState.running = false;
     return;
   }
@@ -1906,6 +1912,7 @@ function machineStep() {
   if (appState.rejectStates.includes(appState.currentState)) {
     appState.message = `Rejected in ${appState.currentState} after ${appState.steps} steps.`;
     appState.haltedStatePulse = true;
+    appState.haltedReason = "terminal";
     appState.running = false;
     return;
   }
@@ -1978,6 +1985,7 @@ function resetMachine() {
   appState.head = { ...appState.startHead };
   syncTapeViewToHead();
   appState.steps = 0;
+  appState.haltedReason = null;
   appState.activeRuleId = null;
   appState.message = "Machine reset.";
   renderAll();
@@ -1995,6 +2003,7 @@ function resetTape() {
   appState.startHead = { row: 0, col: 0 };
   syncTapeViewToHead();
   appState.steps = 0;
+  appState.haltedReason = null;
   appState.activeRuleId = null;
   appState.currentState = appState.startState;
   appState.message = "Tape cleared.";
@@ -2684,11 +2693,14 @@ function initEvents() {
 
   els.btnRun.addEventListener("click", () => {
     clearHaltedStatePulse();
-    if (appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState)) {
+    const haltedInTerminalState = appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState);
+    const haltedByNoRule = appState.haltedReason === "no-rule";
+    if (haltedInTerminalState || haltedByNoRule) {
       stopTapeSnap();
       stopHeadPulse();
       appState.currentState = appState.startState;
       appState.steps = 0;
+      appState.haltedReason = null;
       appState.activeRuleId = null;
     }
     startRunLoop();

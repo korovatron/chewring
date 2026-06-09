@@ -1108,8 +1108,16 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 }
 
 .tape-symbol-choice:focus-visible {
-  outline: 2px solid #d7e0f2;
-  outline-offset: 2px;
+  box-shadow: inset 0 0 0 2px #d7e0f2;
+}
+
+body.touch-input .tape-symbol-choice:focus,
+body.touch-input .tape-symbol-choice:focus-visible,
+body.touch-input .tape-symbol-choice:active {
+  outline: none !important;
+  box-shadow: none !important;
+  background: #244562 !important;
+  border-color: #3b6b93 !important;
 }
 
 .alphabet-modal {

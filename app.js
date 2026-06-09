@@ -1497,22 +1497,45 @@ function readAlphabetModalSlots() {
   return nextSlots;
 }
 
-function validateAlphabetSlots(slots) {
-  const seen = new Set(CORE_TAPE_SYMBOLS);
-  for (let index = 0; index < slots.length; index += 1) {
-    const symbol = normalizeSymbol(slots[index]).trim().slice(0, 1);
-    if (!symbol) {
-      continue;
-    }
-    if (CORE_TAPE_SYMBOLS.includes(symbol)) {
-      return `Slot ${index + 1} cannot use fixed symbol ${symbol}.`;
-    }
-    if (seen.has(symbol)) {
-      return `Slot ${index + 1} duplicates an existing symbol.`;
-    }
-    seen.add(symbol);
+function checkAlphabetSlots(previousSlots = [], nextSlots = []) {
+  // Compare previous and next slot arrays and return { ok, message, conflicts }
+  // Prefer to mark as conflicting the slots that the user changed in this save.
+  const cleaned = Array(USER_ALPHABET_SLOT_COUNT).fill("");
+  for (let i = 0; i < USER_ALPHABET_SLOT_COUNT; i += 1) {
+    cleaned[i] = normalizeSymbol(nextSlots[i] || "").trim().slice(0, 1) || "";
   }
-  return "";
+
+  // Check for reserved core symbol usage first
+  for (let i = 0; i < cleaned.length; i += 1) {
+    const sym = cleaned[i];
+    if (!sym) continue;
+    if (CORE_TAPE_SYMBOLS.includes(sym)) {
+      return { ok: false, message: `Symbol ${sym} is reserved and cannot be used.`, conflicts: [i] };
+    }
+  }
+
+  // Build occurrences map
+  const occ = new Map();
+  for (let i = 0; i < cleaned.length; i += 1) {
+    const sym = cleaned[i];
+    if (!sym) continue;
+    if (!occ.has(sym)) occ.set(sym, []);
+    occ.get(sym).push(i);
+  }
+
+  // Find duplicates and prefer indices the user edited
+  for (const [sym, indices] of occ.entries()) {
+    if (indices.length <= 1) continue;
+    const edited = indices.filter((i) => (String(previousSlots[i] || "") !== String(nextSlots[i] || "")));
+    if (edited.length > 0) {
+      return { ok: false, message: `Symbol ${sym} already exists.`, conflicts: edited };
+    }
+    // fallback: mark the later indices as conflicting (leave the first occurrence)
+    const fallback = indices.slice(1);
+    return { ok: false, message: `Symbol ${sym} already exists.`, conflicts: fallback };
+  }
+
+  return { ok: true, message: "", conflicts: [] };
 }
 
 function remapWorkspaceSymbols(remapEntries) {
@@ -1605,12 +1628,34 @@ function resetAlphabetModal() {
 function saveAlphabetModal() {
   const previousSlots = [...appState.alphabetSlots];
   const nextSlots = readAlphabetModalSlots();
-  const validationMessage = validateAlphabetSlots(nextSlots);
-  if (validationMessage) {
-    // On validation failure (e.g. duplicate or using fixed symbol) revert inputs back
-    // to the previously saved alphabet slots so the UI doesn't leave invalid text in place.
-    setAlphabetModalFeedback(validationMessage);
+  const validation = checkAlphabetSlots(previousSlots, nextSlots);
+  if (!validation.ok) {
+    // Show generic validation message (no slot numbers) and revert only the
+    // conflicting input(s) back to their previous values so the user's other
+    // edits are preserved.
+    setAlphabetModalFeedback(validation.message);
+    // Re-render the modal (restores saved values), then re-apply any non-conflicting
+    // edits so the user's other changes are preserved. Focus the first conflicting input.
     renderAlphabetModal();
+    if (els.alphabetModalGrid && Array.isArray(validation.conflicts)) {
+      const inputs = Array.from(els.alphabetModalGrid.querySelectorAll('input[data-slot-index]'));
+      const conflictSet = new Set(validation.conflicts.map((n) => Number(n)));
+      let focused = false;
+      for (let idx = 0; idx < USER_ALPHABET_SLOT_COUNT; idx += 1) {
+        const input = inputs.find((i) => Number(i.dataset.slotIndex) === idx);
+        if (!input) continue;
+        if (conflictSet.has(idx)) {
+          // leave restored value (previousSlots[idx]) and focus the first conflict
+          if (!focused) {
+            input.focus({ preventScroll: true });
+            focused = true;
+          }
+        } else {
+          // re-apply the user's attempted change for non-conflicting slots
+          input.value = nextSlots[idx] || "";
+        }
+      }
+    }
     return;
   }
 

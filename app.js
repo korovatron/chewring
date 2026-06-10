@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.16";
+const APP_VERSION = "V1.0.17";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -3018,6 +3018,16 @@ function renderDiagram(targetSvg = els.diagram) {
 
   setupDiagramDefs(svg, sizeScale);
 
+  const edgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  edgeLayer.setAttribute("class", "diagram-edge-layer");
+  const edgeLabelLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  edgeLabelLayer.setAttribute("class", "diagram-edge-label-layer");
+  const nodeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  nodeLayer.setAttribute("class", "diagram-node-layer");
+  svg.appendChild(edgeLayer);
+  svg.appendChild(edgeLabelLayer);
+  svg.appendChild(nodeLayer);
+
   const list = getAvailableStates();
   if (list.length === 0) {
     return;
@@ -3139,7 +3149,7 @@ function renderDiagram(targetSvg = els.diagram) {
         loopPath.setAttribute("class", "edge");
         loopPath.setAttribute("marker-end", "url(#arrow)");
 
-        svg.appendChild(loopPath);
+        edgeLayer.appendChild(loopPath);
       } else {
         const dx = to.x - from.x;
         const dy = to.y - from.y;
@@ -3160,7 +3170,7 @@ function renderDiagram(targetSvg = els.diagram) {
         line.setAttribute("class", "edge");
         line.setAttribute("marker-end", "url(#arrow)");
 
-        svg.appendChild(line);
+        edgeLayer.appendChild(line);
       }
 
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -3169,7 +3179,7 @@ function renderDiagram(targetSvg = els.diagram) {
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("class", "label edge-label");
       renderGroupLabel(label, group);
-      svg.appendChild(label);
+      edgeLabelLayer.appendChild(label);
 
       const bounds = label.getBBox();
       const badgePadX = 5 * sizeScale;
@@ -3213,7 +3223,7 @@ function renderDiagram(targetSvg = els.diagram) {
       if (appState.activeRuleId && group.ruleIds.has(appState.activeRuleId)) {
         badge.classList.add("active-transition-badge");
       }
-      svg.insertBefore(badge, label);
+      edgeLabelLayer.insertBefore(badge, label);
     });
   }
 
@@ -3278,7 +3288,7 @@ function renderDiagram(targetSvg = els.diagram) {
     }
     renderDiagramStateLabel(text, name);
     nodeGroup.appendChild(text);
-    svg.appendChild(nodeGroup);
+    nodeLayer.appendChild(nodeGroup);
   }
 }
 

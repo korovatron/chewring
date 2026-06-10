@@ -1489,14 +1489,6 @@ td select {
     padding-top: 6px;
     padding-bottom: 8px;
   }
-
-  #rulesTable td:nth-child(1) select,
-  #rulesTable td:nth-child(5) select {
-    font-size: 0.95rem;
-    line-height: normal;
-    padding-top: 5px;
-    padding-bottom: 10px;
-  }
 }
 
 .rule-del-btn {

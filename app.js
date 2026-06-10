@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.15";
+const APP_VERSION = "V1.0.16";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -29,6 +29,13 @@ const SUBSCRIPT_DIGITS = {
   "9": "₉"
 };
 const SUBSCRIPT_TO_DIGIT = Object.fromEntries(Object.entries(SUBSCRIPT_DIGITS).map(([digit, sub]) => [sub, digit]));
+const IS_IOS_BROWSER = (() => {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+})();
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -2589,6 +2596,17 @@ function getAvailableAlphabet() {
   return getRuleAlphabetChoices();
 }
 
+function stateLabelForRuleSelect(value) {
+  const text = String(value || "");
+  if (!IS_IOS_BROWSER || !text) {
+    return text;
+  }
+  return text
+    .split("")
+    .map((char) => SUBSCRIPT_TO_DIGIT[char] || char)
+    .join("");
+}
+
 function ruleStateSelectCell(rule, field, options) {
   const td = document.createElement("td");
   const select = document.createElement("select");
@@ -2597,7 +2615,7 @@ function ruleStateSelectCell(rule, field, options) {
   for (const option of values) {
     const el = document.createElement("option");
     el.value = option;
-    el.textContent = option;
+    el.textContent = stateLabelForRuleSelect(option);
     if (option === rule[field]) {
       el.selected = true;
     }

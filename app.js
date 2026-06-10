@@ -28,6 +28,7 @@ const SUBSCRIPT_DIGITS = {
   "8": "₈",
   "9": "₉"
 };
+const SUBSCRIPT_TO_DIGIT = Object.fromEntries(Object.entries(SUBSCRIPT_DIGITS).map(([digit, sub]) => [sub, digit]));
 const appState = {
   rows: 1,
   cellSize: 46,
@@ -1317,6 +1318,28 @@ function getAvailableStates() {
     ...appState.rejectStates,
     ...appState.rules.flatMap((rule) => [rule.current, rule.next])
   ]);
+}
+
+function renderDiagramStateLabel(textElement, stateName) {
+  const text = String(stateName || "");
+  const parts = text.match(/^(.*?)([₀₁₂₃₄₅₆₇₈₉]+)$/);
+  if (!parts) {
+    textElement.textContent = text;
+    return;
+  }
+
+  const baseText = parts[1] || "";
+  const subscriptText = parts[2]
+    .split("")
+    .map((char) => SUBSCRIPT_TO_DIGIT[char] || char)
+    .join("");
+
+  textElement.textContent = "";
+  textElement.append(baseText);
+  const subscript = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  subscript.setAttribute("class", "state-subscript");
+  subscript.textContent = subscriptText;
+  textElement.appendChild(subscript);
 }
 
 function syncStateRegistry() {
@@ -3235,7 +3258,7 @@ function renderDiagram(targetSvg = els.diagram) {
     if (name === appState.currentState) {
       text.classList.add("current-state-label");
     }
-    text.textContent = name;
+    renderDiagramStateLabel(text, name);
     nodeGroup.appendChild(text);
     svg.appendChild(nodeGroup);
   }

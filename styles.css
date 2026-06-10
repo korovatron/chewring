@@ -1780,6 +1780,11 @@ tr.active-rule td {
   font-weight: 800;
 }
 
+.label .state-subscript {
+  font-size: 0.7em;
+  baseline-shift: -0.34em;
+}
+
 .edge-label-bg {
   fill: #000000;
   stroke: var(--edge-label-badge-border);

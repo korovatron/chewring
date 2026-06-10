@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.11";
+const APP_VERSION = "V1.0.12";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -888,7 +888,39 @@ var LZString = (function () {
 
 function generateShareableUrl() {
   try {
-    const payload = JSON.stringify(serialiseWorkspace());
+    // Build a share snapshot that avoids fragile Unicode glyphs (subscript digits,
+    // uncommon symbols). Convert state names and symbols to ASCII-friendly forms
+    // so the compressed token is robust across URL handling.
+    const snapshot = serialiseWorkspace();
+
+    // Reverse map for subscript digits to ascii digits
+    const subscriptToDigit = Object.fromEntries(Object.entries(SUBSCRIPT_DIGITS).map(([k, v]) => [v, k]));
+    function stateForShare(name) {
+      if (!name) return "";
+      let out = "";
+      for (const ch of String(name)) {
+        out += subscriptToDigit[ch] ?? ch;
+      }
+      return out;
+    }
+
+    const shareSnapshot = { ...snapshot };
+    shareSnapshot.states = (snapshot.states || []).map(stateForShare);
+    shareSnapshot.startState = stateForShare(snapshot.startState);
+    shareSnapshot.currentState = stateForShare(snapshot.currentState);
+    shareSnapshot.acceptStates = (snapshot.acceptStates || []).map(stateForShare);
+    shareSnapshot.rejectStates = (snapshot.rejectStates || []).map(stateForShare);
+    shareSnapshot.rules = (snapshot.rules || []).map((r) => ({
+      current: stateForShare(r.current),
+      read: symbolForTape(r.read),
+      write: symbolForTape(r.write),
+      move: (r.move || "S").trim().toUpperCase(),
+      next: stateForShare(r.next)
+    }));
+    shareSnapshot.alphabetSlots = normaliseAlphabetSlots(snapshot.alphabetSlots || DEFAULT_USER_ALPHABET);
+    shareSnapshot.lastPlacedSymbol = symbolForTape(snapshot.lastPlacedSymbol || "0");
+
+    const payload = JSON.stringify(shareSnapshot);
     const encoded = LZString.compressToEncodedURIComponent(payload);
     const url = `${location.origin}${location.pathname}#share=${encoded}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -920,7 +952,18 @@ function readWorkspaceFromUrl() {
       encoded = location.hash.slice(7);
     }
     if (!encoded) return null;
-    const json = LZString.decompressFromEncodedURIComponent(encoded);
+    let json = LZString.decompressFromEncodedURIComponent(encoded);
+    if (!json) {
+      try {
+        // If the share token was placed in the query string it may have been
+        // decoded by URLSearchParams (eg. plus -> space). Try re-encoding and
+        // decompressing as a fallback.
+        json = LZString.decompressFromEncodedURIComponent(encodeURIComponent(encoded));
+      } catch (e) {
+        json = null;
+      }
+    }
+    if (!json) return null;
     const parsed = JSON.parse(json);
     return parsed;
   } catch (e) {
@@ -985,14 +1028,38 @@ function applySavedWorkspace(snapshot) {
   appState.message = "Loaded previous local work.";
 
   const rules = Array.isArray(snapshot.rules) ? snapshot.rules : [];
-  appState.rules = rules.map((rule) => ({
-    id: crypto.randomUUID(),
-    current: formatStateName(rule.current || ""),
-    read: normalizeSymbol(rule.read) || BLANK,
-    write: normalizeSymbol(rule.write) || BLANK,
-    move: (rule.move || "S").trim(),
-    next: formatStateName(rule.next || "")
-  }));
+  appState.rules = rules.map((rule) => {
+    const current = formatStateName(rule.current || "");
+
+    let read = normalizeSymbol(rule.read);
+    if (!read || read === BLANK) {
+      read = BLANK;
+    } else {
+      read = String(read)[0];
+    }
+
+    let write = normalizeSymbol(rule.write);
+    if (!write || write === BLANK) {
+      write = BLANK;
+    } else {
+      write = String(write)[0];
+    }
+
+    const moveRaw = String(rule.move || "S").trim().toUpperCase();
+    const validMoves = new Set(["L", "R", "U", "D", "S"]);
+    const move = validMoves.has(moveRaw) ? moveRaw : "S";
+
+    const next = formatStateName(rule.next || "");
+
+    return {
+      id: crypto.randomUUID(),
+      current,
+      read,
+      write,
+      move,
+      next
+    };
+  });
 
   if (!appState.startState) {
     const fallback = getAvailableStates()[0] || "";

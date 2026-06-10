@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.9";
+const APP_VERSION = "V1.0.10";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -137,6 +137,10 @@ const els = {
   btnAlphabetModalCancel: document.getElementById("btnAlphabetModalCancel"),
   btnAlphabetModalSave: document.getElementById("btnAlphabetModalSave"),
   btnAlphabetModalReset: document.getElementById("btnAlphabetModalReset")
+  ,
+  menuOpenFile: document.getElementById("menuOpenFile"),
+  menuSaveFile: document.getElementById("menuSaveFile"),
+  fileOpenInput: document.getElementById("fileOpenInput")
 };
 
 const DEFAULT_PROGRAMS = {
@@ -444,6 +448,98 @@ function persistWorkspace() {
   } catch {
     // Ignore storage failures so app functionality is unaffected.
   }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+async function saveWorkspaceToFile() {
+  try {
+    const data = JSON.stringify(serialiseWorkspace(), null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const suggested = `chewring-${new Date().toISOString().slice(0, 10)}.json`;
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: suggested,
+          types: [{ description: "Chewring workspace", accept: { "application/json": [".json"] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        appState.message = "Saved to file.";
+        updateStatus();
+        return;
+      } catch (e) {
+        // Fall back to download if the user cancels or API fails.
+      }
+    }
+    downloadBlob(blob, suggested);
+    appState.message = "Downloaded workspace file.";
+    updateStatus();
+  } catch (e) {
+    appState.message = "Failed to save file.";
+    updateStatus();
+  }
+}
+
+async function openWorkspaceFromFilePicker() {
+  try {
+    if (window.showOpenFilePicker) {
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [{ description: "Chewring workspace", accept: { "application/json": [".json"] } }]
+      });
+      const file = await handle.getFile();
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (hasMeaningfulSavedWorkspace(parsed) && applySavedWorkspace(parsed)) {
+        appState.message = "Opened workspace file.";
+        persistWorkspace();
+        updateStatus();
+      } else {
+        appState.message = "Invalid workspace file.";
+        updateStatus();
+      }
+      return;
+    }
+    // Fallback to hidden file input for browsers without File System Access API
+    if (els.fileOpenInput) {
+      els.fileOpenInput.value = "";
+      els.fileOpenInput.click();
+    }
+  } catch (e) {
+    // User cancelled or error - no action required
+  }
+}
+
+function handleFileOpenInputChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || ""));
+      if (hasMeaningfulSavedWorkspace(parsed) && applySavedWorkspace(parsed)) {
+        appState.message = "Opened workspace file.";
+        persistWorkspace();
+      } else {
+        appState.message = "Invalid workspace file.";
+      }
+    } catch (e) {
+      appState.message = "Failed to read file.";
+    }
+    updateStatus();
+  };
+  reader.readAsText(file);
 }
 
 function parseSavedTape(entries) {
@@ -2936,6 +3032,20 @@ function bindTap(target, handler) {
 
 function toggleMenu(open) {
   const isOpen = open !== undefined ? open : !els.appMenu.classList.contains("is-open");
+  // When opening the menu, ensure any concertina sections are collapsed
+  if (isOpen) {
+    document.querySelectorAll('.menu-concertina-trigger').forEach((trigger) => {
+      trigger.setAttribute('aria-expanded', 'false');
+      const controls = trigger.getAttribute('aria-controls');
+      if (controls) {
+        const panel = document.getElementById(controls);
+        if (panel) panel.hidden = true;
+      }
+      const arrow = trigger.querySelector('.concertina-arrow');
+      if (arrow) arrow.textContent = '▸';
+    });
+  }
+
   els.appMenu.classList.toggle("is-open", isOpen);
   els.btnHamburger.setAttribute("aria-expanded", String(isOpen));
   els.btnHamburger.classList.toggle("is-open", isOpen);
@@ -3028,6 +3138,24 @@ function initEvents() {
     openHelpModal();
     toggleMenu(false);
   });
+
+  if (els.menuSaveFile) {
+    els.menuSaveFile.addEventListener("click", () => {
+      saveWorkspaceToFile();
+      toggleMenu(false);
+    });
+  }
+
+  if (els.menuOpenFile) {
+    els.menuOpenFile.addEventListener("click", () => {
+      openWorkspaceFromFilePicker();
+      toggleMenu(false);
+    });
+  }
+
+  if (els.fileOpenInput) {
+    els.fileOpenInput.addEventListener("change", handleFileOpenInputChange);
+  }
 
   bindModalActivate(els.btnFooterHelp, openHelpModal);
 

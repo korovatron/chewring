@@ -54,6 +54,9 @@
         </button>
       </div>
       <div class="menu-inner">
+        <button class="menu-item-btn" id="menuOpenFile" type="button">Open file</button>
+        <button class="menu-item-btn" id="menuSaveFile" type="button">Save to file</button>
+        <button class="menu-item-btn" id="menuAlphabet" type="button">Alphabet</button>
         <button class="menu-concertina-trigger" id="menuExamplesToggle" aria-expanded="false" aria-controls="menuExamplesList" type="button">
           Examples <span class="concertina-arrow">▸</span>
         </button>
@@ -65,7 +68,6 @@
           <li><button class="menu-preset-btn" data-preset="two-row-copy" type="button">Two-Row Copy Demo</button></li>
           <li><button class="menu-preset-btn" data-preset="ones-complement" type="button">Ones' Complement (Bit Flip)</button></li>
         </ul>
-        <button class="menu-item-btn" id="menuAlphabet" type="button">Alphabet</button>
         <button class="menu-item-btn" id="menuHelp" type="button">Help</button>
         <button class="menu-item-btn" id="menuAbout" type="button">About</button>
       </div>
@@ -295,6 +297,7 @@
     </div>
   </div>
 
+  <input id="fileOpenInput" type="file" accept=".json,application/json" hidden />
   <script src="app.js?v=20260609-60"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"3fd947bc782243ada1dbd315a9feca0e"}'></script>

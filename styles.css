@@ -65,6 +65,10 @@
   --edge-label-move: #00e676;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body[data-theme="dark"] {
   --bg: #000000;
   --bg-glow: #000000;
@@ -1073,7 +1077,7 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   margin-bottom: 8px;
 }
 
-.modal-check input[type="checkbox"] {
+.modal-check input[type="radio"] {
   width: 16px;
   height: 16px;
   appearance: none;
@@ -1082,30 +1086,30 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   place-content: center;
   margin: 0;
   border: 2px solid var(--edge-label-badge-border);
-  border-radius: 3px;
+  border-radius: 50%;
   background: #000000;
 }
 
-.modal-check input[type="checkbox"]::before {
+.modal-check input[type="radio"]::before {
   content: "";
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   transform: scale(0);
   transition: transform 120ms ease-in-out;
-  clip-path: polygon(14% 44%, 0 59%, 41% 100%, 100% 16%, 84% 0, 37% 62%);
-  background: #000000;
+  border-radius: 50%;
+  background: #1b1b1b;
 }
 
-.modal-check input[type="checkbox"]:checked {
+.modal-check input[type="radio"]:checked {
   background: #ffea00;
   border-color: #ffea00;
 }
 
-.modal-check input[type="checkbox"]:checked::before {
+.modal-check input[type="radio"]:checked::before {
   transform: scale(1);
 }
 
-.modal-check input[type="checkbox"]:focus-visible {
+.modal-check input[type="radio"]:focus-visible {
   outline: 2px solid #fff3a6;
   outline-offset: 2px;
 }
@@ -1352,7 +1356,7 @@ body.touch-input .tape-symbol-choice:active {
 
 .state-node-group .state-node,
 .state-node-group .label,
-.state-node-group .state-node.accept-inner {
+.state-node-group .state-node.terminal-inner {
   transition: transform 110ms ease, filter 110ms ease, stroke-width 110ms ease;
 }
 
@@ -1372,11 +1376,16 @@ body.touch-input .tape-symbol-choice:active {
   filter: drop-shadow(0 0 10px rgba(255, 59, 59, 0.5));
 }
 
+.state-node-group:hover .state-node.halt,
+.state-node-group:focus-visible .state-node.halt {
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.55));
+}
+
 .state-node-group:hover .state-node,
-.state-node-group:hover .state-node.accept-inner,
+.state-node-group:hover .state-node.terminal-inner,
 .state-node-group:hover .label,
 .state-node-group:focus-visible .state-node,
-.state-node-group:focus-visible .state-node.accept-inner,
+.state-node-group:focus-visible .state-node.terminal-inner,
 .state-node-group:focus-visible .label {
   transform: translateY(-1px);
 }
@@ -1394,7 +1403,7 @@ body.touch-input .tape-symbol-choice:active {
 }
 
 .state-node-group.halted-node .state-node.current,
-.state-node-group.halted-node .state-node.accept-inner {
+.state-node-group.halted-node .state-node.terminal-inner {
   transform-origin: center;
   transform-box: fill-box;
   animation: halted-state-breath 1300ms ease-in-out infinite;
@@ -1406,6 +1415,10 @@ body.touch-input .tape-symbol-choice:active {
 
 .state-node-group.halted-node .state-node.reject {
   filter: drop-shadow(0 0 12px rgba(255, 59, 59, 0.55));
+}
+
+.state-node-group.halted-node .state-node.halt {
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6));
 }
 
 .state-pill {
@@ -1431,6 +1444,10 @@ body.touch-input .tape-symbol-choice:active {
 
 #stateRejectBadge {
   border-color: var(--warn);
+}
+
+#stateHaltBadge {
+  border-color: #f59e0b;
 }
 
 .rules-panel {
@@ -1749,15 +1766,43 @@ tr.active-rule td {
   stroke-width: 3;
 }
 
-.state-node.accept-inner {
+.state-node.terminal-inner {
   fill: none;
-  stroke: var(--ok);
   stroke-width: 2;
+}
+
+.state-node.terminal-inner {
+  stroke: currentColor;
+}
+
+.state-node.terminal-inner {
+  color: var(--node-stroke);
+}
+
+.state-node.accept,
+.state-node.terminal-inner.accept {
+  color: var(--ok);
+  stroke: var(--ok);
 }
 
 .state-node.reject {
   stroke: var(--warn);
   stroke-width: 3;
+}
+
+.state-node.terminal-inner.reject {
+  color: var(--warn);
+  stroke: var(--warn);
+}
+
+.state-node.halt {
+  stroke: #f59e0b;
+  stroke-width: 3;
+}
+
+.state-node.terminal-inner.halt {
+  color: #f59e0b;
+  stroke: #f59e0b;
 }
 
 .state-node.current {

@@ -67,7 +67,6 @@
           <li><button class="menu-preset-btn" data-preset="parity-even-ones" type="button">Parity Check (Even 1s)</button></li>
           <li><button class="menu-preset-btn" data-preset="binary-invert" type="button">Binary Invert</button></li>
           <li><button class="menu-preset-btn" data-preset="two-row-copy" type="button">Two-Row Copy Demo</button></li>
-          <li><button class="menu-preset-btn" data-preset="ones-complement" type="button">Ones' Complement (Bit Flip)</button></li>
         </ul>
         <button class="menu-item-btn" id="menuHelp" type="button">Help</button>
         <button class="menu-item-btn" id="menuAbout" type="button">About</button>
@@ -126,6 +125,7 @@
               <span class="state-pill" id="stateStartBadge" title="Start state">Start: q0</span>
               <span class="state-pill" id="stateAcceptBadge" title="Accept states">Accept: qa</span>
               <span class="state-pill" id="stateRejectBadge" title="Reject states">Reject: qr</span>
+              <span class="state-pill" id="stateHaltBadge" title="Neutral halt states">Halt: (none)</span>
               <button id="btnAddRule" type="button" aria-label="Add rule" title="Add rule">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
               </button>
@@ -219,16 +219,24 @@
       <p id="stateModalFeedback" class="modal-feedback" role="status" aria-live="polite" hidden></p>
 
       <label class="modal-check">
-        <input id="stateIsStart" type="checkbox" />
+        <input id="stateRoleNormal" name="stateRole" type="radio" checked />
+        <span>Normal state</span>
+      </label>
+      <label class="modal-check">
+        <input id="stateRoleStart" name="stateRole" type="radio" />
         <span>Start state</span>
       </label>
       <label class="modal-check">
-        <input id="stateIsAccept" type="checkbox" />
+        <input id="stateRoleAccept" name="stateRole" type="radio" />
         <span>Accept state</span>
       </label>
       <label class="modal-check">
-        <input id="stateIsReject" type="checkbox" />
+        <input id="stateRoleReject" name="stateRole" type="radio" />
         <span>Reject state</span>
+      </label>
+      <label class="modal-check">
+        <input id="stateRoleHalt" name="stateRole" type="radio" />
+        <span>Halt state</span>
       </label>
 
       <div class="modal-actions">
@@ -263,7 +271,7 @@
       <p><strong>Rules</strong><br />
       Use the <span class="help-action-chip help-action-chip-add">+</span> button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. Use the red X to delete a rule.</p>
       <p><strong>States</strong><br />
-      Use the <span class="help-action-chip help-action-chip-add">+</span> button in Finite State Diagram to add a state. Click a state node to edit name and start/accept/reject options. In that dialog, use Delete to remove the state.</p>
+      Use the <span class="help-action-chip help-action-chip-add">+</span> button in Finite State Diagram to add a state. Click a state node to edit its name and role: Normal, Start, Accept, Reject, or Halt. In the diagram, a double ring means a halting state (Accept, Reject, or Halt). In that dialog, use Delete to remove the state.</p>
       <p><strong>Multiple rows</strong><br />
       Use the row <span class="help-action-chip help-action-chip-row">+</span> and <span class="help-action-chip help-action-chip-row">-</span> controls in Tape Workspace. With more than one row, machine rules can move Up (U) and Down (D) between rows.</p>
       <p><strong>Run controls</strong><br />

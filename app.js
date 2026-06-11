@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.17";
+const APP_VERSION = "V1.0.18";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -49,6 +49,7 @@ const appState = {
   currentState: "s0",
   acceptStates: ["sa"],
   rejectStates: ["sr"],
+  haltStates: [],
   states: ["s0", "sa", "sr"],
   steps: 0,
   running: false,
@@ -101,6 +102,7 @@ const els = {
   stateStartBadge: document.getElementById("stateStartBadge"),
   stateAcceptBadge: document.getElementById("stateAcceptBadge"),
   stateRejectBadge: document.getElementById("stateRejectBadge"),
+  stateHaltBadge: document.getElementById("stateHaltBadge"),
   diagram: document.getElementById("diagram"),
   diagramExpanded: document.getElementById("diagramExpanded"),
   btnClearStates: document.getElementById("btnClearStates"),
@@ -113,9 +115,11 @@ const els = {
   stateModal: document.getElementById("stateModal"),
   stateNameInput: document.getElementById("stateNameInput"),
   stateModalFeedback: document.getElementById("stateModalFeedback"),
-  stateIsStart: document.getElementById("stateIsStart"),
-  stateIsAccept: document.getElementById("stateIsAccept"),
-  stateIsReject: document.getElementById("stateIsReject"),
+  stateRoleNormal: document.getElementById("stateRoleNormal"),
+  stateRoleStart: document.getElementById("stateRoleStart"),
+  stateRoleAccept: document.getElementById("stateRoleAccept"),
+  stateRoleReject: document.getElementById("stateRoleReject"),
+  stateRoleHalt: document.getElementById("stateRoleHalt"),
   btnStateModalCloseX: document.getElementById("btnStateModalCloseX"),
   btnStateModalDelete: document.getElementById("btnStateModalDelete"),
   btnStateModalCancel: document.getElementById("btnStateModalCancel"),
@@ -160,26 +164,28 @@ const DEFAULT_PROGRAMS = {
   "scan-right": {
     rows: 1,
     startState: "s0",
-    acceptStates: ["sa"],
-    rejectStates: ["sr"],
+    acceptStates: [],
+    rejectStates: [],
+    haltStates: ["sh"],
     head: { row: 0, col: 0 },
     tapeRows: ["101101"],
     rules: [
       { id: crypto.randomUUID(), current: "s0", read: "0", write: "0", move: "R", next: "s0" },
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
-      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sh" }
     ]
   },
   "unary-increment": {
     rows: 1,
     startState: "s0",
-    acceptStates: ["sa"],
-    rejectStates: ["sr"],
+    acceptStates: [],
+    rejectStates: [],
+    haltStates: ["sh"],
     head: { row: 0, col: 0 },
     tapeRows: ["1111"],
     rules: [
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
-      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: "1", move: "S", next: "sa" }
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: "1", move: "S", next: "sh" }
     ]
   },
   "parity-even-ones": {
@@ -187,6 +193,7 @@ const DEFAULT_PROGRAMS = {
     startState: "qe",
     acceptStates: ["sa"],
     rejectStates: ["sr"],
+    haltStates: [],
     head: { row: 0, col: 0 },
     tapeRows: ["10101010"],
     rules: [
@@ -207,6 +214,7 @@ const DEFAULT_PROGRAMS = {
     startState: "s0",
     acceptStates: ["sa"],
     rejectStates: ["sr"],
+    haltStates: [],
     head: { row: 0, col: 0 },
     tapeRows: ["101001"],
     rules: [
@@ -220,40 +228,19 @@ const DEFAULT_PROGRAMS = {
   "two-row-copy": {
     rows: 2,
     startState: "s0",
-    acceptStates: ["sa"],
-    rejectStates: ["sr"],
+    acceptStates: [],
+    rejectStates: [],
+    haltStates: ["sh"],
     head: { row: 0, col: 0 },
     tapeRows: ["10110", ""],
     rules: [
       { id: crypto.randomUUID(), current: "s0", read: "0", write: "0", move: "D", next: "sd0" },
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "D", next: "sd1" },
-      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sh" },
       { id: crypto.randomUUID(), current: "sd0", read: BLANK, write: "0", move: "U", next: "su" },
       { id: crypto.randomUUID(), current: "sd1", read: BLANK, write: "1", move: "U", next: "su" },
       { id: crypto.randomUUID(), current: "su", read: "0", write: "0", move: "R", next: "s0" },
       { id: crypto.randomUUID(), current: "su", read: "1", write: "1", move: "R", next: "s0" }
-    ]
-  },
-  "ones-complement": {
-    rows: 2,
-    startState: "go_r",
-    acceptStates: ["sa"],
-    rejectStates: [],
-    head: { row: 0, col: 0 },
-    tapeRows: ["10110", ""],
-    rules: [
-      // Phase 1: scan right to find the end of the binary number on row 1
-      { id: crypto.randomUUID(), current: "go_r", read: "0", write: "0", move: "R", next: "go_r" },
-      { id: crypto.randomUUID(), current: "go_r", read: "1", write: "1", move: "R", next: "go_r" },
-      { id: crypto.randomUUID(), current: "go_r", read: BLANK, write: BLANK, move: "L", next: "back" },
-      // Phase 2: scan left, copy each bit inverted onto row 2
-      { id: crypto.randomUUID(), current: "back", read: "0", write: "0", move: "D", next: "d0" },
-      { id: crypto.randomUUID(), current: "back", read: "1", write: "1", move: "D", next: "d1" },
-      { id: crypto.randomUUID(), current: "back", read: BLANK, write: BLANK, move: "S", next: "sa" },
-      { id: crypto.randomUUID(), current: "d0",   read: BLANK, write: "1", move: "U", next: "ul" },
-      { id: crypto.randomUUID(), current: "d1",   read: BLANK, write: "0", move: "U", next: "ul" },
-      { id: crypto.randomUUID(), current: "ul",   read: "0",   write: "0", move: "L", next: "back" },
-      { id: crypto.randomUUID(), current: "ul",   read: "1",   write: "1", move: "L", next: "back" }
     ]
   }
 };
@@ -392,6 +379,7 @@ function serialiseWorkspace() {
     currentState: appState.currentState,
     acceptStates: [...appState.acceptStates],
     rejectStates: [...appState.rejectStates],
+    haltStates: [...appState.haltStates],
     states: [...appState.states],
     steps: appState.steps,
     lastPlacedSymbol: appState.lastPlacedSymbol,
@@ -918,6 +906,7 @@ function generateShareableUrl() {
     shareSnapshot.currentState = stateForShare(snapshot.currentState);
     shareSnapshot.acceptStates = (snapshot.acceptStates || []).map(stateForShare);
     shareSnapshot.rejectStates = (snapshot.rejectStates || []).map(stateForShare);
+    shareSnapshot.haltStates = (snapshot.haltStates || []).map(stateForShare);
     shareSnapshot.rules = (snapshot.rules || []).map((r) => ({
       current: stateForShare(r.current),
       read: symbolForTape(r.read),
@@ -1028,6 +1017,9 @@ function applySavedWorkspace(snapshot) {
   appState.rejectStates = uniqueStateList((snapshot.rejectStates || []).map((state) => formatStateName(state))).filter(
     (state) => !appState.acceptStates.includes(state)
   );
+  appState.haltStates = uniqueStateList((snapshot.haltStates || []).map((state) => formatStateName(state))).filter(
+    (state) => !appState.acceptStates.includes(state) && !appState.rejectStates.includes(state)
+  );
   appState.states = uniqueStateList((snapshot.states || []).map((state) => formatStateName(state)));
   appState.steps = 0;
   appState.lastPlacedSymbol = normalizeSymbol(snapshot.lastPlacedSymbol || "0") || "0";
@@ -1103,6 +1095,7 @@ function startFreshWorkspace() {
   appState.currentState = "";
   appState.acceptStates = [];
   appState.rejectStates = [];
+  appState.haltStates = [];
   appState.states = [];
   appState.steps = 0;
   appState.activeRuleId = null;
@@ -1323,8 +1316,26 @@ function getAvailableStates() {
     appState.startState,
     ...appState.acceptStates,
     ...appState.rejectStates,
+    ...appState.haltStates,
     ...appState.rules.flatMap((rule) => [rule.current, rule.next])
   ]);
+}
+
+function getTerminalStateType(stateName) {
+  if (appState.acceptStates.includes(stateName)) {
+    return "accept";
+  }
+  if (appState.rejectStates.includes(stateName)) {
+    return "reject";
+  }
+  if (appState.haltStates.includes(stateName)) {
+    return "halt";
+  }
+  return "";
+}
+
+function isTerminalState(stateName) {
+  return Boolean(getTerminalStateType(stateName));
 }
 
 function renderDiagramStateLabel(textElement, stateName) {
@@ -1357,9 +1368,21 @@ function syncMachineConfigInputs() {
   const startLabel = appState.startState || "(none)";
   const acceptLabel = appState.acceptStates.length ? appState.acceptStates.join(", ") : "(none)";
   const rejectLabel = appState.rejectStates.length ? appState.rejectStates.join(", ") : "(none)";
+  const haltLabel = appState.haltStates.length ? appState.haltStates.join(", ") : "(none)";
+  
   els.stateStartBadge.textContent = `Start: ${startLabel}`;
+  els.stateStartBadge.hidden = !appState.startState;
+  
   els.stateAcceptBadge.textContent = `Accept: ${acceptLabel}`;
+  els.stateAcceptBadge.hidden = appState.acceptStates.length === 0;
+  
   els.stateRejectBadge.textContent = `Reject: ${rejectLabel}`;
+  els.stateRejectBadge.hidden = appState.rejectStates.length === 0;
+  
+  if (els.stateHaltBadge) {
+    els.stateHaltBadge.textContent = `Halt: ${haltLabel}`;
+    els.stateHaltBadge.hidden = appState.haltStates.length === 0;
+  }
 }
 
 function setStateRoleMembership(stateName, enabled, listName) {
@@ -1381,6 +1404,7 @@ function renameStateReferences(fromName, toName) {
   }));
   appState.acceptStates = appState.acceptStates.map((state) => (state === fromName ? toName : state));
   appState.rejectStates = appState.rejectStates.map((state) => (state === fromName ? toName : state));
+  appState.haltStates = appState.haltStates.map((state) => (state === fromName ? toName : state));
   if (appState.startState === fromName) {
     appState.startState = toName;
   }
@@ -1404,9 +1428,19 @@ function openStateModal(existingStateName = "") {
   setStateModalFeedback("");
 
   els.stateNameInput.value = existingStateName;
-  els.stateIsStart.checked = Boolean(existingStateName && appState.startState === existingStateName);
-  els.stateIsAccept.checked = Boolean(existingStateName && appState.acceptStates.includes(existingStateName));
-  els.stateIsReject.checked = Boolean(existingStateName && appState.rejectStates.includes(existingStateName));
+  const selectedRole = (() => {
+    if (!existingStateName) return "normal";
+    if (appState.startState === existingStateName) return "start";
+    if (appState.acceptStates.includes(existingStateName)) return "accept";
+    if (appState.rejectStates.includes(existingStateName)) return "reject";
+    if (appState.haltStates.includes(existingStateName)) return "halt";
+    return "normal";
+  })();
+  if (els.stateRoleNormal) els.stateRoleNormal.checked = selectedRole === "normal";
+  if (els.stateRoleStart) els.stateRoleStart.checked = selectedRole === "start";
+  if (els.stateRoleAccept) els.stateRoleAccept.checked = selectedRole === "accept";
+  if (els.stateRoleReject) els.stateRoleReject.checked = selectedRole === "reject";
+  if (els.stateRoleHalt) els.stateRoleHalt.checked = selectedRole === "halt";
   els.btnStateModalDelete.hidden = !existingStateName;
 
   appState.modalOpenedAt = performance.now();
@@ -1428,6 +1462,14 @@ function openStateModal(existingStateName = "") {
     if (!appState.stateModalOverlay) return;
     els.stateNameInput.focus({ preventScroll: true });
   });
+}
+
+function getSelectedStateRole() {
+  if (els.stateRoleStart?.checked) return "start";
+  if (els.stateRoleAccept?.checked) return "accept";
+  if (els.stateRoleReject?.checked) return "reject";
+  if (els.stateRoleHalt?.checked) return "halt";
+  return "normal";
 }
 
 function closeStateModal() {
@@ -1453,6 +1495,7 @@ function deleteState(stateName) {
   appState.states = appState.states.filter((state) => state !== stateName);
   appState.acceptStates = appState.acceptStates.filter((state) => state !== stateName);
   appState.rejectStates = appState.rejectStates.filter((state) => state !== stateName);
+  appState.haltStates = appState.haltStates.filter((state) => state !== stateName);
 
   const fallbackState = remainingStates[0] || "";
   if (appState.startState === stateName) {
@@ -1509,6 +1552,7 @@ function performDeleteAllStates() {
   appState.states = [];
   appState.acceptStates = [];
   appState.rejectStates = [];
+  appState.haltStates = [];
   appState.startState = "";
   appState.currentState = "";
   appState.activeRuleId = null;
@@ -1532,19 +1576,10 @@ function deleteAllStatesWithConfirm() {
 function saveStateModal() {
   const originalName = appState.stateModal.originalName;
   const proposedName = formatStateName(els.stateNameInput.value || "");
-  const isStart = els.stateIsStart.checked;
-  const isAccept = els.stateIsAccept.checked;
-  const isReject = els.stateIsReject.checked;
+  const selectedRole = getSelectedStateRole();
 
   if (!proposedName) {
     appState.message = "State name is required.";
-    setStateModalFeedback(appState.message);
-    updateStatus();
-    return;
-  }
-
-  if (isAccept && isReject) {
-    appState.message = "A state cannot be both accept and reject.";
     setStateModalFeedback(appState.message);
     updateStatus();
     return;
@@ -1566,12 +1601,24 @@ function saveStateModal() {
     appState.states.push(proposedName);
   }
 
-  if (isStart) {
+  const currentStartState = formatStateName(appState.startState || "");
+  appState.startState = currentStartState;
+
+  if (selectedRole === "start") {
     appState.startState = proposedName;
+  } else if (currentStartState === proposedName) {
+    // Keep exactly one start state by choosing another existing state when
+    // the current start state is demoted to a different role.
+    const fallbackState = getAvailableStates().find((state) => state !== proposedName) || "";
+    appState.startState = fallbackState;
+    if (appState.currentState === proposedName) {
+      appState.currentState = fallbackState;
+    }
   }
 
-  setStateRoleMembership(proposedName, isAccept, "acceptStates");
-  setStateRoleMembership(proposedName, isReject, "rejectStates");
+  setStateRoleMembership(proposedName, selectedRole === "accept", "acceptStates");
+  setStateRoleMembership(proposedName, selectedRole === "reject", "rejectStates");
+  setStateRoleMembership(proposedName, selectedRole === "halt", "haltStates");
 
   syncStateRegistry();
   syncMachineConfigInputs();
@@ -1685,6 +1732,7 @@ function loadPreset(key) {
   appState.currentState = appState.startState;
   appState.acceptStates = preset.acceptStates.map((state) => formatStateName(state));
   appState.rejectStates = preset.rejectStates.map((state) => formatStateName(state));
+  appState.haltStates = (preset.haltStates || []).map((state) => formatStateName(state));
   appState.head = { ...preset.head };
   appState.startHead = { ...preset.head };
   appState.alphabetSlots = [...DEFAULT_USER_ALPHABET];
@@ -1696,6 +1744,7 @@ function loadPreset(key) {
     appState.startState,
     ...appState.acceptStates,
     ...appState.rejectStates,
+    ...appState.haltStates,
     ...appState.rules.flatMap((rule) => [rule.current, rule.next])
   ]);
 
@@ -1704,7 +1753,7 @@ function loadPreset(key) {
 
   syncMachineConfigInputs();
 
-  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "parity-even-ones": "Parity Check (Even 1s)", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo", "ones-complement": "Ones' Complement (Bit Flip)" };
+  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "parity-even-ones": "Parity Check (Even 1s)", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo" };
   appState.message = `Loaded: ${labels[key] || key}.`;
   autoFitCellSize();
   renderAll();
@@ -1721,8 +1770,15 @@ function updateMachineConfigFromInputs() {
   appState.rules = normalizeRuleStateNames(appState.rules);
   appState.acceptStates = appState.acceptStates.map((state) => formatStateName(state));
   appState.rejectStates = appState.rejectStates.map((state) => formatStateName(state));
+  appState.haltStates = appState.haltStates.map((state) => formatStateName(state));
   appState.acceptStates = uniqueStateList(appState.acceptStates);
   appState.rejectStates = uniqueStateList(appState.rejectStates).filter((state) => !appState.acceptStates.includes(state));
+  appState.haltStates = uniqueStateList(appState.haltStates).filter((state) => !appState.acceptStates.includes(state) && !appState.rejectStates.includes(state));
+  if (appState.startState) {
+    appState.acceptStates = appState.acceptStates.filter((state) => state !== appState.startState);
+    appState.rejectStates = appState.rejectStates.filter((state) => state !== appState.startState);
+    appState.haltStates = appState.haltStates.filter((state) => state !== appState.startState);
+  }
   if (!appState.startState && appState.states.length > 0) {
     appState.startState = appState.states[0];
   }
@@ -2818,7 +2874,8 @@ function applyMove(move) {
 }
 
 function machineStep() {
-  if (appState.acceptStates.includes(appState.currentState)) {
+  const currentTerminalType = getTerminalStateType(appState.currentState);
+  if (currentTerminalType === "accept") {
     appState.message = `Machine already accepted in state ${appState.currentState}.`;
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
@@ -2826,8 +2883,16 @@ function machineStep() {
     return;
   }
 
-  if (appState.rejectStates.includes(appState.currentState)) {
+  if (currentTerminalType === "reject") {
     appState.message = `Machine already rejected in state ${appState.currentState}.`;
+    appState.haltedStatePulse = true;
+    appState.haltedReason = "terminal";
+    appState.running = false;
+    return;
+  }
+
+  if (currentTerminalType === "halt") {
+    appState.message = `Machine halted in state ${appState.currentState}.`;
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
@@ -2868,7 +2933,8 @@ function machineStep() {
     scheduleTapeMoveToHead(0, appState.running ? 180 : 200, { includeRow: false });
   }
 
-  if (appState.acceptStates.includes(appState.currentState)) {
+  const nextTerminalType = getTerminalStateType(appState.currentState);
+  if (nextTerminalType === "accept") {
     appState.message = `Accepted in ${appState.currentState} after ${appState.steps} steps.`;
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
@@ -2876,8 +2942,16 @@ function machineStep() {
     return;
   }
 
-  if (appState.rejectStates.includes(appState.currentState)) {
+  if (nextTerminalType === "reject") {
     appState.message = `Rejected in ${appState.currentState} after ${appState.steps} steps.`;
+    appState.haltedStatePulse = true;
+    appState.haltedReason = "terminal";
+    appState.running = false;
+    return;
+  }
+
+  if (nextTerminalType === "halt") {
+    appState.message = `Halted in ${appState.currentState} after ${appState.steps} steps.`;
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
@@ -3255,6 +3329,9 @@ function renderDiagram(targetSvg = els.diagram) {
     if (appState.rejectStates.includes(name)) {
       circle.classList.add("reject");
     }
+    if (appState.haltStates.includes(name)) {
+      circle.classList.add("halt");
+    }
     if (name === appState.currentState) {
       circle.classList.add("current");
     }
@@ -3262,19 +3339,19 @@ function renderDiagram(targetSvg = els.diagram) {
     const haltedCurrentState = appState.haltedStatePulse
       && !appState.running
       && name === appState.currentState
-      && (appState.acceptStates.includes(name) || appState.rejectStates.includes(name));
+      && isTerminalState(name);
     if (haltedCurrentState) {
       nodeGroup.classList.add("halted-node");
     }
 
     nodeGroup.appendChild(circle);
 
-    if (appState.acceptStates.includes(name)) {
+    if (isTerminalState(name)) {
       const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       inner.setAttribute("cx", String(pos.x));
       inner.setAttribute("cy", String(pos.y));
       inner.setAttribute("r", String(Math.max(12, nodeRadius - 6 * sizeScale)));
-      inner.setAttribute("class", "state-node accept-inner");
+      inner.setAttribute("class", `state-node terminal-inner ${getTerminalStateType(name)}`);
       nodeGroup.appendChild(inner);
     }
 
@@ -3337,7 +3414,7 @@ function updateStatus() {
   els.statusStep.textContent = `Step: ${appState.steps}`;
   els.statusMessage.textContent = appState.message;
 
-  const isHalted = appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState);
+  const isHalted = isTerminalState(appState.currentState);
 
   els.btnRun.disabled = appState.running;
   els.btnStep.disabled = appState.running || isHalted;
@@ -3763,7 +3840,7 @@ function initEvents() {
   els.btnStep.addEventListener("click", () => {
     clearHaltedStatePulse();
     stopRunLoop();
-    if (appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState)) {
+    if (isTerminalState(appState.currentState)) {
       stopTapeSnap();
       stopHeadPulse();
       appState.currentState = appState.startState;
@@ -3775,7 +3852,7 @@ function initEvents() {
 
   els.btnRun.addEventListener("click", () => {
     clearHaltedStatePulse();
-    const haltedInTerminalState = appState.acceptStates.includes(appState.currentState) || appState.rejectStates.includes(appState.currentState);
+    const haltedInTerminalState = isTerminalState(appState.currentState);
     const haltedByNoRule = appState.haltedReason === "no-rule";
     if (haltedInTerminalState || haltedByNoRule) {
       stopTapeSnap();
@@ -3819,6 +3896,11 @@ function initEvents() {
       saveStateModal();
     });
   }
+  [els.stateRoleNormal, els.stateRoleStart, els.stateRoleAccept, els.stateRoleReject, els.stateRoleHalt]
+    .filter(Boolean)
+    .forEach((radio) => {
+      radio.addEventListener("change", () => setStateModalFeedback(""));
+    });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (appState.tapeSymbolPicker.open) {

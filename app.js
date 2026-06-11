@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.19";
+const APP_VERSION = "V1.0.20";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -16,6 +16,8 @@ const CELL_SIZE_MIN = 28;
 const CELL_SIZE_MAX = 280;
 const WORKSPACE_STORAGE_KEY = "chewring.workspace.v1";
 const VISITED_STORAGE_KEY = "chewring.visited.v1";
+const DEFAULT_EXECUTION_SPEED = 1;
+const BASE_EXECUTION_DELAY_MS = 450;
 const SUBSCRIPT_DIGITS = {
   "0": "₀",
   "1": "₁",
@@ -75,6 +77,7 @@ const appState = {
   modalOpenedAt: 0,
   diagramModalOpen: false,
   message: "Ready.",
+  executionSpeed: DEFAULT_EXECUTION_SPEED,
   rules: [
     { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
     { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
@@ -86,6 +89,8 @@ const els = {
   tapeSymbolPicker: document.getElementById("tapeSymbolPicker"),
   tapeSymbolPickerGrid: document.getElementById("tapeSymbolPickerGrid"),
   cellSizeSlider: document.getElementById("cellSizeSlider"),
+  executionSpeedSlider: document.getElementById("executionSpeedSlider"),
+  executionSpeedLabel: document.getElementById("executionSpeedLabel"),
   btnAddRow: document.getElementById("btnAddRow"),
   btnRemoveRow: document.getElementById("btnRemoveRow"),
   btnResetTape: document.getElementById("btnResetTape"),
@@ -1169,6 +1174,23 @@ function isMobileViewport() {
   return window.innerWidth <= 768 || window.innerHeight <= 500 || touchLandscapePhone;
 }
 
+function enforceMobileExecutionSpeed() {
+  if (!isMobileViewport()) {
+    return;
+  }
+  if (appState.executionSpeed === DEFAULT_EXECUTION_SPEED) {
+    return;
+  }
+  appState.executionSpeed = DEFAULT_EXECUTION_SPEED;
+  els.executionSpeedSlider.value = String(DEFAULT_EXECUTION_SPEED);
+  els.executionSpeedLabel.textContent = `${DEFAULT_EXECUTION_SPEED}x`;
+
+  if (appState.running && appState.runTimer) {
+    clearInterval(appState.runTimer);
+    appState.runTimer = setInterval(runLoopTick, getExecutionDelay());
+  }
+}
+
 function canAddAnotherRow() {
   if (isMobileViewport()) return true;
   return appState.rows < maxRowsForViewportAtMinCellSize();
@@ -1700,7 +1722,7 @@ function startHeadPulseLoop() {
 }
 
 function triggerHeadWritePulse(row, col) {
-  appState.headWritePulseUntil = performance.now() + HEAD_WRITE_PULSE_MS;
+  appState.headWritePulseUntil = performance.now() + getHeadWritePulseDuration();
   appState.headPulseAnchor = { row, col };
   startHeadPulseLoop();
 }
@@ -1712,7 +1734,7 @@ function triggerCellWriteMorph(row, col, fromSymbol, toSymbol) {
     fromSymbol: symbolForTape(fromSymbol),
     toSymbol: symbolForTape(toSymbol),
     startedAt: performance.now(),
-    until: performance.now() + CELL_WRITE_MORPH_MS
+    until: performance.now() + getCellWriteMorphDuration()
   };
   startHeadPulseLoop();
 }
@@ -1925,7 +1947,7 @@ function buildHeadIndicator(headCenterX, centerCol, centerRow) {
     if (appState.headPulseAnchor) {
       indicatorRow = appState.headPulseAnchor.row;
     }
-    const progress = 1 - remaining / HEAD_WRITE_PULSE_MS;
+    const progress = 1 - remaining / getHeadWritePulseDuration();
     const pulseColour = rgbPulseColour(progress);
     indicator.style.borderColor = pulseColour;
     indicator.style.boxShadow = `0 0 0 ${pulseRing}px ${pulseColour}66, 0 0 ${pulseBlur}px ${pulseColour}88`;
@@ -2928,7 +2950,7 @@ function machineStep() {
   appState.steps += 1;
   appState.haltedReason = null;
   if (wroteChanged) {
-    scheduleTapeMoveToHead(MOVE_AFTER_WRITE_DELAY_MS, appState.running ? 180 : 200, { includeRow: false });
+    scheduleTapeMoveToHead(getMoveAfterWriteDelay(), appState.running ? 180 : 200, { includeRow: false });
   } else {
     scheduleTapeMoveToHead(0, appState.running ? 180 : 200, { includeRow: false });
   }
@@ -2998,12 +3020,28 @@ function applyStepWithVisuals() {
   renderAll();
 }
 
+function getExecutionDelay() {
+  return Math.round(BASE_EXECUTION_DELAY_MS / appState.executionSpeed);
+}
+
+function getHeadWritePulseDuration() {
+  return Math.round(HEAD_WRITE_PULSE_MS / appState.executionSpeed);
+}
+
+function getCellWriteMorphDuration() {
+  return Math.round(CELL_WRITE_MORPH_MS / appState.executionSpeed);
+}
+
+function getMoveAfterWriteDelay() {
+  return Math.round(MOVE_AFTER_WRITE_DELAY_MS / appState.executionSpeed);
+}
+
 function startRunLoop() {
   if (appState.running) {
     return;
   }
   appState.running = true;
-  appState.runTimer = setInterval(runLoopTick, 450);
+  appState.runTimer = setInterval(runLoopTick, getExecutionDelay());
 }
 
 function stopRunLoop() {
@@ -3666,6 +3704,21 @@ function initEvents() {
     renderTape();
   });
 
+  els.executionSpeedSlider.addEventListener("input", () => {
+    if (isMobileViewport()) {
+      enforceMobileExecutionSpeed();
+      return;
+    }
+    appState.executionSpeed = Number(els.executionSpeedSlider.value);
+    els.executionSpeedLabel.textContent = `${appState.executionSpeed}x`;
+
+    // If machine is running, restart the timer with the new delay
+    if (appState.running && appState.runTimer) {
+      clearInterval(appState.runTimer);
+      appState.runTimer = setInterval(runLoopTick, getExecutionDelay());
+    }
+  });
+
   els.tapeViewport.addEventListener(
     "wheel",
     (event) => {
@@ -3921,6 +3974,7 @@ function initEvents() {
   });
 
   window.addEventListener("resize", () => {
+    enforceMobileExecutionSpeed();
     autoFitCellSize();
     renderTape();
     renderDiagram();
@@ -3944,6 +3998,13 @@ function init() {
     els.aboutVersion.textContent = APP_VERSION;
   }
   initEvents();
+
+  // Always start at default speed per app load.
+  appState.executionSpeed = DEFAULT_EXECUTION_SPEED;
+  els.executionSpeedSlider.value = String(DEFAULT_EXECUTION_SPEED);
+  els.executionSpeedLabel.textContent = `${DEFAULT_EXECUTION_SPEED}x`;
+  enforceMobileExecutionSpeed();
+
   // If URL contains a shared workspace, load it but do not persist to localStorage.
   const shared = readWorkspaceFromUrl();
   if (shared && hasMeaningfulSavedWorkspace(shared) && applySavedWorkspace(shared)) {

@@ -824,7 +824,7 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 }
 
 .status-tools input[type="range"] {
-  width: min(220px, 38vw);
+  width: min(150px, 28vw);
   accent-color: var(--edge-label-badge-border);
   background: transparent;
   appearance: none;
@@ -884,6 +884,13 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   text-align: right;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+body.touch-device .status-tools label[for="executionSpeedSlider"],
+body.touch-device #executionSpeedSlider,
+body.touch-device #executionSpeedLabel,
+body.touch-device #cellSizeSlider + .status-tools-sep {
+  display: none;
 }
 
 .status-label {
@@ -1922,7 +1929,7 @@ tr.active-rule td {
   }
 }
 
-@media (max-width: 920px) and (min-width: 769px) {
+@media (max-width: 1200px) and (min-width: 769px) {
   .status-row {
     flex-direction: row;
     align-items: center;

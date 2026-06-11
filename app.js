@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.22";
+const APP_VERSION = "V1.0.23";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -1175,7 +1175,24 @@ function isMobileViewport() {
 }
 
 function isTouchViewport() {
-  return (navigator.maxTouchPoints || 0) > 0;
+  const hasTouchPoints = (navigator.maxTouchPoints || 0) > 0;
+  const hasCoarsePrimaryPointer = window.matchMedia("(pointer: coarse)").matches;
+  const hasCoarseAnyPointer = window.matchMedia("(any-pointer: coarse)").matches;
+  const hasNoPrimaryHover = window.matchMedia("(hover: none)").matches;
+  return hasTouchPoints || hasCoarsePrimaryPointer || hasCoarseAnyPointer || hasNoPrimaryHover;
+}
+
+function isExecutionSpeedControlVisible() {
+  if (!els.executionSpeedSlider) {
+    return false;
+  }
+  return els.executionSpeedSlider.offsetParent !== null;
+}
+
+function updateTouchDeviceMode() {
+  const isTouchMode = isTouchViewport();
+  document.body.classList.toggle("touch-device", isTouchMode);
+  enforceExecutionSpeedWhenHidden();
 }
 
 function resnapTapeViewAfterViewportChange() {
@@ -1207,8 +1224,8 @@ function scheduleInitialTouchViewportResnap() {
   });
 }
 
-function enforceMobileExecutionSpeed() {
-  if (!isMobileViewport()) {
+function enforceExecutionSpeedWhenHidden() {
+  if (isExecutionSpeedControlVisible()) {
     return;
   }
   if (appState.executionSpeed === DEFAULT_EXECUTION_SPEED) {
@@ -3738,8 +3755,8 @@ function initEvents() {
   });
 
   els.executionSpeedSlider.addEventListener("input", () => {
-    if (isMobileViewport()) {
-      enforceMobileExecutionSpeed();
+    if (!isExecutionSpeedControlVisible()) {
+      enforceExecutionSpeedWhenHidden();
       return;
     }
     appState.executionSpeed = Number(els.executionSpeedSlider.value);
@@ -4007,7 +4024,8 @@ function initEvents() {
   });
 
   window.addEventListener("resize", () => {
-    enforceMobileExecutionSpeed();
+    updateTouchDeviceMode();
+    enforceExecutionSpeedWhenHidden();
     autoFitCellSize();
     resnapTapeViewAfterViewportChange();
     renderTape();
@@ -4023,6 +4041,7 @@ function initEvents() {
   window.addEventListener("orientationchange", () => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        updateTouchDeviceMode();
         autoFitCellSize();
         resnapTapeViewAfterViewportChange();
         renderTape();
@@ -4039,6 +4058,7 @@ function seedExampleTape() {
 
 function init() {
   document.body.setAttribute("data-theme", "dark");
+  updateTouchDeviceMode();
   if (els.aboutVersion) {
     els.aboutVersion.textContent = APP_VERSION;
   }
@@ -4048,7 +4068,8 @@ function init() {
   appState.executionSpeed = DEFAULT_EXECUTION_SPEED;
   els.executionSpeedSlider.value = String(DEFAULT_EXECUTION_SPEED);
   els.executionSpeedLabel.textContent = `${DEFAULT_EXECUTION_SPEED}x`;
-  enforceMobileExecutionSpeed();
+  updateTouchDeviceMode();
+  enforceExecutionSpeedWhenHidden();
 
   // If URL contains a shared workspace, load it but do not persist to localStorage.
   const shared = readWorkspaceFromUrl();

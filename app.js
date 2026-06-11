@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.23";
+const APP_VERSION = "V1.0.24";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -76,6 +76,7 @@ const appState = {
   stateModal: { open: false, originalName: null },
   modalOpenedAt: 0,
   diagramModalOpen: false,
+  workspaceControlsOpen: false,
   message: "Ready.",
   executionSpeed: DEFAULT_EXECUTION_SPEED,
   rules: [
@@ -91,6 +92,9 @@ const els = {
   cellSizeSlider: document.getElementById("cellSizeSlider"),
   executionSpeedSlider: document.getElementById("executionSpeedSlider"),
   executionSpeedLabel: document.getElementById("executionSpeedLabel"),
+  btnWorkspaceControls: document.getElementById("btnWorkspaceControls"),
+  btnWorkspaceControlsClose: document.getElementById("btnWorkspaceControlsClose"),
+  workspaceControlsPopover: document.getElementById("workspaceControlsPopover"),
   btnAddRow: document.getElementById("btnAddRow"),
   btnRemoveRow: document.getElementById("btnRemoveRow"),
   btnResetTape: document.getElementById("btnResetTape"),
@@ -1182,17 +1186,9 @@ function isTouchViewport() {
   return hasTouchPoints || hasCoarsePrimaryPointer || hasCoarseAnyPointer || hasNoPrimaryHover;
 }
 
-function isExecutionSpeedControlVisible() {
-  if (!els.executionSpeedSlider) {
-    return false;
-  }
-  return els.executionSpeedSlider.offsetParent !== null;
-}
-
 function updateTouchDeviceMode() {
   const isTouchMode = isTouchViewport();
   document.body.classList.toggle("touch-device", isTouchMode);
-  enforceExecutionSpeedWhenHidden();
 }
 
 function resnapTapeViewAfterViewportChange() {
@@ -1224,21 +1220,34 @@ function scheduleInitialTouchViewportResnap() {
   });
 }
 
-function enforceExecutionSpeedWhenHidden() {
-  if (isExecutionSpeedControlVisible()) {
+function closeWorkspaceControlsPopover() {
+  if (!appState.workspaceControlsOpen || !els.workspaceControlsPopover) {
     return;
   }
-  if (appState.executionSpeed === DEFAULT_EXECUTION_SPEED) {
-    return;
+  appState.workspaceControlsOpen = false;
+  els.workspaceControlsPopover.hidden = true;
+  if (els.btnWorkspaceControls) {
+    els.btnWorkspaceControls.setAttribute("aria-expanded", "false");
   }
-  appState.executionSpeed = DEFAULT_EXECUTION_SPEED;
-  els.executionSpeedSlider.value = String(DEFAULT_EXECUTION_SPEED);
-  els.executionSpeedLabel.textContent = `${DEFAULT_EXECUTION_SPEED}x`;
+}
 
-  if (appState.running && appState.runTimer) {
-    clearInterval(appState.runTimer);
-    appState.runTimer = setInterval(runLoopTick, getExecutionDelay());
+function openWorkspaceControlsPopover() {
+  if (appState.workspaceControlsOpen || !els.workspaceControlsPopover) {
+    return;
   }
+  appState.workspaceControlsOpen = true;
+  els.workspaceControlsPopover.hidden = false;
+  if (els.btnWorkspaceControls) {
+    els.btnWorkspaceControls.setAttribute("aria-expanded", "true");
+  }
+}
+
+function toggleWorkspaceControlsPopover() {
+  if (appState.workspaceControlsOpen) {
+    closeWorkspaceControlsPopover();
+    return;
+  }
+  openWorkspaceControlsPopover();
 }
 
 function canAddAnotherRow() {
@@ -3755,10 +3764,6 @@ function initEvents() {
   });
 
   els.executionSpeedSlider.addEventListener("input", () => {
-    if (!isExecutionSpeedControlVisible()) {
-      enforceExecutionSpeedWhenHidden();
-      return;
-    }
     appState.executionSpeed = Number(els.executionSpeedSlider.value);
     els.executionSpeedLabel.textContent = `${appState.executionSpeed}x`;
 
@@ -3814,6 +3819,11 @@ function initEvents() {
     appState.message = `Rows: ${appState.rows}.`;
     renderAll();
   });
+
+  bindTap(els.btnWorkspaceControls, () => {
+    toggleWorkspaceControlsPopover();
+  });
+  bindModalActivate(els.btnWorkspaceControlsClose, closeWorkspaceControlsPopover);
 
   els.btnHamburger.addEventListener("click", () => toggleMenu());
   els.btnMenuClose.addEventListener("click", () => toggleMenu(false));
@@ -3915,9 +3925,21 @@ function initEvents() {
     });
   }
 
+  document.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+
   document.addEventListener("click", (event) => {
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
       toggleMenu(false);
+    }
+
+    if (
+      appState.workspaceControlsOpen
+      && !els.workspaceControlsPopover?.contains(event.target)
+      && !els.btnWorkspaceControls?.contains(event.target)
+    ) {
+      closeWorkspaceControlsPopover();
     }
   });
 
@@ -4014,6 +4036,10 @@ function initEvents() {
         closeAlphabetModal();
         return;
       }
+      if (appState.workspaceControlsOpen) {
+        closeWorkspaceControlsPopover();
+        return;
+      }
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
       if (appState.helpModalOverlay) closeHelpModal();
@@ -4025,7 +4051,7 @@ function initEvents() {
 
   window.addEventListener("resize", () => {
     updateTouchDeviceMode();
-    enforceExecutionSpeedWhenHidden();
+    closeWorkspaceControlsPopover();
     autoFitCellSize();
     resnapTapeViewAfterViewportChange();
     renderTape();
@@ -4069,7 +4095,6 @@ function init() {
   els.executionSpeedSlider.value = String(DEFAULT_EXECUTION_SPEED);
   els.executionSpeedLabel.textContent = `${DEFAULT_EXECUTION_SPEED}x`;
   updateTouchDeviceMode();
-  enforceExecutionSpeedWhenHidden();
 
   // If URL contains a shared workspace, load it but do not persist to localStorage.
   const shared = readWorkspaceFromUrl();

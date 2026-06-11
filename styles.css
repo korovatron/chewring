@@ -787,7 +787,6 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   padding: 0 10px;
   border: 2px solid var(--line);
   border-radius: 999px;
-  line-height: 1;
   color: var(--ink);
   background: var(--control-bg);
 }
@@ -795,17 +794,19 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 #statusMessage {
   display: inline-flex;
   align-items: center;
+  color: #ffe28a;
 }
 
 .status-tools {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   margin-left: auto;
 }
 
 .status-tools #btnAddRow,
-.status-tools #btnRemoveRow {
+.status-tools #btnRemoveRow,
+.workspace-controls-btn {
   width: 34px;
   min-width: 34px;
   height: 34px;
@@ -813,18 +814,78 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
 }
 
 .status-tools #btnAddRow svg,
-.status-tools #btnRemoveRow svg {
-  width: 18px;
-  height: 18px;
+.status-tools #btnRemoveRow svg,
+.workspace-controls-btn svg {
+  width: 21px;
+  height: 21px;
 }
 
-.status-tools label {
+.status-tools label,
+.workspace-control-group .status-label {
   color: var(--muted);
   font-size: 0.85rem;
 }
 
-.status-tools input[type="range"] {
-  width: min(150px, 28vw);
+.workspace-controls-popover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+}
+
+.workspace-controls-card {
+  width: min(320px, calc(100vw - 24px));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 92%, #ffffff 8%) 0%,
+    color-mix(in srgb, var(--panel) 97%, #000000 3%) 100%
+  );
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.42);
+}
+
+.workspace-controls-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.workspace-controls-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+
+.workspace-controls-close {
+  position: static;
+}
+
+.workspace-controls-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-control-group {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-control-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-control-inline-spread {
+  justify-content: space-between;
+}
+
+.workspace-controls-popover input[type="range"] {
+  width: 100%;
   accent-color: var(--edge-label-badge-border);
   background: transparent;
   appearance: none;
@@ -832,14 +893,14 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   height: 18px;
 }
 
-.status-tools input[type="range"]::-webkit-slider-runnable-track {
+.workspace-controls-popover input[type="range"]::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
   background: #000000;
   border: 1px solid var(--line);
 }
 
-.status-tools input[type="range"]::-webkit-slider-thumb {
+.workspace-controls-popover input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 14px;
@@ -850,14 +911,14 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   border: 1px solid #000000;
 }
 
-.status-tools input[type="range"]::-moz-range-track {
+.workspace-controls-popover input[type="range"]::-moz-range-track {
   height: 6px;
   border-radius: 999px;
   background: #000000;
   border: 1px solid var(--line);
 }
 
-.status-tools input[type="range"]::-moz-range-thumb {
+.workspace-controls-popover input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -865,17 +926,9 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   border: 1px solid #000000;
 }
 
-.status-tools input[type="range"]:focus-visible {
+.workspace-controls-popover input[type="range"]:focus-visible {
   outline: 2px solid #fff3a6;
   outline-offset: 2px;
-}
-
-.status-tools-sep {
-  display: inline-block;
-  width: 1px;
-  height: 18px;
-  background: var(--line);
-  margin: 0 4px;
 }
 
 #executionSpeedLabel {
@@ -884,13 +937,6 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   text-align: right;
   font-size: 0.85rem;
   color: var(--muted);
-}
-
-body.touch-device .status-tools label[for="executionSpeedSlider"],
-body.touch-device #executionSpeedSlider,
-body.touch-device #executionSpeedLabel,
-body.touch-device #cellSizeSlider + .status-tools-sep {
-  display: none;
 }
 
 .status-label {
@@ -1942,21 +1988,6 @@ tr.active-rule td {
     gap: 8px;
     flex-wrap: nowrap;
   }
-
-  .status-tools {
-    margin-left: auto;
-    flex-wrap: nowrap;
-  }
-
-  #statusMessage,
-  .status-tools label[for="cellSizeSlider"],
-  #cellSizeSlider,
-  .status-tools label[for="executionSpeedSlider"],
-  #executionSpeedSlider,
-  #executionSpeedLabel,
-  .status-tools .status-tools-sep {
-    display: none;
-  }
 }
 
 @media (max-width: 768px), (max-height: 500px), (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px) {
@@ -2041,7 +2072,6 @@ tr.active-rule td {
 
   .status-tools {
     margin-left: auto;
-    flex-wrap: nowrap;
   }
 
   .tape-panel {
@@ -2054,16 +2084,16 @@ tr.active-rule td {
     min-height: unset;
   }
 
-  .status-tools label[for="cellSizeSlider"],
-  #cellSizeSlider,
-  .status-tools label[for="executionSpeedSlider"],
-  #executionSpeedSlider,
-  #executionSpeedLabel {
-    display: none;
+  .workspace-controls-popover {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 12px;
   }
 
-  .status-tools .status-tools-sep {
-    display: none;
+  .workspace-controls-card {
+    width: auto;
   }
 
   .bottom-row {

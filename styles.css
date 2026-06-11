@@ -82,11 +82,11 @@ body[data-theme="dark"] {
   --control-bg: #24303a;
   --control-border: #3c4b57;
   --control-hover: #2b3944;
-  --button-top: #656f7e;
-  --button-bottom: #4a5363;
+  --button-top: #3a3f47;
+  --button-bottom: #22262c;
   --button-border: #98a5b9;
-  --button-hover-top: #758092;
-  --button-hover-bottom: #566173;
+  --button-hover-top: #444a53;
+  --button-hover-bottom: #2a2f36;
   --button-shadow: rgba(0, 0, 0, 0.48);
 
   --start: #19b5ff;

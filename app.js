@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.20";
+const APP_VERSION = "V1.0.21";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -1172,6 +1172,19 @@ function isMobileViewport() {
     "(orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px)"
   ).matches;
   return window.innerWidth <= 768 || window.innerHeight <= 500 || touchLandscapePhone;
+}
+
+function isTouchViewport() {
+  return (navigator.maxTouchPoints || 0) > 0;
+}
+
+function resnapTapeViewAfterViewportChange() {
+  if (!isTouchViewport() || appState.tapeDrag) {
+    return;
+  }
+  stopTapeSnap();
+  clearTapeMoveDelay();
+  syncTapeViewToHead();
 }
 
 function enforceMobileExecutionSpeed() {
@@ -3976,6 +3989,7 @@ function initEvents() {
   window.addEventListener("resize", () => {
     enforceMobileExecutionSpeed();
     autoFitCellSize();
+    resnapTapeViewAfterViewportChange();
     renderTape();
     renderDiagram();
     if (appState.tapeSymbolPicker.open && appState.tapeSymbolPicker.cell) {
@@ -3984,6 +3998,17 @@ function initEvents() {
     if (appState.diagramModalOpen) {
       renderDiagram(els.diagramExpanded);
     }
+  });
+
+  window.addEventListener("orientationchange", () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        autoFitCellSize();
+        resnapTapeViewAfterViewportChange();
+        renderTape();
+        updateStatus();
+      });
+    });
   });
 }
 

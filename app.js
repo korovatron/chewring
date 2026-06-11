@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.25";
+const APP_VERSION = "V1.0.26";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -1225,10 +1225,32 @@ function closeWorkspaceControlsPopover() {
     return;
   }
   appState.workspaceControlsOpen = false;
+  els.workspaceControlsPopover.classList.remove("open-below");
   els.workspaceControlsPopover.hidden = true;
   if (els.btnWorkspaceControls) {
     els.btnWorkspaceControls.setAttribute("aria-expanded", "false");
   }
+}
+
+function updateWorkspaceControlsPopoverPlacement() {
+  if (!els.workspaceControlsPopover || !els.btnWorkspaceControls || els.workspaceControlsPopover.hidden) {
+    return;
+  }
+
+  const popover = els.workspaceControlsPopover;
+  const card = popover.querySelector(".workspace-controls-card");
+  if (!card) {
+    return;
+  }
+
+  const buttonRect = els.btnWorkspaceControls.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const edgeGap = 10;
+  const availableAbove = Math.max(0, buttonRect.top - edgeGap);
+  const availableBelow = Math.max(0, window.innerHeight - buttonRect.bottom - edgeGap);
+  const shouldOpenBelow = cardRect.height > availableAbove && availableBelow > availableAbove;
+
+  popover.classList.toggle("open-below", shouldOpenBelow);
 }
 
 function openWorkspaceControlsPopover() {
@@ -1240,6 +1262,8 @@ function openWorkspaceControlsPopover() {
   if (els.btnWorkspaceControls) {
     els.btnWorkspaceControls.setAttribute("aria-expanded", "true");
   }
+  updateWorkspaceControlsPopoverPlacement();
+  requestAnimationFrame(updateWorkspaceControlsPopoverPlacement);
 }
 
 function toggleWorkspaceControlsPopover() {

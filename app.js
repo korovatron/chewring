@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.21";
+const APP_VERSION = "V1.0.22";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -1185,6 +1185,26 @@ function resnapTapeViewAfterViewportChange() {
   stopTapeSnap();
   clearTapeMoveDelay();
   syncTapeViewToHead();
+}
+
+function scheduleInitialTouchViewportResnap() {
+  if (!isTouchViewport()) {
+    return;
+  }
+
+  const applySnapPass = () => {
+    autoFitCellSize();
+    resnapTapeViewAfterViewportChange();
+    renderTape();
+    updateStatus();
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      applySnapPass();
+      setTimeout(applySnapPass, 120);
+    });
+  });
 }
 
 function enforceMobileExecutionSpeed() {
@@ -4039,6 +4059,8 @@ function init() {
   } else {
     startupWithSavedWorkspaceDecision();
   }
+
+  scheduleInitialTouchViewportResnap();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {

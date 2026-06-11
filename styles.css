@@ -1060,6 +1060,18 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   color: #f7f7ff;
 }
 
+.help-action-chip-icon {
+  min-width: 1.9em;
+  height: 1.45em;
+  padding: 0 0.2em;
+}
+
+.help-action-chip-icon svg {
+  width: 1.05em;
+  height: 1.05em;
+  display: block;
+}
+
 .modal a:hover,
 .modal a:focus-visible {
   opacity: 0.8;

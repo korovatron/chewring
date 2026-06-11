@@ -1458,6 +1458,52 @@ body.touch-input .tape-symbol-choice:active {
 
 .rules-table-wrap {
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #8a7d5f #efe7d3;
+}
+
+.rules-table-wrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.rules-table-wrap::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #f5efde, #e9dfc7);
+}
+
+.rules-table-wrap::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a69672, #7f7050);
+  border: 2px solid #efe7d3;
+  border-radius: 999px;
+}
+
+.rules-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #b9a983, #8d7c59);
+}
+
+.rules-table-wrap::-webkit-scrollbar-corner {
+  background: #e9dfc7;
+}
+
+body[data-theme="dark"] .rules-table-wrap {
+  scrollbar-color: #6d63b0 #231a56;
+}
+
+body[data-theme="dark"] .rules-table-wrap::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #2d2367, #241a55);
+}
+
+body[data-theme="dark"] .rules-table-wrap::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7f74c6, #5d529f);
+  border-color: #241a55;
+}
+
+body[data-theme="dark"] .rules-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9388db, #6f63b6);
+}
+
+body[data-theme="dark"] .rules-table-wrap::-webkit-scrollbar-corner {
+  background: #241a55;
 }
 
 table {

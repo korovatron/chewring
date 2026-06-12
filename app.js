@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.27";
+const APP_VERSION = "V1.0.28";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -3289,6 +3289,15 @@ function renderDiagram(targetSvg = els.diagram) {
   }
 
   const edgeGroups = buildEdgeGroups();
+
+  function getParallelOffset(slotIndex) {
+    if (slotIndex === 0) {
+      return 0;
+    }
+    const level = Math.ceil(slotIndex / 2);
+    return slotIndex % 2 === 1 ? level : -level;
+  }
+
   for (const groups of edgeGroups.values()) {
     groups.forEach((group, index) => {
       const from = positions.get(group.current);
@@ -3351,21 +3360,60 @@ function renderDiagram(targetSvg = els.diagram) {
         const len = Math.hypot(dx, dy) || 1;
         const ux = dx / len;
         const uy = dy / len;
+        const nx = -uy;
+        const ny = ux;
+        const reverseGroups = edgeGroups.get(`${group.next}\u0001${group.current}`);
+        const hasReverse = Array.isArray(reverseGroups) && reverseGroups.length > 0;
+        const parallelOffset = hasReverse
+          ? (0.9 + index)
+          : getParallelOffset(index);
+        const curveSpacing = 20 * sizeScale;
+        const curveOffset = parallelOffset * curveSpacing;
+        const edgeStartRadius = nodeRadius - 1;
+        const edgeEndRadius = nodeRadius + 0.5;
+        const maxAnchorOffset = Math.max(0, Math.min(edgeStartRadius, edgeEndRadius) - 2);
+        const anchorOffset = Math.max(-maxAnchorOffset, Math.min(maxAnchorOffset, curveOffset));
+        const startAlong = Math.sqrt(
+          Math.max(0, edgeStartRadius * edgeStartRadius - anchorOffset * anchorOffset)
+        );
+        const endAlong = Math.sqrt(
+          Math.max(0, edgeEndRadius * edgeEndRadius - anchorOffset * anchorOffset)
+        );
 
-        const startX = from.x + ux * (nodeRadius - 1);
-        const startY = from.y + uy * (nodeRadius - 1);
-        const endX = to.x - ux * (nodeRadius + 2);
-        const endY = to.y - uy * (nodeRadius + 2);
+        const startX = from.x + ux * startAlong + nx * anchorOffset;
+        const startY = from.y + uy * startAlong + ny * anchorOffset;
+        const endX = to.x - ux * endAlong + nx * anchorOffset;
+        const endY = to.y - uy * endAlong + ny * anchorOffset;
 
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", String(startX));
-        line.setAttribute("y1", String(startY));
-        line.setAttribute("x2", String(endX));
-        line.setAttribute("y2", String(endY));
-        line.setAttribute("class", "edge");
-        line.setAttribute("marker-end", "url(#arrow)");
+        if (anchorOffset === 0) {
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", String(startX));
+          line.setAttribute("y1", String(startY));
+          line.setAttribute("x2", String(endX));
+          line.setAttribute("y2", String(endY));
+          line.setAttribute("class", "edge");
+          line.setAttribute("marker-end", "url(#arrow)");
+          edgeLayer.appendChild(line);
 
-        edgeLayer.appendChild(line);
+          labelX = (startX + endX) / 2;
+          labelY = (startY + endY) / 2 - 4 * sizeScale;
+        } else {
+          const controlStrength = 1.42;
+          const controlX = (startX + endX) / 2 + nx * anchorOffset * controlStrength;
+          const controlY = (startY + endY) / 2 + ny * anchorOffset * controlStrength;
+
+          const curvePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          curvePath.setAttribute(
+            "d",
+            `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`
+          );
+          curvePath.setAttribute("class", "edge");
+          curvePath.setAttribute("marker-end", "url(#arrow)");
+          edgeLayer.appendChild(curvePath);
+
+          labelX = 0.25 * startX + 0.5 * controlX + 0.25 * endX + nx * 6 * sizeScale;
+          labelY = 0.25 * startY + 0.5 * controlY + 0.25 * endY + ny * 6 * sizeScale;
+        }
       }
 
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");

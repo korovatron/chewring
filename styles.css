@@ -1274,6 +1274,32 @@ body.touch-input .tape-symbol-choice:active {
   max-width: calc(100vw - 24px);
 }
 
+.about-modal .about-modal-content {
+  line-height: 1.45;
+}
+
+.about-modal .about-modal-image {
+  float: left;
+  width: 110px;
+  height: auto;
+  margin: 2px 12px 8px 0;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+
+.about-modal .about-modal-content::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+@media (max-width: 420px) {
+  .about-modal .about-modal-image {
+    width: 92px;
+    margin-right: 10px;
+  }
+}
+
 .alphabet-modal-note {
   margin: 0 0 10px;
   color: var(--muted);

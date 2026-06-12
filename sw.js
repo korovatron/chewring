@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v1.0.28";
+const CACHE_VERSION = "v1.0.29";
 const CACHE_NAME = `chewring-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./app.js",
   "./manifest.webmanifest",
   "./images/chewRingLogo.png",
+  "./images/chewRingPooch.png",
   "./images/appIcon.png",
   "./images/preview.png"
 ];

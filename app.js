@@ -2846,13 +2846,26 @@ function stateLabelForRuleSelect(value) {
 function ruleStateSelectCell(rule, field, options) {
   const td = document.createElement("td");
   const select = document.createElement("select");
-  const values = options.includes(rule[field]) ? options : [...options, rule[field]].filter(Boolean);
+  const currentValue = String(rule[field] || "");
+  const values = options.includes(currentValue)
+    ? [...options]
+    : currentValue
+      ? [...options, currentValue]
+      : [...options];
+
+  if (!currentValue) {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "";
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+  }
 
   for (const option of values) {
     const el = document.createElement("option");
     el.value = option;
     el.textContent = stateLabelForRuleSelect(option);
-    if (option === rule[field]) {
+    if (option === currentValue) {
       el.selected = true;
     }
     select.appendChild(el);
@@ -2861,6 +2874,12 @@ function ruleStateSelectCell(rule, field, options) {
   select.addEventListener("change", () => {
     clearHaltedStatePulse();
     rule[field] = select.value;
+    if (select.value) {
+      const placeholder = select.querySelector('option[value=""]');
+      if (placeholder) {
+        placeholder.remove();
+      }
+    }
     renderDiagram();
   });
 
@@ -2871,8 +2890,17 @@ function ruleStateSelectCell(rule, field, options) {
 function ruleSymbolSelectCell(rule, field, options) {
   const td = document.createElement("td");
   const select = document.createElement("select");
-  const current = symbolForDisplay(rule[field]);
-  const values = options.includes(current) ? options : [...options, current];
+  const currentRaw = normalizeSymbol(rule[field]);
+  const current = currentRaw ? symbolForDisplay(currentRaw) : "";
+  const values = current && !options.includes(current) ? [...options, current] : [...options];
+
+  if (!current) {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "";
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+  }
 
   for (const option of values) {
     const el = document.createElement("option");
@@ -2886,7 +2914,13 @@ function ruleSymbolSelectCell(rule, field, options) {
 
   select.addEventListener("change", () => {
     clearHaltedStatePulse();
-    rule[field] = normalizeSymbol(select.value) || BLANK;
+    rule[field] = select.value === "" ? "" : normalizeSymbol(select.value) || BLANK;
+    if (select.value) {
+      const placeholder = select.querySelector('option[value=""]');
+      if (placeholder) {
+        placeholder.remove();
+      }
+    }
     renderDiagram();
   });
 
@@ -2898,12 +2932,21 @@ function ruleSelectCell(rule, field, options) {
   const MOVE_LABELS = { L: "Left", R: "Right", U: "Up", D: "Down", S: "Stay" };
   const td = document.createElement("td");
   const select = document.createElement("select");
+  const currentValue = String(rule[field] || "");
+
+  if (!currentValue) {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "";
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+  }
 
   for (const option of options) {
     const el = document.createElement("option");
     el.value = option;
     el.textContent = field === "move" ? (MOVE_LABELS[option] || option) : option;
-    if (option === rule[field]) {
+    if (option === currentValue) {
       el.selected = true;
     }
     select.appendChild(el);
@@ -2912,6 +2955,12 @@ function ruleSelectCell(rule, field, options) {
   select.addEventListener("change", () => {
     clearHaltedStatePulse();
     rule[field] = select.value;
+    if (select.value) {
+      const placeholder = select.querySelector('option[value=""]');
+      if (placeholder) {
+        placeholder.remove();
+      }
+    }
     renderDiagram();
   });
 
@@ -3699,16 +3748,14 @@ function renderAll() {
 
 function addRule() {
   clearHaltedStatePulse();
-  const availableStates = getAvailableStates();
-  const defaultState = appState.currentState || availableStates[0] || "s0";
   const newRuleId = crypto.randomUUID();
   appState.rules.push({
     id: newRuleId,
-    current: defaultState,
-    read: BLANK,
-    write: BLANK,
-    move: "S",
-    next: defaultState
+    current: "",
+    read: "",
+    write: "",
+    move: "",
+    next: ""
   });
   appState.newlyAddedRuleId = newRuleId;
   renderAll();

@@ -73,6 +73,8 @@ const appState = {
   haltedReason: null,
   workspaceSaveEnabled: false,
   activeRuleId: null,
+  newlyAddedRuleId: null,
+  clearExecutionHighlightOnInteraction: false,
   stateModal: { open: false, originalName: null },
   modalOpenedAt: 0,
   diagramModalOpen: false,
@@ -2529,6 +2531,7 @@ function initTapeInteractions() {
     if (event.button !== 0 || appState.running) {
       return;
     }
+    consumeRuleHighlightsOnInteraction();
     const cell = event.target.closest(".tape-cell");
     stopTapeSnap();
     closeTapeSymbolPicker();
@@ -2681,8 +2684,12 @@ function renderRulesTable() {
 
   for (const rule of appState.rules) {
     const tr = document.createElement("tr");
-    if (rule.id === appState.activeRuleId) {
+    tr.dataset.ruleId = rule.id;
+    if (rule.id === appState.newlyAddedRuleId) {
       tr.classList.add("active-rule");
+    }
+    if (rule.id === appState.activeRuleId) {
+      tr.classList.add("executing-rule");
     }
 
     tr.appendChild(ruleStateSelectCell(rule, "current", stateChoices));
@@ -2719,18 +2726,85 @@ function renderRulesTable() {
     tbody.appendChild(tr);
   }
 
-  if (appState.activeRuleId) {
+  if (appState.activeRuleId || appState.newlyAddedRuleId) {
     scrollActiveRuleIntoView();
   }
 }
 
-function scrollActiveRuleIntoView() {
-  const wrap = els.rulesTableWrap;
-  if (!wrap || !appState.activeRuleId) {
+function clearNewRuleHighlight() {
+  const highlightedRuleId = appState.newlyAddedRuleId;
+  if (!highlightedRuleId) {
     return;
   }
 
-  const activeRow = wrap.querySelector("tr.active-rule");
+  appState.newlyAddedRuleId = null;
+  if (highlightedRuleId === appState.activeRuleId) {
+    return;
+  }
+
+  const row = Array.from(els.rulesTableBody?.querySelectorAll("tr") || [])
+    .find((candidate) => candidate.dataset.ruleId === highlightedRuleId);
+  if (row) {
+    row.classList.remove("active-rule");
+  }
+}
+
+function scheduleExecutionHighlightClearOnInteraction() {
+  if (!appState.activeRuleId) {
+    return;
+  }
+
+  // Defer arming to avoid clearing on the same click that triggered the halt.
+  setTimeout(() => {
+    if (!appState.running && appState.activeRuleId) {
+      appState.clearExecutionHighlightOnInteraction = true;
+    }
+  }, 0);
+}
+
+function clearExecutionRuleHighlight() {
+  const highlightedRuleId = appState.activeRuleId;
+  appState.clearExecutionHighlightOnInteraction = false;
+  if (!highlightedRuleId) {
+    return;
+  }
+
+  appState.activeRuleId = null;
+
+  const row = Array.from(els.rulesTableBody?.querySelectorAll("tr") || [])
+    .find((candidate) => candidate.dataset.ruleId === highlightedRuleId);
+  if (row) {
+    row.classList.remove("executing-rule");
+  }
+
+  document.querySelectorAll(".active-transition-badge").forEach((badge) => {
+    badge.classList.remove("active-transition-badge");
+  });
+
+  persistWorkspace();
+}
+
+function consumeExecutionHighlightClearOnInteraction() {
+  if (!appState.clearExecutionHighlightOnInteraction) {
+    return;
+  }
+  clearExecutionRuleHighlight();
+}
+
+function consumeRuleHighlightsOnInteraction() {
+  clearNewRuleHighlight();
+  consumeExecutionHighlightClearOnInteraction();
+}
+
+function scrollActiveRuleIntoView() {
+  const wrap = els.rulesTableWrap;
+  const targetRuleId = appState.activeRuleId || appState.newlyAddedRuleId;
+  if (!wrap || !targetRuleId) {
+    return;
+  }
+
+  const activeRow = Array.from(wrap.querySelectorAll("tbody tr"))
+    .find((row) => row.dataset.ruleId === targetRuleId);
   if (!activeRow) {
     return;
   }
@@ -2986,6 +3060,7 @@ function machineStep() {
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
+    scheduleExecutionHighlightClearOnInteraction();
     return;
   }
 
@@ -2994,6 +3069,7 @@ function machineStep() {
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
+    scheduleExecutionHighlightClearOnInteraction();
     return;
   }
 
@@ -3002,6 +3078,7 @@ function machineStep() {
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
+    scheduleExecutionHighlightClearOnInteraction();
     return;
   }
 
@@ -3045,6 +3122,7 @@ function machineStep() {
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
+    scheduleExecutionHighlightClearOnInteraction();
     return;
   }
 
@@ -3053,6 +3131,7 @@ function machineStep() {
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
+    scheduleExecutionHighlightClearOnInteraction();
     return;
   }
 
@@ -3061,6 +3140,7 @@ function machineStep() {
     appState.haltedStatePulse = true;
     appState.haltedReason = "terminal";
     appState.running = false;
+    scheduleExecutionHighlightClearOnInteraction();
     return;
   }
 
@@ -3621,14 +3701,16 @@ function addRule() {
   clearHaltedStatePulse();
   const availableStates = getAvailableStates();
   const defaultState = appState.currentState || availableStates[0] || "s0";
+  const newRuleId = crypto.randomUUID();
   appState.rules.push({
-    id: crypto.randomUUID(),
+    id: newRuleId,
     current: defaultState,
     read: BLANK,
     write: BLANK,
     move: "S",
     next: defaultState
   });
+  appState.newlyAddedRuleId = newRuleId;
   renderAll();
 
   requestAnimationFrame(() => {
@@ -4024,6 +4106,19 @@ function initEvents() {
     ) {
       closeWorkspaceControlsPopover();
     }
+
+    if (event.target instanceof Element && event.target.closest("#btnAddRule")) {
+      return;
+    }
+    consumeRuleHighlightsOnInteraction();
+  });
+
+  document.addEventListener("change", () => {
+    consumeRuleHighlightsOnInteraction();
+  });
+
+  document.addEventListener("keydown", () => {
+    consumeRuleHighlightsOnInteraction();
   });
 
   document.addEventListener(

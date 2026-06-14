@@ -194,6 +194,8 @@ textarea {
   height: 58px;
   width: auto;
   display: block;
+  transform-origin: 50% 50%;
+  transition: transform 180ms ease-out;
 }
 
 .brand h1 {

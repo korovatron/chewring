@@ -18,6 +18,7 @@ const WORKSPACE_STORAGE_KEY = "chewring.workspace.v1";
 const VISITED_STORAGE_KEY = "chewring.visited.v1";
 const DEFAULT_EXECUTION_SPEED = 1;
 const BASE_EXECUTION_DELAY_MS = 450;
+const LOGO_STEP_ROTATION_DEG = 12;
 const SUBSCRIPT_DIGITS = {
   "0": "₀",
   "1": "₁",
@@ -81,6 +82,7 @@ const appState = {
   workspaceControlsOpen: false,
   message: "Ready.",
   executionSpeed: DEFAULT_EXECUTION_SPEED,
+  logoRotationDeg: 0,
   rules: [
     { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "R", next: "s0" },
     { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
@@ -88,6 +90,7 @@ const appState = {
 };
 
 const els = {
+  brandLogo: document.querySelector(".brand-logo"),
   tapeViewport: document.getElementById("tapeViewport"),
   tapeSymbolPicker: document.getElementById("tapeSymbolPicker"),
   tapeSymbolPickerGrid: document.getElementById("tapeSymbolPickerGrid"),
@@ -3102,6 +3105,14 @@ function applyMove(move) {
   }
 }
 
+function rotateBrandLogoStep() {
+  if (!els.brandLogo) {
+    return;
+  }
+  appState.logoRotationDeg = (appState.logoRotationDeg + LOGO_STEP_ROTATION_DEG) % 360;
+  els.brandLogo.style.transform = `rotate(${appState.logoRotationDeg}deg)`;
+}
+
 function machineStep() {
   const currentTerminalType = getTerminalStateType(appState.currentState);
   if (currentTerminalType === "accept") {
@@ -3158,6 +3169,7 @@ function machineStep() {
   appState.tapeViewRow = appState.head.row;
   appState.currentState = rule.next;
   appState.steps += 1;
+  rotateBrandLogoStep();
   appState.haltedReason = null;
   if (wroteChanged) {
     scheduleTapeMoveToHead(getMoveAfterWriteDelay(), appState.running ? 180 : 200, { includeRow: false });

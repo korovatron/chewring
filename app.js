@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.34";
+const APP_VERSION = "V1.0.35";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -4155,6 +4155,8 @@ function initEvents() {
     }
 
     if (event.target instanceof Element && event.target.closest("#btnAddRule")) {
+      // Keep the newly-added row highlight, but clear any stale post-run execution highlight.
+      consumeExecutionHighlightClearOnInteraction();
       return;
     }
     consumeRuleHighlightsOnInteraction();

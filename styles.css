@@ -1715,6 +1715,7 @@ td select {
 
 #btnClearStates,
 #btnAddState,
+#btnSortRules,
 #btnAddRule,
 #btnExpandDiagram {
   width: 34px;
@@ -1734,6 +1735,11 @@ td select {
 }
 
 #btnAddRule {
+  display: inline-grid;
+  place-items: center;
+}
+
+#btnSortRules {
   display: inline-grid;
   place-items: center;
 }
@@ -1780,6 +1786,7 @@ td select {
 }
 
 #btnAddState svg,
+#btnSortRules svg,
 #btnAddRule svg,
 #btnAddStateExpanded svg,
 #btnExpandDiagram svg {

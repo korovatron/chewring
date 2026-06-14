@@ -108,6 +108,7 @@ const els = {
   rulesTableWrap: document.querySelector(".rules-table-wrap"),
   rulesTableBody: document.querySelector("#rulesTable tbody"),
   btnAddRule: document.getElementById("btnAddRule"),
+  btnSortRules: document.getElementById("btnSortRules"),
   stateStartBadge: document.getElementById("stateStartBadge"),
   stateAcceptBadge: document.getElementById("stateAcceptBadge"),
   stateRejectBadge: document.getElementById("stateRejectBadge"),
@@ -3638,6 +3639,16 @@ function addRule() {
   });
 }
 
+function sortRulesByState() {
+  clearHaltedStatePulse();
+  appState.rules.sort((a, b) => {
+    const aState = a.current.toLowerCase();
+    const bState = b.current.toLowerCase();
+    return aState.localeCompare(bState);
+  });
+  renderAll();
+}
+
 function openAboutModal() {
   appState.modalOpenedAt = performance.now();
   const overlay = document.createElement("div");
@@ -4030,6 +4041,7 @@ function initEvents() {
   );
 
   els.btnAddRule.addEventListener("click", addRule);
+  els.btnSortRules.addEventListener("click", sortRulesByState);
   bindModalActivate(els.btnAddState, () => openStateModal());
   els.btnResetTape.addEventListener("click", resetTape);
   els.btnResetMachine.addEventListener("click", resetMachine);

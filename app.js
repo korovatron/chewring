@@ -16,6 +16,7 @@ const CELL_SIZE_MIN = 28;
 const CELL_SIZE_MAX = 280;
 const WORKSPACE_STORAGE_KEY = "chewring.workspace.v1";
 const VISITED_STORAGE_KEY = "chewring.visited.v1";
+const ABOUT_SHOW_ON_START_STORAGE_KEY = "chewring.about.show-on-start.v1";
 const DEFAULT_EXECUTION_SPEED = 1;
 const BASE_EXECUTION_DELAY_MS = 450;
 const LOGO_STEP_ROTATION_DEG = 12;
@@ -152,6 +153,7 @@ const els = {
   helpModal: document.getElementById("helpModal"),
   btnHelpCloseX: document.getElementById("btnHelpCloseX"),
   aboutModal: document.getElementById("aboutModal"),
+  aboutShowOnStart: document.getElementById("aboutShowOnStart"),
   btnAboutCloseX: document.getElementById("btnAboutCloseX"),
   deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
   deleteAllConfirmMessage: document.getElementById("deleteAllConfirmMessage"),
@@ -452,6 +454,26 @@ function markVisited() {
     localStorage.setItem(VISITED_STORAGE_KEY, "1");
   } catch {
     // Ignore storage failures.
+  }
+}
+
+function readAboutShowOnStartPreference() {
+  try {
+    const saved = localStorage.getItem(ABOUT_SHOW_ON_START_STORAGE_KEY);
+    if (saved === null) {
+      return true;
+    }
+    return saved === "1";
+  } catch {
+    return true;
+  }
+}
+
+function persistAboutShowOnStartPreference(value) {
+  try {
+    localStorage.setItem(ABOUT_SHOW_ON_START_STORAGE_KEY, value ? "1" : "0");
+  } catch {
+    // Ignore storage failures so app functionality is unaffected.
   }
 }
 
@@ -3791,7 +3813,13 @@ function sortRulesByState() {
 }
 
 function openAboutModal() {
+  if (appState.aboutModalOverlay) {
+    return;
+  }
   appState.modalOpenedAt = performance.now();
+  if (els.aboutShowOnStart) {
+    els.aboutShowOnStart.checked = readAboutShowOnStartPreference();
+  }
   const overlay = document.createElement("div");
   overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
   const content = els.aboutModal.firstElementChild;
@@ -4251,6 +4279,11 @@ function initEvents() {
   bindModalActivate(els.btnAlphabetModalCancel, closeAlphabetModal);
   bindModalActivate(els.btnAlphabetModalSave, saveAlphabetModal);
   bindModalActivate(els.btnAlphabetModalReset, resetAlphabetModal);
+  if (els.aboutShowOnStart) {
+    els.aboutShowOnStart.addEventListener("change", () => {
+      persistAboutShowOnStartPreference(Boolean(els.aboutShowOnStart.checked));
+    });
+  }
   if (els.stateNameInput) {
     els.stateNameInput.addEventListener("input", () => setStateModalFeedback(""));
     els.stateNameInput.addEventListener("keydown", (event) => {
@@ -4347,6 +4380,10 @@ function init() {
   }
 
   scheduleInitialTouchViewportResnap();
+
+  if (readAboutShowOnStartPreference()) {
+    openAboutModal();
+  }
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {

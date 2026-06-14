@@ -1280,6 +1280,17 @@ body.touch-input .tape-symbol-choice:active {
   line-height: 1.45;
 }
 
+.about-modal .about-show-on-start {
+  margin: 8px 0;
+}
+
+.about-modal .about-show-on-start input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #ffd400;
+}
+
 .about-modal .about-modal-image {
   float: left;
   width: 110px;

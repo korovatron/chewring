@@ -229,17 +229,17 @@ const DEFAULT_PROGRAMS = {
   "binary-invert": {
     rows: 1,
     startState: "s0",
-    acceptStates: ["sa"],
-    rejectStates: ["sr"],
-    haltStates: [],
+    acceptStates: [],
+    rejectStates: [],
+    haltStates: ["sh"],
     head: { row: 0, col: 0 },
     tapeRows: ["101001"],
     rules: [
       { id: crypto.randomUUID(), current: "s0", read: "0", write: "1", move: "R", next: "s0" },
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "0", move: "R", next: "s0" },
-      { id: crypto.randomUUID(), current: "s0", read: "#", write: "#", move: "S", next: "sr" },
-      { id: crypto.randomUUID(), current: "s0", read: "X", write: "X", move: "S", next: "sr" },
-      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sa" }
+      { id: crypto.randomUUID(), current: "s0", read: "#", write: "#", move: "S", next: "sh" },
+      { id: crypto.randomUUID(), current: "s0", read: "X", write: "X", move: "S", next: "sh" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sh" }
     ]
   },
   "two-row-copy": {
@@ -3499,11 +3499,15 @@ function renderDiagram(targetSvg = els.diagram) {
         const loopPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
         if (sideChoice.axis === "x") {
           const side = sideChoice.dir;
+          const loopLabelInset = Math.min(44 * sizeScale, Math.max(18 * sizeScale, diagramWidth * 0.08));
           loopPath.setAttribute(
             "d",
             `M ${from.x + side * loopAnchorSpan} ${from.y - loopAnchorInset} C ${from.x + side * (nodeRadius + loopDepth)} ${from.y - loopSpread}, ${from.x + side * (nodeRadius + loopDepth)} ${from.y + loopSpread}, ${from.x + side * loopAnchorSpan} ${from.y + loopAnchorInset}`
           );
-          labelX = from.x + side * (nodeRadius + loopDepth + 24 * sizeScale);
+          labelX = from.x + side * Math.max(
+            nodeRadius + loopDepth + 24 * sizeScale - loopLabelInset,
+            nodeRadius + 16 * sizeScale
+          );
           labelY = from.y + 4 * sizeScale + sideLevel * 10 * sizeScale;
         } else {
           const vertical = sideChoice.dir;

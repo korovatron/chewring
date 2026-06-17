@@ -1,23 +1,59 @@
 ===
+title: Find The Separator
+description: Move right until the first # symbol is found, then halt without changing the tape.
+start-tape: 111#11
+expected-tape: 111#11
+===
+
 title: Unary Addition
-description: Implement a TM to add two unary numbers separated by #.
+description: Add two unary numbers separated by # by combining them into one unary block.
 start-tape: 111#11
 expected-tape: 11111
 ===
 
-title: Binary Invert
-description: Implement a TM that flips every 0 to 1 and every 1 to 0, then halts.
-start-tape: 101001
-expected-tape: 010110
+title: Unary Subtraction
+description: Subtract the right-hand unary number from the left-hand unary number. Assume the left side is at least as large as the right side.
+start-tape: 11111#11
+expected-tape: 111
 ===
 
-title: Parity Check
-description: Implement a TM that accepts only if the tape contains an even number of 1 symbols.
-start-tape: 10101010
-expected-tape: accept
+title: Duplicate With Separator
+description: Copy a unary block so that the output is the original block, followed by #, followed by the same block again.
+start-tape: 111
+expected-tape: 111#111
 ===
 
-title: Copy To Second Row
-description: Copy the first-row unary tape to the second row while leaving the first row unchanged.
-start-tape: 10110|
-expected-tape: 10110|10110
+title: Binary Successor
+description: Add 1 to a binary number and leave the result on the tape.
+start-tape: 1011
+expected-tape: 1100
+===
+
+title: Reject Any Zero
+description: Accept if the tape contains only 1 symbols. Reject as soon as a 0 is found.
+start-tape: 111011
+expected-tape: REJECT
+===
+
+title: Recognise 0^n1^n
+description: Accept strings made of some number of 0 symbols followed by the same number of 1 symbols. Reject anything else.
+start-tape: 000111
+expected-tape: ACCEPT
+===
+
+title: Palindrome Check
+description: Accept if the binary string reads the same forwards and backwards. Reject otherwise.
+start-tape: 1001
+expected-tape: ACCEPT
+===
+
+title: Unary Multiplication
+description: Multiply two unary numbers separated by # and leave the unary product on the tape.
+start-tape: 111#11
+expected-tape: 111111
+===
+
+title: Binary Addition
+description: Add two binary numbers separated by # and leave the binary sum on the tape.
+start-tape: 101#11
+expected-tape: 1000

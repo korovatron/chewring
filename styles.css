@@ -1472,6 +1472,148 @@ body.touch-input .tape-symbol-choice:active {
   gap: 10px;
 }
 
+.tasks-modal {
+  width: min(760px, calc(100vw - 24px));
+  display: grid;
+  gap: 12px;
+}
+
+.tasks-modal-status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.tasks-modal-list {
+  display: grid;
+  gap: 12px;
+}
+
+.tasks-modal-actions {
+  align-items: center;
+  margin-top: -4px;
+  margin-bottom: 2px;
+}
+
+.tasks-modal-position {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.tasks-modal-shortcut {
+  margin: -4px 0 0;
+  justify-self: end;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.task-card {
+  display: grid;
+  gap: 10px;
+  padding: 2px 0 0;
+}
+
+.task-card-title {
+  margin: 0;
+  color: #ffe28a;
+  font-size: 1.08rem;
+}
+
+.task-card-description,
+.task-card-outcome,
+.task-card-tape-label {
+  margin: 0;
+}
+
+.task-card-description,
+.task-card-outcome {
+  line-height: 1.45;
+}
+
+.task-card-outcome {
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.task-card-outcome.accept {
+  color: var(--ok);
+}
+
+.task-card-outcome.reject {
+  color: var(--warn);
+}
+
+.task-card-outcome.halt {
+  color: #f59e0b;
+}
+
+.task-card-tape-block {
+  display: grid;
+  gap: 6px;
+}
+
+.task-card-tape-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-tape-preview {
+  display: grid;
+  justify-content: start;
+  gap: 4px;
+}
+
+.task-tape-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 24px;
+  gap: 3px;
+  width: max-content;
+  padding: 3px 4px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 5px,
+      var(--tape-paper-fibre) 6px,
+      transparent 7px
+    ),
+    linear-gradient(180deg, var(--tape-paper-top), var(--tape-paper-bottom));
+  border-radius: 6px;
+}
+
+.task-tape-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--cell-border);
+  border-radius: 5px;
+  color: var(--tape-ink);
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+@media (max-width: 520px) {
+  .tasks-modal {
+    width: min(100%, calc(100vw - 24px));
+  }
+
+  .task-tape-row {
+    grid-auto-columns: 22px;
+  }
+
+  .task-tape-cell {
+    width: 22px;
+    height: 22px;
+    font-size: 0.84rem;
+  }
+}
+
 .help-modal p {
   margin: 0;
   padding: 10px 12px 11px;

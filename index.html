@@ -30,7 +30,7 @@
   <link rel="shortcut icon" href="images/chewRingLogo.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="images/appIcon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=20260609-60" />
+  <link rel="stylesheet" href="styles.css?v=20260617-61" />
 </head>
 <body data-theme="dark">
   <div class="app-shell">
@@ -57,6 +57,7 @@
         <button class="menu-item-btn" id="menuOpenFile" type="button">Open file</button>
         <button class="menu-item-btn" id="menuSaveFile" type="button">Save to file</button>
         <button class="menu-item-btn" id="menuShare" type="button">Share URL</button>
+        <button class="menu-item-btn" id="menuTasks" type="button">Tasks</button>
         <button class="menu-item-btn" id="menuAlphabet" type="button">Alphabet</button>
         <button class="menu-concertina-trigger" id="menuExamplesToggle" aria-expanded="false" aria-controls="menuExamplesList" type="button">
           Examples <span class="concertina-arrow">▸</span>
@@ -329,6 +330,23 @@
     </div>
   </div>
 
+  <div id="tasksModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tasksModalTitle">
+    <div class="modal tasks-modal">
+      <h3 id="tasksModalTitle">Tasks</h3>
+      <button id="btnTasksModalCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close tasks" title="Close tasks">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+      </button>
+      <p id="tasksModalStatus" class="tasks-modal-status" role="status" aria-live="polite">Loading tasks...</p>
+      <div class="modal-actions tasks-modal-actions">
+        <span id="tasksModalPosition" class="tasks-modal-position" aria-live="polite"></span>
+        <button id="btnTasksModalPrev" type="button">Prev</button>
+        <button id="btnTasksModalNext" type="button">Next</button>
+      </div>
+      <div id="tasksModalList" class="tasks-modal-list"></div>
+      <p class="tasks-modal-shortcut">Toggle: Shift+T</p>
+    </div>
+  </div>
+
   <div id="deleteAllConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="deleteAllConfirmTitle">
     <div class="modal">
       <h3 id="deleteAllConfirmTitle">Delete All States?</h3>
@@ -357,7 +375,7 @@
   </div>
 
   <input id="fileOpenInput" type="file" accept=".json,application/json" hidden />
-  <script src="app.js?v=20260609-60"></script>
+  <script src="app.js?v=20260617-61"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"3fd947bc782243ada1dbd315a9feca0e"}'></script>
   <!-- End Cloudflare Web Analytics -->

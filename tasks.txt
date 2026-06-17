@@ -1,0 +1,23 @@
+===
+title: Unary Addition
+description: Implement a TM to add two unary numbers separated by #.
+start-tape: 111#11
+expected-tape: 11111
+===
+
+title: Binary Invert
+description: Implement a TM that flips every 0 to 1 and every 1 to 0, then halts.
+start-tape: 101001
+expected-tape: 010110
+===
+
+title: Parity Check
+description: Implement a TM that accepts only if the tape contains an even number of 1 symbols.
+start-tape: 10101010
+expected-tape: accept
+===
+
+title: Copy To Second Row
+description: Copy the first-row unary tape to the second row while leaving the first row unchanged.
+start-tape: 10110|
+expected-tape: 10110|10110

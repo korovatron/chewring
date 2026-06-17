@@ -19,6 +19,7 @@ const VISITED_STORAGE_KEY = "chewring.visited.v1";
 const ABOUT_SHOW_ON_START_STORAGE_KEY = "chewring.about.show-on-start.v1";
 const DEFAULT_EXECUTION_SPEED = 1;
 const BASE_EXECUTION_DELAY_MS = 450;
+const TASKS_SOURCE_URL = "./tasks.txt";
 const LOGO_STEP_ROTATION_DEG = 12;
 const SUBSCRIPT_DIGITS = {
   "0": "₀",
@@ -73,6 +74,11 @@ const appState = {
   lastPlacedSymbol: "0",
   haltedStatePulse: false,
   haltedReason: null,
+  tasksCatalog: [],
+  tasksCatalogLoaded: false,
+  tasksCatalogLoading: false,
+  tasksCatalogError: "",
+  currentTaskIndex: 0,
   workspaceSaveEnabled: false,
   activeRuleId: null,
   newlyAddedRuleId: null,
@@ -80,6 +86,7 @@ const appState = {
   stateModal: { open: false, originalName: null },
   modalOpenedAt: 0,
   diagramModalOpen: false,
+  tasksModalOverlay: null,
   workspaceControlsOpen: false,
   message: "Ready.",
   executionSpeed: DEFAULT_EXECUTION_SPEED,
@@ -145,6 +152,7 @@ const els = {
   appMenu: document.getElementById("appMenu"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
+  menuTasks: document.getElementById("menuTasks"),
   menuAlphabet: document.getElementById("menuAlphabet"),
   btnFooterHelp: document.getElementById("btnFooterHelp"),
   menuHelp: document.getElementById("menuHelp"),
@@ -155,6 +163,13 @@ const els = {
   aboutModal: document.getElementById("aboutModal"),
   aboutShowOnStart: document.getElementById("aboutShowOnStart"),
   btnAboutCloseX: document.getElementById("btnAboutCloseX"),
+  tasksModal: document.getElementById("tasksModal"),
+  tasksModalList: document.getElementById("tasksModalList"),
+  tasksModalStatus: document.getElementById("tasksModalStatus"),
+  tasksModalPosition: document.getElementById("tasksModalPosition"),
+  btnTasksModalPrev: document.getElementById("btnTasksModalPrev"),
+  btnTasksModalNext: document.getElementById("btnTasksModalNext"),
+  btnTasksModalCloseX: document.getElementById("btnTasksModalCloseX"),
   deleteAllConfirmModal: document.getElementById("deleteAllConfirmModal"),
   deleteAllConfirmMessage: document.getElementById("deleteAllConfirmMessage"),
   btnDeleteAllConfirmCancel: document.getElementById("btnDeleteAllConfirmCancel"),
@@ -285,6 +300,187 @@ function symbolForDisplay(symbol) {
 function symbolForTape(symbol) {
   const display = symbolForDisplay(symbol);
   return display === BLANK ? "" : display;
+}
+
+function parseTaskTapeRows(rawTape) {
+  if (!rawTape) {
+    return [""];
+  }
+  return String(rawTape)
+    .split("|")
+    .map((row) => row.replace(/\s+$/g, ""));
+}
+
+function parseTasksText(sourceText) {
+  const blocks = String(sourceText || "")
+    .split(/^===\s*$/m)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks.map((block, index) => {
+    const task = {
+      id: `task-${index + 1}`,
+      title: `Task ${index + 1}`,
+      description: "",
+      startTape: "",
+      expectedTape: ""
+    };
+
+    block.split(/\r?\n/).forEach((line) => {
+      const separatorIndex = line.indexOf(":");
+      if (separatorIndex === -1) {
+        return;
+      }
+      const key = line.slice(0, separatorIndex).trim().toLowerCase();
+      const value = line.slice(separatorIndex + 1).trim();
+      if (key === "title") task.title = value || task.title;
+      if (key === "description") task.description = value;
+      if (key === "start-tape") task.startTape = value;
+      if (key === "expected-tape") task.expectedTape = value;
+    });
+
+    return task;
+  });
+}
+
+async function loadTasksCatalog() {
+  if (appState.tasksCatalogLoaded || appState.tasksCatalogLoading) {
+    return;
+  }
+
+  appState.tasksCatalogLoading = true;
+  appState.tasksCatalogError = "";
+
+  try {
+    const response = await fetch(TASKS_SOURCE_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Tasks file returned ${response.status}.`);
+    }
+    const text = await response.text();
+    appState.tasksCatalog = parseTasksText(text);
+    appState.tasksCatalogLoaded = true;
+  } catch (error) {
+    appState.tasksCatalog = [];
+    appState.tasksCatalogError = error instanceof Error ? error.message : "Unable to load tasks.";
+  } finally {
+    appState.tasksCatalogLoading = false;
+  }
+}
+
+function buildTaskTapePreview(rowStrings = []) {
+  const preview = document.createElement("div");
+  preview.className = "task-tape-preview";
+
+  const rows = rowStrings.length > 0 ? rowStrings : [""];
+  const maxColumns = Math.max(1, ...rows.map((row) => row.length));
+
+  rows.forEach((rowString) => {
+    const row = document.createElement("div");
+    row.className = "task-tape-row";
+
+    for (let index = 0; index < maxColumns; index += 1) {
+      const cell = document.createElement("div");
+      cell.className = "task-tape-cell";
+      const symbol = rowString[index] || "";
+      cell.textContent = symbolForTape(symbol);
+      row.appendChild(cell);
+    }
+
+    preview.appendChild(row);
+  });
+
+  return preview;
+}
+
+function renderTasksModal() {
+  if (!els.tasksModalList || !els.tasksModalStatus || !els.tasksModalPosition || !els.btnTasksModalPrev || !els.btnTasksModalNext) {
+    return;
+  }
+
+  els.tasksModalList.replaceChildren();
+  els.tasksModalPosition.textContent = "";
+  els.btnTasksModalPrev.disabled = true;
+  els.btnTasksModalNext.disabled = true;
+
+  if (appState.tasksCatalogLoading) {
+    els.tasksModalStatus.hidden = false;
+    els.tasksModalStatus.textContent = "Loading tasks...";
+    return;
+  }
+
+  if (appState.tasksCatalogError) {
+    els.tasksModalStatus.hidden = false;
+    els.tasksModalStatus.textContent = `Could not load tasks: ${appState.tasksCatalogError}`;
+    return;
+  }
+
+  if (appState.tasksCatalog.length === 0) {
+    els.tasksModalStatus.hidden = false;
+    els.tasksModalStatus.textContent = "No tasks found.";
+    return;
+  }
+
+  els.tasksModalStatus.hidden = true;
+  appState.currentTaskIndex = Math.max(0, Math.min(appState.currentTaskIndex, appState.tasksCatalog.length - 1));
+
+  const task = appState.tasksCatalog[appState.currentTaskIndex];
+  const index = appState.currentTaskIndex;
+
+  els.tasksModalPosition.textContent = `${index + 1} / ${appState.tasksCatalog.length}`;
+  els.btnTasksModalPrev.disabled = index === 0;
+  els.btnTasksModalNext.disabled = index >= appState.tasksCatalog.length - 1;
+
+  const article = document.createElement("article");
+  article.className = "task-card";
+
+  const title = document.createElement("h4");
+  title.className = "task-card-title";
+  title.textContent = `Question ${index + 1}: ${task.title}`;
+  article.appendChild(title);
+
+  if (task.description) {
+    const description = document.createElement("p");
+    description.className = "task-card-description";
+    description.textContent = task.description;
+    article.appendChild(description);
+  }
+
+  const startSection = document.createElement("section");
+  startSection.className = "task-card-tape-block";
+  const startLabel = document.createElement("p");
+  startLabel.className = "task-card-tape-label";
+  startLabel.textContent = "Start tape";
+  startSection.appendChild(startLabel);
+  startSection.appendChild(buildTaskTapePreview(parseTaskTapeRows(task.startTape)));
+  article.appendChild(startSection);
+
+  const expectedSection = document.createElement("section");
+  expectedSection.className = "task-card-tape-block";
+  const expectedLabel = document.createElement("p");
+  expectedLabel.className = "task-card-tape-label";
+  expectedLabel.textContent = "Expected outcome";
+  expectedSection.appendChild(expectedLabel);
+
+  if (/^(accept|reject|halt)$/i.test(task.expectedTape)) {
+    const outcomeType = String(task.expectedTape || "").trim().toLowerCase();
+    const outcome = document.createElement("p");
+    outcome.className = `task-card-outcome ${outcomeType}`;
+    outcome.textContent = outcomeType.toUpperCase();
+    expectedSection.appendChild(outcome);
+  } else {
+    expectedSection.appendChild(buildTaskTapePreview(parseTaskTapeRows(task.expectedTape)));
+  }
+
+  article.appendChild(expectedSection);
+  els.tasksModalList.appendChild(article);
+}
+
+function showTaskAtIndex(nextIndex) {
+  if (appState.tasksCatalog.length === 0) {
+    return;
+  }
+  appState.currentTaskIndex = Math.max(0, Math.min(nextIndex, appState.tasksCatalog.length - 1));
+  renderTasksModal();
 }
 
 function normaliseAlphabetSlot(symbol) {
@@ -3850,6 +4046,30 @@ function openHelpModal() {
   appState.helpModalOverlay = overlay;
 }
 
+async function openTasksModal() {
+  if (appState.tasksModalOverlay) {
+    return;
+  }
+  appState.modalOpenedAt = performance.now();
+  renderTasksModal();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.tasksModal.firstElementChild;
+  if (content) overlay.appendChild(content);
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - appState.modalOpenedAt < 350) return;
+    if (event.target === overlay) closeTasksModal();
+  });
+  document.body.appendChild(overlay);
+  appState.tasksModalOverlay = overlay;
+
+  if (!appState.tasksCatalogLoaded && !appState.tasksCatalogLoading) {
+    renderTasksModal();
+    await loadTasksCatalog();
+    renderTasksModal();
+  }
+}
+
 function closeAboutModal() {
   if (appState.aboutModalOverlay) {
     const content = appState.aboutModalOverlay.firstElementChild;
@@ -3865,6 +4085,15 @@ function closeHelpModal() {
     if (content) els.helpModal.appendChild(content);
     appState.helpModalOverlay.remove();
     appState.helpModalOverlay = null;
+  }
+}
+
+function closeTasksModal() {
+  if (appState.tasksModalOverlay) {
+    const content = appState.tasksModalOverlay.firstElementChild;
+    if (content) els.tasksModal.appendChild(content);
+    appState.tasksModalOverlay.remove();
+    appState.tasksModalOverlay = null;
   }
 }
 
@@ -3937,6 +4166,14 @@ function bindModalActivate(target, handler) {
     },
     { passive: false }
   );
+}
+
+function isTextEntryTarget(target) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(target.closest("input, textarea, [contenteditable='true'], [contenteditable=''], [role='textbox']"));
 }
 
 function bindTap(target, handler) {
@@ -4103,6 +4340,11 @@ function initEvents() {
     toggleMenu(false);
   });
 
+  bindModalActivate(els.menuTasks, () => {
+    openTasksModal();
+    toggleMenu(false);
+  });
+
   bindModalActivate(els.menuAbout, () => {
     openAboutModal();
     toggleMenu(false);
@@ -4143,6 +4385,9 @@ function initEvents() {
 
   bindModalActivate(els.btnFooterHelp, openHelpModal);
 
+  bindModalActivate(els.btnTasksModalCloseX, closeTasksModal);
+  bindModalActivate(els.btnTasksModalPrev, () => showTaskAtIndex(appState.currentTaskIndex - 1));
+  bindModalActivate(els.btnTasksModalNext, () => showTaskAtIndex(appState.currentTaskIndex + 1));
   bindModalActivate(els.btnAboutCloseX, closeAboutModal);
   bindModalActivate(els.btnHelpCloseX, closeHelpModal);
   bindModalActivate(els.btnDeleteAllConfirmCancel, closeDeleteAllConfirmModal);
@@ -4317,13 +4562,34 @@ function initEvents() {
         closeWorkspaceControlsPopover();
         return;
       }
+      if (appState.tasksModalOverlay) closeTasksModal();
       if (appState.stateModal.open) closeStateModal();
       if (appState.aboutModalOverlay) closeAboutModal();
       if (appState.helpModalOverlay) closeHelpModal();
       if (appState.deleteAllConfirmOverlay) closeDeleteAllConfirmModal();
       if (appState.diagramModalOpen) closeDiagramModal();
       if (els.appMenu.classList.contains("is-open")) toggleMenu(false);
+      return;
     }
+
+    const isTasksShortcut = event.shiftKey
+      && !event.ctrlKey
+      && !event.altKey
+      && !event.metaKey
+      && !event.repeat
+      && event.key.toLowerCase() === "t";
+
+    if (!isTasksShortcut || isTextEntryTarget(event.target)) {
+      return;
+    }
+
+    event.preventDefault();
+    if (appState.tasksModalOverlay) {
+      closeTasksModal();
+      return;
+    }
+
+    openTasksModal();
   });
 
   window.addEventListener("resize", () => {
@@ -4365,6 +4631,11 @@ function init() {
   if (els.aboutVersion) {
     els.aboutVersion.textContent = APP_VERSION;
   }
+  loadTasksCatalog().then(() => {
+    if (appState.tasksModalOverlay) {
+      renderTasksModal();
+    }
+  });
   initEvents();
 
   // Always start at default speed per app load.

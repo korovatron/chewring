@@ -1563,6 +1563,7 @@ body.touch-input .tape-symbol-choice:active {
   display: grid;
   justify-content: start;
   gap: 4px;
+  --task-head-stroke: clamp(1px, calc(var(--tape-head-stroke) * 0.52), 3px);
 }
 
 .task-tape-row {
@@ -1596,6 +1597,27 @@ body.touch-input .tape-symbol-choice:active {
   font-weight: 700;
   font-size: 0.92rem;
   line-height: 1;
+  position: relative;
+}
+
+.task-tape-cell.is-head {
+  outline: var(--task-head-stroke) solid var(--head);
+  outline-offset: calc(-1 * var(--task-head-stroke));
+}
+
+.task-tape-cell.is-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--task-head-stroke) solid var(--head);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 0 0 1px rgba(8, 18, 28, 0.35),
+    0 0 10px rgba(13, 79, 134, 0.35);
+  transition: border-color 80ms linear, box-shadow 80ms linear;
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 @media (max-width: 520px) {

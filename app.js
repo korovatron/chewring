@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.40";
+const APP_VERSION = "V1.0.41";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -20,6 +20,7 @@ const ABOUT_SHOW_ON_START_STORAGE_KEY = "chewring.about.show-on-start.v1";
 const DEFAULT_EXECUTION_SPEED = 1;
 const BASE_EXECUTION_DELAY_MS = 450;
 const TASKS_SOURCE_URL = "./tasks.txt";
+const TASK_TAPE_HEAD_MARKER = "^";
 const LOGO_STEP_ROTATION_DEG = 12;
 const SUBSCRIPT_DIGITS = {
   "0": "₀",
@@ -303,12 +304,33 @@ function symbolForTape(symbol) {
 }
 
 function parseTaskTapeRows(rawTape) {
-  if (!rawTape) {
-    return [""];
+  const rows = [];
+  const rawRows = rawTape ? String(rawTape).split("|") : [""];
+
+  rawRows.forEach((rawRow) => {
+    const source = rawRow.replace(/\s+$/g, "");
+    let cleanRow = "";
+    let headCol = null;
+
+    for (let index = 0; index < source.length; index += 1) {
+      const symbol = source[index];
+      if (symbol === TASK_TAPE_HEAD_MARKER) {
+        if (headCol === null) {
+          headCol = Math.max(0, cleanRow.length - 1);
+        }
+        continue;
+      }
+      cleanRow += symbol;
+    }
+
+    rows.push({ symbols: cleanRow, headCol });
+  });
+
+  if (rows.length === 0) {
+    return [{ symbols: "", headCol: null }];
   }
-  return String(rawTape)
-    .split("|")
-    .map((row) => row.replace(/\s+$/g, ""));
+
+  return rows;
 }
 
 function parseTasksText(sourceText) {
@@ -367,21 +389,24 @@ async function loadTasksCatalog() {
   }
 }
 
-function buildTaskTapePreview(rowStrings = []) {
+function buildTaskTapePreview(rowData = []) {
   const preview = document.createElement("div");
   preview.className = "task-tape-preview";
 
-  const rows = rowStrings.length > 0 ? rowStrings : [""];
-  const maxColumns = Math.max(1, ...rows.map((row) => row.length));
+  const rows = rowData.length > 0 ? rowData : [{ symbols: "", headCol: null }];
+  const maxColumns = Math.max(1, ...rows.map((row) => row.symbols.length));
 
-  rows.forEach((rowString) => {
+  rows.forEach((rowDataItem) => {
     const row = document.createElement("div");
     row.className = "task-tape-row";
 
     for (let index = 0; index < maxColumns; index += 1) {
       const cell = document.createElement("div");
       cell.className = "task-tape-cell";
-      const symbol = rowString[index] || "";
+      if (rowDataItem.headCol === index) {
+        cell.classList.add("is-head");
+      }
+      const symbol = rowDataItem.symbols[index] || "";
       cell.textContent = symbolForTape(symbol);
       row.appendChild(cell);
     }

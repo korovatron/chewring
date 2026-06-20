@@ -970,7 +970,7 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 8px 12px;
-  color: var(--ink);
+  color: #ffea00;
   background: linear-gradient(
     135deg,
     var(--header-grad-start) 0%,

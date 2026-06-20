@@ -1280,6 +1280,30 @@ body.touch-input .tape-symbol-choice:active {
   line-height: 1.45;
 }
 
+.about-modal .about-menu-note {
+  margin: 6px 0 10px;
+}
+
+.about-modal .about-menu-note-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0 0.12em;
+  vertical-align: -0.22em;
+  color: currentColor;
+}
+
+.about-modal .about-menu-note-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  fill: none;
+}
+
 .about-modal .about-show-on-start {
   margin: 8px 0;
 }

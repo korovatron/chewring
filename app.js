@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.41";
+const APP_VERSION = "V1.0.42";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];

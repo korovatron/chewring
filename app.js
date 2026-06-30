@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.45";
+const APP_VERSION = "V1.0.46";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -4097,7 +4097,7 @@ async function openTasksModal() {
     return;
   }
   appState.modalOpenedAt = performance.now();
-  sendGoatCounterEvent("tasks-modal-open", "Tasks modal opened");
+  sendGoatCounterEvent("Chewring-tasks-modal-open", "Tasks modal opened");
   renderTasksModal();
   const overlay = document.createElement("div");
   overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";

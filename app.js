@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.47";
+const APP_VERSION = "V1.0.48";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -4377,6 +4377,7 @@ function initEvents() {
 
   document.querySelectorAll(".menu-preset-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      sendGoatCounterEvent("Chewring-example-opened", "Chewring - example opened");
       loadPreset(btn.dataset.preset);
       toggleMenu(false);
     });

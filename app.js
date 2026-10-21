@@ -1,10 +1,15 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.48";
+const APP_VERSION = "V1.0.52";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
 const USER_ALPHABET_SLOT_COUNT = 12;
 const TAPE_SYMBOL_CYCLE = [...CORE_TAPE_SYMBOLS];
+const MOVE_ARROWS = { L: "←", R: "→", U: "↑", D: "↓" };
+const MOVE_NAMES = { L: "Left", R: "Right", U: "Up", D: "Down", S: "Stay" };
+const MAX_MOVE_SEQUENCE_LENGTH = 12;
+// Multi-character token so it can never collide with a (single-character) alphabet symbol.
+const WRITE_SAME = "same";
 const TAPE_LONG_PRESS_MS = 500;
 const DRAG_THRESHOLD_PX = 6;
 const HEAD_WRITE_PULSE_MS = 280;
@@ -65,7 +70,10 @@ const appState = {
   tapeDrag: null,
   tapeSnapRaf: null,
   tapeMoveDelayTimer: null,
+  headVisualRow: null,
   tapeSymbolPicker: { open: false, row: null, col: null, cell: null },
+  movePicker: { open: false, ruleId: null, sequence: "" },
+  readPicker: { open: false, ruleId: null, selected: [] },
   alphabetModal: { open: false, originalSlots: null },
   alphabetSlots: [...DEFAULT_USER_ALPHABET],
   headWritePulseUntil: 0,
@@ -103,6 +111,14 @@ const els = {
   tapeViewport: document.getElementById("tapeViewport"),
   tapeSymbolPicker: document.getElementById("tapeSymbolPicker"),
   tapeSymbolPickerGrid: document.getElementById("tapeSymbolPickerGrid"),
+  movePicker: document.getElementById("movePicker"),
+  movePickerPreview: document.getElementById("movePickerPreview"),
+  movePickerGrid: document.getElementById("movePickerGrid"),
+  movePickerBackspace: document.getElementById("movePickerBackspace"),
+  movePickerSet: document.getElementById("movePickerSet"),
+  readPicker: document.getElementById("readPicker"),
+  readPickerGrid: document.getElementById("readPickerGrid"),
+  readPickerSet: document.getElementById("readPickerSet"),
   cellSizeSlider: document.getElementById("cellSizeSlider"),
   executionSpeedSlider: document.getElementById("executionSpeedSlider"),
   executionSpeedLabel: document.getElementById("executionSpeedLabel"),
@@ -232,14 +248,11 @@ const DEFAULT_PROGRAMS = {
     rules: [
       { id: crypto.randomUUID(), current: "qe", read: "0", write: "0", move: "R", next: "qe" },
       { id: crypto.randomUUID(), current: "qe", read: "1", write: "1", move: "R", next: "qo" },
-      { id: crypto.randomUUID(), current: "qe", read: "#", write: "#", move: "S", next: "sr" },
-      { id: crypto.randomUUID(), current: "qe", read: "X", write: "X", move: "S", next: "sr" },
+      { id: crypto.randomUUID(), current: "qe", read: "#X", write: WRITE_SAME, move: "S", next: "sr" },
       { id: crypto.randomUUID(), current: "qe", read: BLANK, write: BLANK, move: "S", next: "sa" },
       { id: crypto.randomUUID(), current: "qo", read: "0", write: "0", move: "R", next: "qo" },
       { id: crypto.randomUUID(), current: "qo", read: "1", write: "1", move: "R", next: "qe" },
-      { id: crypto.randomUUID(), current: "qo", read: "#", write: "#", move: "S", next: "sr" },
-      { id: crypto.randomUUID(), current: "qo", read: "X", write: "X", move: "S", next: "sr" },
-      { id: crypto.randomUUID(), current: "qo", read: BLANK, write: BLANK, move: "S", next: "sr" }
+      { id: crypto.randomUUID(), current: "qo", read: `${BLANK}#X`, write: WRITE_SAME, move: "S", next: "sr" }
     ]
   },
   "binary-invert": {
@@ -253,9 +266,7 @@ const DEFAULT_PROGRAMS = {
     rules: [
       { id: crypto.randomUUID(), current: "s0", read: "0", write: "1", move: "R", next: "s0" },
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "0", move: "R", next: "s0" },
-      { id: crypto.randomUUID(), current: "s0", read: "#", write: "#", move: "S", next: "sh" },
-      { id: crypto.randomUUID(), current: "s0", read: "X", write: "X", move: "S", next: "sh" },
-      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sh" }
+      { id: crypto.randomUUID(), current: "s0", read: `${BLANK}#X`, write: WRITE_SAME, move: "S", next: "sh" }
     ]
   },
   "two-row-copy": {
@@ -270,10 +281,30 @@ const DEFAULT_PROGRAMS = {
       { id: crypto.randomUUID(), current: "s0", read: "0", write: "0", move: "D", next: "sd0" },
       { id: crypto.randomUUID(), current: "s0", read: "1", write: "1", move: "D", next: "sd1" },
       { id: crypto.randomUUID(), current: "s0", read: BLANK, write: BLANK, move: "S", next: "sh" },
-      { id: crypto.randomUUID(), current: "sd0", read: BLANK, write: "0", move: "U", next: "su" },
-      { id: crypto.randomUUID(), current: "sd1", read: BLANK, write: "1", move: "U", next: "su" },
-      { id: crypto.randomUUID(), current: "su", read: "0", write: "0", move: "R", next: "s0" },
-      { id: crypto.randomUUID(), current: "su", read: "1", write: "1", move: "R", next: "s0" }
+      { id: crypto.randomUUID(), current: "sd0", read: BLANK, write: "0", move: "UR", next: "s0" },
+      { id: crypto.randomUUID(), current: "sd1", read: BLANK, write: "1", move: "UR", next: "s0" }
+    ]
+  },
+  "xor-cipher": {
+    rows: 3,
+    startState: "s0",
+    acceptStates: [],
+    rejectStates: [],
+    haltStates: ["sh"],
+    head: { row: 0, col: 0 },
+    tapeRows: ["01001000", "11010010", ""],
+    rules: [
+      // Row 0 = plaintext, row 1 = key, row 2 = ciphertext (plaintext XOR key).
+      // a0/a1 remember the plaintext bit; w0/w1 remember the bit to write into the ciphertext row.
+      { id: crypto.randomUUID(), current: "s0", read: "0", write: WRITE_SAME, move: "D", next: "a0" },
+      { id: crypto.randomUUID(), current: "s0", read: "1", write: WRITE_SAME, move: "D", next: "a1" },
+      { id: crypto.randomUUID(), current: "s0", read: BLANK, write: WRITE_SAME, move: "S", next: "sh" },
+      { id: crypto.randomUUID(), current: "a0", read: "0", write: WRITE_SAME, move: "D", next: "w0" },
+      { id: crypto.randomUUID(), current: "a0", read: "1", write: WRITE_SAME, move: "D", next: "w1" },
+      { id: crypto.randomUUID(), current: "a1", read: "0", write: WRITE_SAME, move: "D", next: "w1" },
+      { id: crypto.randomUUID(), current: "a1", read: "1", write: WRITE_SAME, move: "D", next: "w0" },
+      { id: crypto.randomUUID(), current: "w0", read: `${BLANK}01`, write: "0", move: "UUR", next: "s0" },
+      { id: crypto.randomUUID(), current: "w1", read: `${BLANK}01`, write: "1", move: "UUR", next: "s0" }
     ]
   }
 };
@@ -296,6 +327,38 @@ function normalizeSymbol(symbol) {
 function symbolForDisplay(symbol) {
   const clean = normalizeSymbol(symbol);
   return clean || BLANK;
+}
+
+// A rule's read field holds one or more distinct symbols, e.g. "01X".
+function normalizeReadSet(raw) {
+  const seen = new Set();
+  let result = "";
+  for (const ch of String(raw ?? "")) {
+    const symbol = ch === LEGACY_BLANK ? BLANK : ch;
+    if (!symbol.trim() || seen.has(symbol)) {
+      continue;
+    }
+    seen.add(symbol);
+    result += symbol;
+  }
+  return result;
+}
+
+function splitReadSet(raw) {
+  return Array.from(normalizeReadSet(raw));
+}
+
+// The share-URL compressor only round-trips Latin-1 reliably, so blank is sent as "_" (read back as blank).
+function readForShare(raw) {
+  const symbols = splitReadSet(raw);
+  if (symbols.length === 1 && symbols[0] === BLANK) {
+    return "";
+  }
+  return symbols.map((symbol) => (symbol === BLANK ? LEGACY_BLANK : symbol)).join("");
+}
+
+function normalizeWriteSymbol(raw) {
+  return String(raw ?? "").trim() === WRITE_SAME ? WRITE_SAME : normalizeSymbol(raw);
 }
 
 function symbolForTape(symbol) {
@@ -575,7 +638,8 @@ function getRuleAlphabetChoices() {
   }
 
   for (const rule of appState.rules) {
-    for (const rawSymbol of [rule.read, rule.write]) {
+    const ruleSymbols = [...splitReadSet(rule.read), ...(rule.write === WRITE_SAME ? [] : [rule.write])];
+    for (const rawSymbol of ruleSymbols) {
       const clean = normalizeSymbol(rawSymbol);
       if (!clean || seen.has(clean)) {
         continue;
@@ -1188,9 +1252,9 @@ function generateShareableUrl() {
     shareSnapshot.haltStates = (snapshot.haltStates || []).map(stateForShare);
     shareSnapshot.rules = (snapshot.rules || []).map((r) => ({
       current: stateForShare(r.current),
-      read: symbolForTape(r.read),
+      read: readForShare(r.read),
       write: symbolForTape(r.write),
-      move: (r.move || "S").trim().toUpperCase(),
+      move: normalizeMoveSequence(r.move, true),
       next: stateForShare(r.next)
     }));
     shareSnapshot.alphabetSlots = normaliseAlphabetSlots(snapshot.alphabetSlots || DEFAULT_USER_ALPHABET);
@@ -1310,23 +1374,21 @@ function applySavedWorkspace(snapshot) {
   appState.rules = rules.map((rule) => {
     const current = formatStateName(rule.current || "");
 
-    let read = normalizeSymbol(rule.read);
-    if (!read || read === BLANK) {
+    let read = normalizeReadSet(rule.read);
+    if (!read) {
       read = BLANK;
-    } else {
-      read = String(read)[0];
     }
 
-    let write = normalizeSymbol(rule.write);
-    if (!write || write === BLANK) {
+    let write = normalizeWriteSymbol(rule.write);
+    if (write === WRITE_SAME) {
+      // keep the "same as read" marker
+    } else if (!write || write === BLANK) {
       write = BLANK;
     } else {
       write = String(write)[0];
     }
 
-    const moveRaw = String(rule.move || "S").trim().toUpperCase();
-    const validMoves = new Set(["L", "R", "U", "D", "S"]);
-    const move = validMoves.has(moveRaw) ? moveRaw : "S";
+    const move = normalizeMoveSequence(rule.move, true);
 
     const next = formatStateName(rule.next || "");
 
@@ -2012,6 +2074,7 @@ function syncTapeViewToHead() {
 }
 
 function stopTapeSnap() {
+  appState.headVisualRow = null;
   if (!appState.tapeSnapRaf) {
     return;
   }
@@ -2025,6 +2088,7 @@ function clearTapeMoveDelay() {
   }
   clearTimeout(appState.tapeMoveDelayTimer);
   appState.tapeMoveDelayTimer = null;
+  appState.headVisualRow = null;
 }
 
 function rgbPulseColour(progress) {
@@ -2128,7 +2192,7 @@ function loadPreset(key) {
 
   syncMachineConfigInputs();
 
-  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "parity-even-ones": "Parity Check (Even 1s)", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo" };
+  const labels = { "scan-right": "Scan Right Until Blank", "unary-increment": "Unary Increment", "parity-even-ones": "Parity Check (Even 1s)", "binary-invert": "Binary Invert", "two-row-copy": "Two-Row Copy Demo", "xor-cipher": "XOR Cipher (Vernam)" };
   appState.message = `Loaded: ${labels[key] || key}.`;
   autoFitCellSize();
   renderAll();
@@ -2167,16 +2231,21 @@ function updateMachineConfigFromInputs() {
   syncStateRegistry();
 }
 
-function movementOptions() {
-  return appState.rows > 1 ? ["L", "R", "U", "D", "S"] : ["L", "R", "S"];
+// Returns a canonical move string: only L/R/U/D (capped in length), or "S" when there is nothing to move.
+function normalizeMoveSequence(raw, allowVertical = appState.rows > 1) {
+  const allowed = allowVertical ? "LRUD" : "LR";
+  let sequence = "";
+  for (const ch of String(raw || "").toUpperCase()) {
+    if (allowed.includes(ch) && sequence.length < MAX_MOVE_SEQUENCE_LENGTH) {
+      sequence += ch;
+    }
+  }
+  return sequence || "S";
 }
 
 function normalizeRulesForRows() {
-  const allowed = new Set(movementOptions());
   for (const rule of appState.rules) {
-    if (!allowed.has(rule.move)) {
-      rule.move = "S";
-    }
+    rule.move = normalizeMoveSequence(rule.move);
   }
 }
 
@@ -2203,7 +2272,7 @@ function renderTape() {
   const headCenterXContent = contentWidth / 2;
   const headCenterX = padLeft + headCenterXContent;
   const xOffset = headCenterXContent - (TAPE_ROW_PAD_X + (centerCol - fromCol) * cellPitch + appState.cellSize / 2);
-  const yOffset = (appState.head.row - centerRow) * rowPitch;
+  const yOffset = ((appState.headVisualRow ?? appState.head.row) - centerRow) * rowPitch;
 
   appState.minCol = Math.min(appState.minCol, fromCol - 5);
   appState.maxCol = Math.max(appState.maxCol, toCol + 5);
@@ -2292,7 +2361,7 @@ function buildHeadIndicator(headCenterX, centerCol, centerRow) {
   const contentHeight = Math.max(1, els.tapeViewport.clientHeight - padTop - padBottom);
   const rowsHeight = appState.rows * rowPitch;
   const topStart = padTop + (contentHeight - rowsHeight) / 2;
-  let indicatorRow = appState.head.row;
+  let indicatorRow = appState.headVisualRow ?? appState.head.row;
 
   const now = performance.now();
   const remaining = appState.headWritePulseUntil - now;
@@ -2573,12 +2642,14 @@ function remapWorkspaceSymbols(remapEntries) {
     return nextMap;
   };
 
+  const remapReadSet = (read) => normalizeReadSet(splitReadSet(read).map(remapSymbol).join(""));
+
   appState.tape = remapTapeMap(appState.tape);
   appState.startTape = remapTapeMap(appState.startTape);
   appState.rules = appState.rules.map((rule) => ({
     ...rule,
-    read: remapSymbol(rule.read) || BLANK,
-    write: remapSymbol(rule.write) || BLANK
+    read: remapReadSet(rule.read) || BLANK,
+    write: rule.write === WRITE_SAME ? WRITE_SAME : remapSymbol(rule.write) || BLANK
   }));
   appState.lastPlacedSymbol = remapSymbol(appState.lastPlacedSymbol) || BLANK;
 
@@ -2730,6 +2801,7 @@ function animateTapeSnapTo(col, row, options = {}) {
     appState.tapeSnapRaf = null;
     renderTape();
     updateStatus();
+    options.onDone?.();
   };
 
   appState.tapeSnapRaf = requestAnimationFrame(tick);
@@ -2945,7 +3017,6 @@ function renderRulesTable() {
   const tbody = els.rulesTableBody;
   tbody.innerHTML = "";
 
-  const moveChoices = movementOptions();
   const stateChoices = getAvailableStates();
   const alphabetChoices = getAvailableAlphabet();
 
@@ -2960,9 +3031,9 @@ function renderRulesTable() {
     }
 
     tr.appendChild(ruleStateSelectCell(rule, "current", stateChoices));
-    tr.appendChild(ruleSymbolSelectCell(rule, "read", alphabetChoices));
+    tr.appendChild(ruleReadCell(rule));
     tr.appendChild(ruleSymbolSelectCell(rule, "write", alphabetChoices));
-    tr.appendChild(ruleSelectCell(rule, "move", moveChoices));
+    tr.appendChild(ruleMoveCell(rule));
     tr.appendChild(ruleStateSelectCell(rule, "next", stateChoices));
 
     const delCell = document.createElement("td");
@@ -2996,6 +3067,7 @@ function renderRulesTable() {
   if (appState.activeRuleId || appState.newlyAddedRuleId) {
     scrollActiveRuleIntoView();
   }
+  refreshRuleOverlaps();
 }
 
 function clearNewRuleHighlight() {
@@ -3148,6 +3220,7 @@ function ruleStateSelectCell(rule, field, options) {
       }
     }
     renderDiagram();
+    refreshRuleOverlaps();
   });
 
   td.appendChild(select);
@@ -3157,16 +3230,25 @@ function ruleStateSelectCell(rule, field, options) {
 function ruleSymbolSelectCell(rule, field, options) {
   const td = document.createElement("td");
   const select = document.createElement("select");
-  const currentRaw = normalizeSymbol(rule[field]);
+  const isSame = field === "write" && rule.write === WRITE_SAME;
+  const currentRaw = isSame ? "" : normalizeSymbol(rule[field]);
   const current = currentRaw ? symbolForDisplay(currentRaw) : "";
   const values = current && !options.includes(current) ? [...options, current] : [...options];
 
-  if (!current) {
+  if (!current && !isSame) {
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = "";
     placeholder.selected = true;
     select.appendChild(placeholder);
+  }
+
+  if (field === "write") {
+    const sameOption = document.createElement("option");
+    sameOption.value = WRITE_SAME;
+    sameOption.textContent = "same as read";
+    sameOption.selected = isSame;
+    select.appendChild(sameOption);
   }
 
   for (const option of values) {
@@ -3181,7 +3263,7 @@ function ruleSymbolSelectCell(rule, field, options) {
 
   select.addEventListener("change", () => {
     clearHaltedStatePulse();
-    rule[field] = select.value === "" ? "" : normalizeSymbol(select.value) || BLANK;
+    rule[field] = select.value === "" ? "" : normalizeWriteSymbol(select.value) || BLANK;
     if (select.value) {
       const placeholder = select.querySelector('option[value=""]');
       if (placeholder) {
@@ -3195,63 +3277,413 @@ function ruleSymbolSelectCell(rule, field, options) {
   return td;
 }
 
-function ruleSelectCell(rule, field, options) {
-  const MOVE_LABELS = { L: "Left", R: "Right", U: "Up", D: "Down", S: "Stay" };
+function readDisplayText(read) {
+  const symbols = splitReadSet(read);
+  if (symbols.length === 0) {
+    return "";
+  }
+  if (symbols.length === 1 && symbols[0] === BLANK) {
+    return `blank (${BLANK})`;
+  }
+  return symbols.map(symbolForDisplay).join(", ");
+}
+
+function updateReadButton(button, read) {
+  const text = readDisplayText(read);
+  button.textContent = text;
+  button.title = text ? `Read: ${text}` : "Choose symbols to read";
+  button.setAttribute("aria-label", text ? `Read: ${text}` : "Read: none selected");
+}
+
+function ruleReadCell(rule) {
   const td = document.createElement("td");
-  const select = document.createElement("select");
-  const currentValue = String(rule[field] || "");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "read-btn";
+  button.setAttribute("aria-haspopup", "dialog");
+  updateReadButton(button, rule.read);
 
-  if (!currentValue) {
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "";
-    placeholder.selected = true;
-    select.appendChild(placeholder);
-  }
-
-  for (const option of options) {
-    const el = document.createElement("option");
-    el.value = option;
-    el.textContent = field === "move" ? (MOVE_LABELS[option] || option) : option;
-    if (option === currentValue) {
-      el.selected = true;
-    }
-    select.appendChild(el);
-  }
-
-  select.addEventListener("change", () => {
+  button.addEventListener("click", () => {
     clearHaltedStatePulse();
-    rule[field] = select.value;
-    if (select.value) {
-      const placeholder = select.querySelector('option[value=""]');
-      if (placeholder) {
-        placeholder.remove();
-      }
-    }
-    renderDiagram();
+    openReadPicker(rule.id, button);
   });
 
-  td.appendChild(select);
+  td.appendChild(button);
   return td;
+}
+
+function findRuleRowElement(ruleId) {
+  return Array.from(els.rulesTableBody?.querySelectorAll("tr") || []).find((tr) => tr.dataset.ruleId === ruleId) || null;
+}
+
+// Maps rule id -> { symbols } for rules that share a state and at least one read symbol with another rule.
+function findRuleOverlaps() {
+  const byState = new Map();
+  for (const rule of appState.rules) {
+    const current = String(rule.current || "").trim();
+    const symbols = splitReadSet(rule.read);
+    if (!current || symbols.length === 0) {
+      continue;
+    }
+    if (!byState.has(current)) {
+      byState.set(current, []);
+    }
+    byState.get(current).push({ id: rule.id, symbols });
+  }
+
+  const overlaps = new Map();
+  const note = (id, shared) => {
+    if (!overlaps.has(id)) {
+      overlaps.set(id, new Set());
+    }
+    shared.forEach((symbol) => overlaps.get(id).add(symbol));
+  };
+
+  for (const group of byState.values()) {
+    for (let i = 0; i < group.length; i += 1) {
+      for (let j = i + 1; j < group.length; j += 1) {
+        const shared = group[i].symbols.filter((symbol) => group[j].symbols.includes(symbol));
+        if (shared.length > 0) {
+          note(group[i].id, shared);
+          note(group[j].id, shared);
+        }
+      }
+    }
+  }
+  return overlaps;
+}
+
+function refreshRuleOverlaps() {
+  const overlaps = findRuleOverlaps();
+  for (const rule of appState.rules) {
+    const row = findRuleRowElement(rule.id);
+    if (!row) {
+      continue;
+    }
+    const shared = overlaps.get(rule.id);
+    row.classList.toggle("has-overlap", Boolean(shared));
+    const button = row.querySelector(".read-btn");
+    if (!button) {
+      continue;
+    }
+    button.classList.toggle("is-overlap", Boolean(shared));
+    if (shared) {
+      const symbols = Array.from(shared, symbolForDisplay).join(", ");
+      button.title = `Overlaps another rule for state ${rule.current} on: ${symbols}. The first matching rule in the table is used.`;
+    } else {
+      updateReadButton(button, rule.read);
+    }
+  }
+}
+
+function closeReadPicker() {
+  if (!appState.readPicker.open) {
+    return;
+  }
+  appState.readPicker = { open: false, ruleId: null, selected: [] };
+  if (!els.readPicker) {
+    return;
+  }
+  els.readPicker.hidden = true;
+  els.readPicker.classList.remove("is-open");
+  els.readPicker.style.left = "";
+  els.readPicker.style.top = "";
+  els.readPicker.style.visibility = "";
+}
+
+function commitReadPicker() {
+  const { ruleId, selected } = appState.readPicker;
+  if (selected.length === 0) {
+    return;
+  }
+  const rule = appState.rules.find((r) => r.id === ruleId);
+  if (rule) {
+    clearHaltedStatePulse();
+    const ordered = getAvailableAlphabet().filter((symbol) => selected.includes(symbol));
+    rule.read = normalizeReadSet(ordered.join("") + selected.join(""));
+    const button = findRuleRowElement(ruleId)?.querySelector(".read-btn");
+    if (button) {
+      updateReadButton(button, rule.read);
+    }
+    refreshRuleOverlaps();
+    renderDiagram();
+  }
+  closeReadPicker();
+}
+
+function renderReadPickerChoices() {
+  if (!els.readPickerGrid) {
+    return;
+  }
+  els.readPickerGrid.innerHTML = "";
+  for (const symbol of getAvailableAlphabet()) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.className = "tape-symbol-choice";
+    choice.dataset.symbol = symbol;
+    choice.textContent = symbol;
+    const name = symbol === BLANK ? "blank" : symbol;
+    choice.title = name;
+    choice.setAttribute("aria-label", name);
+    choice.addEventListener("click", () => toggleReadPickerSymbol(symbol));
+    els.readPickerGrid.appendChild(choice);
+  }
+  syncReadPickerSelection();
+}
+
+function syncReadPickerSelection() {
+  const selected = appState.readPicker.selected;
+  els.readPickerGrid?.querySelectorAll("button").forEach((choice) => {
+    const isSelected = selected.includes(choice.dataset.symbol);
+    choice.classList.toggle("is-selected", isSelected);
+    choice.setAttribute("aria-pressed", String(isSelected));
+  });
+  if (els.readPickerSet) {
+    els.readPickerSet.disabled = selected.length === 0;
+  }
+}
+
+function toggleReadPickerSymbol(symbol) {
+  const selected = appState.readPicker.selected;
+  const index = selected.indexOf(symbol);
+  if (index >= 0) {
+    selected.splice(index, 1);
+  } else {
+    selected.push(symbol);
+  }
+  syncReadPickerSelection();
+}
+
+function openReadPicker(ruleId, anchor) {
+  if (appState.running || !els.readPicker) {
+    return;
+  }
+  const rule = appState.rules.find((r) => r.id === ruleId);
+  if (!rule) {
+    return;
+  }
+  closeMovePicker();
+  closeTapeSymbolPicker();
+  appState.readPicker = { open: true, ruleId, selected: splitReadSet(rule.read) };
+  renderReadPickerChoices();
+  els.readPicker.hidden = false;
+  els.readPicker.classList.add("is-open");
+  els.readPicker.style.visibility = "hidden";
+  positionPopupNearAnchor(els.readPicker, anchor);
+  els.readPicker.style.visibility = "visible";
+  requestAnimationFrame(() => {
+    els.readPicker?.focus({ preventScroll: true });
+  });
+}
+
+function handleReadPickerKeydown(event) {
+  if (event.key === "Enter" && !(event.target instanceof HTMLButtonElement)) {
+    event.preventDefault();
+    commitReadPicker();
+  }
+}
+
+function moveDisplayText(move) {
+  const clean = String(move || "");
+  if (!clean) {
+    return "";
+  }
+  return moveToNotation(clean) || MOVE_NAMES.S;
+}
+
+function moveAccessibleName(move) {
+  const clean = String(move || "S");
+  return clean === "S" ? MOVE_NAMES.S : Array.from(clean, (ch) => MOVE_NAMES[ch] || ch).join(", ");
+}
+
+function updateMoveButton(button, move) {
+  button.textContent = moveDisplayText(move);
+  const name = moveAccessibleName(move);
+  button.title = name;
+  button.setAttribute("aria-label", `Move: ${name}`);
+}
+
+function ruleMoveCell(rule) {
+  const td = document.createElement("td");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "move-btn";
+  button.setAttribute("aria-haspopup", "dialog");
+  updateMoveButton(button, rule.move);
+
+  button.addEventListener("click", () => {
+    clearHaltedStatePulse();
+    openMovePicker(rule.id, button);
+  });
+
+  td.appendChild(button);
+  return td;
+}
+
+function findMoveButton(ruleId) {
+  const row = Array.from(els.rulesTableBody?.querySelectorAll("tr") || []).find((tr) => tr.dataset.ruleId === ruleId);
+  return row?.querySelector(".move-btn") || null;
+}
+
+function closeMovePicker() {
+  if (!appState.movePicker.open) {
+    return;
+  }
+  appState.movePicker = { open: false, ruleId: null, sequence: "" };
+  if (!els.movePicker) {
+    return;
+  }
+  els.movePicker.hidden = true;
+  els.movePicker.classList.remove("is-open");
+  els.movePicker.style.left = "";
+  els.movePicker.style.top = "";
+  els.movePicker.style.visibility = "";
+}
+
+function commitMovePicker(sequence = appState.movePicker.sequence) {
+  const ruleId = appState.movePicker.ruleId;
+  const rule = appState.rules.find((r) => r.id === ruleId);
+  if (rule) {
+    clearHaltedStatePulse();
+    rule.move = normalizeMoveSequence(sequence);
+    const button = findMoveButton(ruleId);
+    if (button) {
+      updateMoveButton(button, rule.move);
+    }
+    renderDiagram();
+  }
+  closeMovePicker();
+}
+
+function updateMovePickerPreview() {
+  const sequence = appState.movePicker.sequence;
+  if (els.movePickerPreview) {
+    els.movePickerPreview.textContent = moveToNotation(sequence) || MOVE_NAMES.S;
+    els.movePickerPreview.classList.toggle("is-empty", !sequence);
+  }
+  if (els.movePickerBackspace) {
+    els.movePickerBackspace.disabled = !sequence;
+  }
+}
+
+function appendMovePickerMove(move) {
+  if (appState.movePicker.sequence.length >= MAX_MOVE_SEQUENCE_LENGTH) {
+    return;
+  }
+  appState.movePicker.sequence += move;
+  updateMovePickerPreview();
+}
+
+function backspaceMovePicker() {
+  appState.movePicker.sequence = appState.movePicker.sequence.slice(0, -1);
+  updateMovePickerPreview();
+}
+
+function renderMovePickerChoices() {
+  if (!els.movePickerGrid) {
+    return;
+  }
+  els.movePickerGrid.innerHTML = "";
+  const choices = appState.rows > 1 ? ["L", "U", "R", "D", "S"] : ["L", "R", "S"];
+  for (const move of choices) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.className = "move-choice";
+    choice.dataset.move = move;
+    choice.textContent = move === "S" ? MOVE_NAMES.S : MOVE_ARROWS[move];
+    choice.title = MOVE_NAMES[move];
+    choice.setAttribute("aria-label", MOVE_NAMES[move]);
+    choice.addEventListener("click", () => {
+      if (move === "S") {
+        commitMovePicker("S");
+        return;
+      }
+      appendMovePickerMove(move);
+    });
+    els.movePickerGrid.appendChild(choice);
+  }
+}
+
+function positionPopupNearAnchor(popup, anchor) {
+  if (!popup || !anchor) {
+    return;
+  }
+  const rect = anchor.getBoundingClientRect();
+  const popupRect = popup.getBoundingClientRect();
+  const padding = 12;
+  let left = rect.left + rect.width / 2 - popupRect.width / 2;
+  let top = rect.bottom + 6;
+  if (top + popupRect.height > window.innerHeight - padding) {
+    top = rect.top - popupRect.height - 6;
+  }
+  left = Math.max(padding, Math.min(left, window.innerWidth - popupRect.width - padding));
+  top = Math.max(padding, Math.min(top, window.innerHeight - popupRect.height - padding));
+  popup.style.left = `${Math.round(left)}px`;
+  popup.style.top = `${Math.round(top)}px`;
+}
+
+function positionMovePicker(anchor) {
+  positionPopupNearAnchor(els.movePicker, anchor);
+}
+
+function openMovePicker(ruleId, anchor) {
+  if (appState.running || !els.movePicker) {
+    return;
+  }
+  closeTapeSymbolPicker();
+  closeReadPicker();
+  appState.movePicker = { open: true, ruleId, sequence: "" };
+  renderMovePickerChoices();
+  updateMovePickerPreview();
+  els.movePicker.hidden = false;
+  els.movePicker.classList.add("is-open");
+  els.movePicker.style.visibility = "hidden";
+  positionMovePicker(anchor);
+  els.movePicker.style.visibility = "visible";
+  requestAnimationFrame(() => {
+    els.movePicker?.focus({ preventScroll: true });
+  });
+}
+
+function handleMovePickerKeydown(event) {
+  if (!appState.movePicker.open || event.ctrlKey || event.altKey || event.metaKey) {
+    return;
+  }
+  const keyMoves = { ArrowLeft: "L", ArrowRight: "R", ArrowUp: "U", ArrowDown: "D", l: "L", r: "R", u: "U", d: "D" };
+  const move = keyMoves[event.key] || keyMoves[event.key.toLowerCase()];
+  if (move) {
+    event.preventDefault();
+    if (appState.rows > 1 || move === "L" || move === "R") {
+      appendMovePickerMove(move);
+    }
+  } else if (event.key === "Backspace") {
+    event.preventDefault();
+    backspaceMovePicker();
+  } else if (event.key === "Enter") {
+    if (event.target instanceof HTMLButtonElement) {
+      return;
+    }
+    event.preventDefault();
+    commitMovePicker();
+  } else if (event.key.toLowerCase() === "s") {
+    event.preventDefault();
+    commitMovePicker("S");
+  }
 }
 
 function parseAndCleanRule(rule) {
   return {
     ...rule,
     current: (rule.current || "").trim(),
-    read: normalizeSymbol(rule.read),
-    write: normalizeSymbol(rule.write),
+    read: normalizeReadSet(rule.read),
+    write: normalizeWriteSymbol(rule.write),
     move: (rule.move || "").trim(),
     next: (rule.next || "").trim()
   };
 }
 
 function moveToNotation(move) {
-  if (move === "L") return "←";
-  if (move === "R") return "→";
-  if (move === "U") return "↑";
-  if (move === "D") return "↓";
-  return "";
+  return Array.from(String(move || ""), (ch) => MOVE_ARROWS[ch] || "").join("");
 }
 
 function buildEdgeGroups() {
@@ -3263,9 +3695,11 @@ function buildEdgeGroups() {
       continue;
     }
 
-    const readDisplay = symbolForDisplay(clean.read);
+    const readSymbols = splitReadSet(clean.read).map(symbolForDisplay);
     const writeDisplay = symbolForDisplay(clean.write);
-    const writeNotation = writeDisplay === readDisplay ? "" : writeDisplay;
+    // Empty means "leaves the symbol unchanged"; those rules merge into one label per edge.
+    const keepsSymbol = clean.write === WRITE_SAME || (readSymbols.length === 1 && writeDisplay === readSymbols[0]);
+    const writeNotation = keepsSymbol ? "" : writeDisplay;
     const moveNotation = moveToNotation(clean.move);
     const pairKey = `${clean.current}\u0001${clean.next}`;
     const actionKey = `${writeNotation}\u0001${moveNotation}`;
@@ -3290,8 +3724,10 @@ function buildEdgeGroups() {
       pairGroups.push(group);
     }
 
-    if (!group.reads.includes(readDisplay)) {
-      group.reads.push(readDisplay);
+    for (const readDisplay of readSymbols) {
+      if (!group.reads.includes(readDisplay)) {
+        group.reads.push(readDisplay);
+      }
     }
     group.ruleIds.add(rawRule.id);
   }
@@ -3299,9 +3735,17 @@ function buildEdgeGroups() {
   return groupsByPair;
 }
 
+// An unchanged-symbol group with a single read shows that symbol after the bar; with several reads it stays blank.
+function getGroupWriteNotation(group) {
+  if (group.writeNotation) {
+    return group.writeNotation;
+  }
+  return group.reads.length === 1 ? group.reads[0] : "";
+}
+
 function buildGroupLabel(group) {
   const readPart = group.reads.join(", ");
-  const action = `${group.writeNotation || ""}${group.moveNotation || ""}`;
+  const action = `${getGroupWriteNotation(group)}${group.moveNotation || ""}`;
   return `${readPart}|${action}`;
 }
 
@@ -3328,8 +3772,9 @@ function renderGroupLabel(label, group) {
 
   appendLabelToken(label, "|", "");
 
-  if (group.writeNotation) {
-    appendLabelToken(label, group.writeNotation, "edge-label-write");
+  const writeNotation = getGroupWriteNotation(group);
+  if (writeNotation) {
+    appendLabelToken(label, writeNotation, "edge-label-write");
   }
 
   if (group.moveNotation) {
@@ -3344,29 +3789,66 @@ function findMatchingRule() {
     if (!rule.current || !rule.read || !rule.write || !rule.move || !rule.next) {
       continue;
     }
-    if (rule.current === appState.currentState && rule.read === symbol) {
+    if (rule.current === appState.currentState && splitReadSet(rule.read).includes(symbol)) {
       return rule;
     }
   }
   return null;
 }
 
+function getMovePath(from, move) {
+  const path = [];
+  let row = from.row;
+  let col = from.col;
+  for (const step of String(move || "")) {
+    if (step === "L") {
+      col -= 1;
+    } else if (step === "R") {
+      col += 1;
+    } else if (step === "U") {
+      row = Math.max(0, row - 1);
+    } else if (step === "D") {
+      row = Math.min(appState.rows - 1, row + 1);
+    } else {
+      continue;
+    }
+    path.push({ row, col });
+  }
+  return path;
+}
+
 function applyMove(move) {
-  if (move === "L") {
-    appState.head.col -= 1;
+  const path = getMovePath(appState.head, move);
+  const last = path[path.length - 1];
+  if (last) {
+    appState.head.row = last.row;
+    appState.head.col = last.col;
+  }
+}
+
+// The head's logical position is already final; this only plays the hops one cell at a time.
+function scheduleMoveHops(path, startRow, delayMs, duration) {
+  clearTapeMoveDelay();
+  const hop = (index) => {
+    appState.tapeMoveDelayTimer = null;
+    const pos = path[index];
+    const isLast = index === path.length - 1;
+    appState.tapeViewRow = pos.row;
+    animateTapeSnapTo(pos.col, pos.row, {
+      duration,
+      updateHead: false,
+      onDone: isLast ? null : () => hop(index + 1)
+    });
+    appState.headVisualRow = isLast ? null : pos.row;
+    renderTape();
+  };
+
+  appState.headVisualRow = startRow;
+  if (delayMs <= 0) {
+    hop(0);
     return;
   }
-  if (move === "R") {
-    appState.head.col += 1;
-    return;
-  }
-  if (move === "U") {
-    appState.head.row = Math.max(0, appState.head.row - 1);
-    return;
-  }
-  if (move === "D") {
-    appState.head.row = Math.min(appState.rows - 1, appState.head.row + 1);
-  }
+  appState.tapeMoveDelayTimer = setTimeout(() => hop(0), delayMs);
 }
 
 function rotateBrandLogoStep() {
@@ -3421,24 +3903,29 @@ function machineStep() {
   const writeRow = appState.head.row;
   const writeCol = appState.head.col;
   const currentSymbol = getSymbol(writeRow, writeCol);
-  const nextSymbol = normalizeSymbol(rule.write);
+  const writeSymbol = rule.write === WRITE_SAME ? currentSymbol : rule.write;
+  const nextSymbol = normalizeSymbol(writeSymbol);
   const wroteChanged = nextSymbol !== normalizeSymbol(currentSymbol);
   if (wroteChanged) {
     triggerHeadWritePulse(writeRow, writeCol);
     triggerCellWriteMorph(writeRow, writeCol, currentSymbol, nextSymbol);
   }
-  setSymbol(writeRow, writeCol, rule.write);
+  setSymbol(writeRow, writeCol, writeSymbol);
+  const movePath = getMovePath(appState.head, rule.move);
+  const isMultiHop = movePath.length > 1;
   applyMove(rule.move);
   // Machine-driven U/D movement should move the head marker, not vertically shift the tape sheet.
-  appState.tapeViewRow = appState.head.row;
+  appState.tapeViewRow = isMultiHop ? writeRow : appState.head.row;
   appState.currentState = rule.next;
   appState.steps += 1;
   rotateBrandLogoStep();
   appState.haltedReason = null;
-  if (wroteChanged) {
-    scheduleTapeMoveToHead(getMoveAfterWriteDelay(), appState.running ? 180 : 200, { includeRow: false });
+  const moveDelay = wroteChanged ? getMoveAfterWriteDelay() : 0;
+  const moveDuration = appState.running ? 180 : 200;
+  if (isMultiHop) {
+    scheduleMoveHops(movePath, writeRow, moveDelay, moveDuration);
   } else {
-    scheduleTapeMoveToHead(0, appState.running ? 180 : 200, { includeRow: false });
+    scheduleTapeMoveToHead(moveDelay, moveDuration, { includeRow: false });
   }
 
   const nextTerminalType = getTerminalStateType(appState.currentState);
@@ -3469,7 +3956,7 @@ function machineStep() {
     return;
   }
 
-  appState.message = `Applied ${rule.current},${rule.read} -> ${rule.next},${rule.write},${rule.move}`;
+  appState.message = `Applied ${rule.current},${symbolForDisplay(currentSymbol)} -> ${rule.next},${symbolForDisplay(writeSymbol)},${moveToNotation(rule.move) || MOVE_NAMES.S}`;
 }
 
 function runLoopTick() {
@@ -3530,6 +4017,8 @@ function startRunLoop() {
     return;
   }
   appState.running = true;
+  closeMovePicker();
+  closeReadPicker();
   appState.runTimer = setInterval(runLoopTick, getExecutionDelay());
 }
 
@@ -4474,6 +4963,23 @@ function initEvents() {
     });
   }
 
+  if (els.movePicker) {
+    els.movePicker.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+    els.movePicker.addEventListener("keydown", handleMovePickerKeydown);
+  }
+  els.movePickerBackspace?.addEventListener("click", backspaceMovePicker);
+  els.movePickerSet?.addEventListener("click", () => commitMovePicker());
+
+  if (els.readPicker) {
+    els.readPicker.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+    els.readPicker.addEventListener("keydown", handleReadPickerKeydown);
+  }
+  els.readPickerSet?.addEventListener("click", commitReadPicker);
+
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
   });
@@ -4517,6 +5023,34 @@ function initEvents() {
         return;
       }
       closeTapeSymbolPicker();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (!appState.movePicker.open) {
+        return;
+      }
+      if (els.movePicker?.contains(event.target)) {
+        return;
+      }
+      closeMovePicker();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (!appState.readPicker.open) {
+        return;
+      }
+      if (els.readPicker?.contains(event.target)) {
+        return;
+      }
+      closeReadPicker();
     },
     true
   );
@@ -4598,6 +5132,14 @@ function initEvents() {
     });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      if (appState.readPicker.open) {
+        closeReadPicker();
+        return;
+      }
+      if (appState.movePicker.open) {
+        closeMovePicker();
+        return;
+      }
       if (appState.tapeSymbolPicker.open) {
         closeTapeSymbolPicker();
         return;
@@ -4649,6 +5191,12 @@ function initEvents() {
     renderDiagram();
     if (appState.tapeSymbolPicker.open && appState.tapeSymbolPicker.cell) {
       positionTapeSymbolPicker(appState.tapeSymbolPicker.cell, appState.tapeSymbolPicker);
+    }
+    if (appState.movePicker.open) {
+      positionMovePicker(findMoveButton(appState.movePicker.ruleId));
+    }
+    if (appState.readPicker.open) {
+      positionPopupNearAnchor(els.readPicker, findRuleRowElement(appState.readPicker.ruleId)?.querySelector(".read-btn"));
     }
     if (appState.diagramModalOpen) {
       renderDiagram(els.diagramExpanded);

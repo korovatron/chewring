@@ -1271,6 +1271,134 @@ body.touch-input .tape-symbol-choice:active {
   border-color: #3b6b93 !important;
 }
 
+.move-picker {
+  min-width: 0;
+  width: max-content;
+  outline: none;
+}
+
+.move-picker-preview {
+  min-height: 1.6em;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid #3b6b93;
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  word-break: break-all;
+}
+
+.move-picker-preview.is-empty {
+  opacity: 0.5;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.move-picker-grid,
+.move-picker-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.move-picker-actions {
+  margin-top: 8px;
+}
+
+#movePicker .move-choice,
+#movePicker .move-picker-action,
+#readPicker .move-picker-action {
+  min-width: 46px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: #244562;
+  border-color: #3b6b93;
+  box-shadow: none;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+#movePicker .move-choice[data-move="S"] {
+  font-size: 1rem;
+}
+
+#movePicker .move-picker-action,
+#readPicker .move-picker-action {
+  flex: 1;
+  font-size: 1rem;
+}
+
+#movePicker .move-picker-set,
+#readPicker .move-picker-set {
+  background: #1f6a3c;
+  border-color: #38a165;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #movePicker .move-choice:hover:not(:disabled),
+  #movePicker .move-picker-action:hover:not(:disabled),
+  #readPicker .move-picker-action:hover:not(:disabled) {
+    border-color: #5f97c4;
+    background: #2f5678;
+    box-shadow: 0 6px 14px var(--button-shadow);
+    transform: translateY(-1px);
+  }
+
+  #movePicker .move-picker-set:hover:not(:disabled),
+  #readPicker .move-picker-set:hover:not(:disabled) {
+    background: #27824b;
+    border-color: #4cc07f;
+  }
+}
+
+#movePicker .move-choice:focus-visible,
+#movePicker .move-picker-action:focus-visible,
+#readPicker .move-picker-action:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #d7e0f2;
+}
+
+.read-picker {
+  min-width: 200px;
+}
+
+.read-picker-hint {
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  opacity: 0.75;
+  text-align: center;
+}
+
+.tape-symbol-choice.is-selected {
+  background: #1f6a3c;
+  border-color: #38a165;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tape-symbol-choice.is-selected:hover:not(:disabled) {
+    background: #27824b;
+    border-color: #4cc07f;
+  }
+}
+
+body.touch-input .tape-symbol-choice.is-selected:focus,
+body.touch-input .tape-symbol-choice.is-selected:focus-visible,
+body.touch-input .tape-symbol-choice.is-selected:active {
+  background: #1f6a3c !important;
+  border-color: #38a165 !important;
+}
+
+body.touch-input #movePicker .move-choice:focus,
+body.touch-input #movePicker .move-choice:active {
+  outline: none !important;
+  box-shadow: none !important;
+  background: #244562 !important;
+  border-color: #3b6b93 !important;
+}
+
 .alphabet-modal {
   width: fit-content;
   max-width: calc(100vw - 24px);
@@ -1875,6 +2003,49 @@ th {
 td input,
 td select {
   width: 100%;
+}
+
+#rulesTable td .move-btn,
+#rulesTable td .read-btn {
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 24px 6px 6px;
+  border-radius: 6px;
+  text-align: left;
+  font-family: "Segoe UI", "Segoe UI Symbol", "Noto Sans", "Trebuchet MS", sans-serif;
+  line-height: 1.3;
+  color: var(--ink);
+  background-color: var(--control-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9c3ee' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  border: 1px solid var(--control-border);
+  box-shadow: none;
+  transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#rulesTable td .move-btn:hover:not(:disabled),
+#rulesTable td .read-btn:hover:not(:disabled) {
+  background-color: var(--control-bg);
+  border-color: var(--control-border);
+  box-shadow: none;
+  transform: none;
+}
+
+#rulesTable td .move-btn:focus-visible,
+#rulesTable td .read-btn:focus-visible {
+  outline: 2px solid #d7e0f2;
+  outline-offset: 0;
+}
+
+#rulesTable tr.has-overlap td:nth-child(1) select,
+#rulesTable tr.has-overlap td .read-btn,
+#rulesTable tr.has-overlap td .read-btn:hover:not(:disabled) {
+  border-color: #ff5a5a;
+  box-shadow: inset 0 0 0 1px #ff5a5a;
 }
 
 #rulesTable td select {

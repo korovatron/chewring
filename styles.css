@@ -633,6 +633,15 @@ button:disabled {
   overflow: visible;
 }
 
+/* .tape-panel.card uses overflow: visible (so the tape controls popover can
+   escape the card), which means the card's border-radius no longer clips the
+   header background. Round the header's own corners to match so it doesn't
+   poke out past the card's rounded top corners. */
+.tape-panel.card > .panel-head {
+  border-top-left-radius: 9px;
+  border-top-right-radius: 9px;
+}
+
 .tape-viewport {
   position: relative;
   display: flex;

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chewring Task Solutions (Teacher Reference)</title>
+<meta name="robots" content="noindex, nofollow" />
+<style>
+  :root {
+    --bg: #000000;
+    --panel: #2e2468;
+    --panel-head-top: #3a2e80;
+    --panel-head-bottom: #2e2468;
+    --ink: #e8edf2;
+    --muted: #c9c3ee;
+    --line: #5a4da8;
+    --accent: #ff8f6b;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  }
+
+  body {
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    margin: 0 0 6px;
+    font-size: 1.7rem;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .notice {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.12));
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+
+  .notice strong {
+    color: var(--ink);
+  }
+
+  ol.task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  .task-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: #000000;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+
+  .task-row .task-title {
+    font-weight: 700;
+  }
+
+  .task-row .task-name {
+    display: block;
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin-top: 2px;
+  }
+
+  .solution-link {
+    flex: none;
+    display: inline-block;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #7f74c6, #5d529f);
+    border: 1px solid #241a55;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+
+  .solution-link:hover,
+  .solution-link:focus-visible {
+    background: linear-gradient(180deg, #9388db, #6f63b6);
+    outline: none;
+  }
+
+  footer {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  footer a {
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Chewring &mdash; Task Solutions</h1>
+      <p>Teacher reference only. Not linked from the main app.</p>
+    </header>
+
+    <div class="notice">
+      <strong>For teachers' use.</strong> Each button below opens a working Turing machine in Chewring that solves the
+      corresponding task from the Tasks list, pre-loaded with an example tape. Press <strong>Run</strong> (or
+      <strong>Step</strong>) to see it in action. This page is not linked from the Chewring app or the Tasks menu, so
+      students won't stumble across it &mdash; please don't share this link with them.
+    </div>
+
+    <ol class="task-list">
+      <li class="task-row">
+        <span class="task-title">Task 1<span class="task-name">Find The Separator</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhs6EAF1MA4ROyjps1ACYxICUqGoAzOoDEUmdoAs6zceEBWc1OkgYHKKwAqXHv22jxR5fKG+2mo+WsJ62IahqGYhlqg2IfYAFhDsACZooLh4aILYJAjkuQC+2I7szgASqRmoWfi5+YUlZU6sVBysPA4k7Cj5AK5QUBBI7Z3dML39IOwkZJzj7F2EfPYjAFYQJEsraLzJ7OS7EKsCSUesRg4TZz196hfH144QnKt5IOTsjgAK32Q0lQAJ4AWwARs1UAFsEdOBdwRB2uQEKw7gANdQAQnUAH51ABBdQAIXUAGF1AARdQAUXUADF1ABxdSVdQASWuUAG5FO+1AJCGIzGaHuMxG6VFgn8eCgcC6opg7FBDGwoIQkFFACV1EgIAAPK7QqYPUoCoWjI1i9QS2ogQzYWXyybK1UgdWa6FUXUGq1PK7FSTFIA" target="_blank" rel="noopener">Solution 1</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 2<span class="task-name">Reject Any Zero</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATIuWyhqAMybp24QBZFolToCsBi8IBsNo6gDsiyVJkgYHKKwAqXDz8OqIShqoK2FqqGlHhOvpxtqim2OZO1klODlmqrmEe2AAWEOwAJmiguHhogtgkCOS1AL7Y3uy+ABKlFahV+LX1jS1tPqxUHKw8XiTsKPUArlBQEEjjk9Mws-Mg7CRknOvsU4R8u-sQh4Y4EABWECRHJ2gCK-eP10Xs5E8Qp7yedrPM5bOaKPYHViKN4PKGAqacU51EDkdjeAAKqLIZSoAE8ALYAI2GqCE4PInC+hIg43ICFY-xAAA1FABCRQAfkUAEFFAAhRQAYUUABFFABRRQAMUUAHFFJ1FABJa5QBbkP4vUAkJYrNZoGZg7ArcoGyIgPBQOBTA0wdj4hjYfEISAGgBKiiQEAAHlDSaCUK1tbrVn7DTsTb0QJJsJbrZt7Y6QM7XaSPdgvb7bdsQEHSCH9f6c8aegbQharTb-YnFCnplRPT6wzCPnmdctQ9mjTdTaTFHGq14a06XfXG1nSRDLlDmlJmkA" target="_blank" rel="noopener">Solution 2</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 3<span class="task-name">Unary Addition</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATIuWyhqAMybp24QBZFklToCsBi8IBsNo6gDsZ6TJAwOUVgBUuPPw6ohKGqgrYWqoakWE6+rG2qKahSdaJTg4Zqq6pHgAWEOwAJmiguHhogtgkCORVAL7YXuw+ABJFpajl+FU1dY3N3qxUHKw8nsOKJACuUFAQSCNjEy0+iuwkZJzL7OOEfB4LAFYQJLv7aLwF7OQXEAcC+beshpN7D1fv680k7EgAeSQDwinj+gOBMBiIGg7BgEAAMnDWECGNhnnc3l4IJwDtUQORkQAFQlkYpUACeAFsAEYDVBCDbkTjPGkQEbkBCsR4gAAaigAhIoAPyKACCigAQooAMKKAAiigAoooAGKKADiijaigAkm8oDNyJ8+KBZvNFq8GWtXtgFiU0CBJNg8FA4ONHTB2FS0SAqQhII6AEqKYEADytYP+qJgCiaZrmCyWnvBMdB9q6SkUrvdq29vv9gYZIew4cjMFTkLjmATFuT1srIMUGcdzpAOY9DNBhYmJZAZZT0chGnjpETlsHEIe0JbXezbs7nnzih7wdDEAjk5jI5rY7r5cbUObnVb89zjpXAYmCPXm4ZsPhSK8qJAo-NScjD8RyJfdpPc5dBcJkvIsQCoW9IwxV4GikBogA" target="_blank" rel="noopener">Solution 3</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 4<span class="task-name">Binary Successor</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATItEqhqAMyLlsnQBYD0o8ICsiyVJkgYHKKwAqXHvx2iJ51QuyGqhrYWhZ6ZtrCpgG+OtY+dtgAFhDsACZooLh4aILYJAjkuQC+2I7szgASqRmoWfi5+YUlZU6sVBysPA5tiiQArlBQEEjtnd3lzorsJGScY+xdhHz2wwBWECQLS2i89kns5NsQywIHR+Y9iye7V1NlJOxILggAokgZ2ABm5HCcHddFHAkDBoKwADI1YEAc0q7BgSUU51Yl0cEE4yzyIHI8NYAAUcWQ0lQAJ4AWwARs1UEJpuROAcKRB2uQEKxTiAABqKACEigA-IoAIKKABCigAwooACKKV6KABiigA4opKooAJKXKD9cg3PigAZDEYommTFHYYbpNAgSTYPBQOBdG0wdhkhjYMkISA2gBKiiQEAAHqaHI9nm8PiBSobBsNRi7wy93p8cDUbYJ-CAHU6Jm6PSAvT6af7sIGQ4mnsmozHSHGTZWIynFFbarbFDnnWb84oi91wQHg6Gfn8Ac7a0b48Pfv9xi30zSs53ut5C97+4OKzSR7PARP6wntzOxwXWxmO46u0pe+ubVRN6HkdHMLHjYeQDuT-PrTS7dnL90WZ9jaA5lkONrAqCziQukMJwgiz6vlOEEgmCMFpHB8KIpaC4gBeuY2n+wE0veYFbiAT7FFIxRAA" target="_blank" rel="noopener">Solution 4</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 5<span class="task-name">Recognise 0^n1^n</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxQ6bKGoATItEy5qAMyblOgCyKF21QFZTh1QDZrUmSBgcorACpce-VaIk35A3NhDWwtFWF9MIDUE2wzCNQreJj7FMdsAAsIdgATNFBcPDRBbBIEchKAX2wXdjcACRz81EL8ErKK6trXVioOVh5nXsUSAFcoKAgkPoGhurdFdhIyTln2QcI+EGXV1mUcCAArCBJ1zbQBKZOzg8z2cnOILd4nOovthf3sADM4JFyAC1oAhFH8AQB5JAMbBTVgTJDuBD9erfHYrCBrRTXU77N6DThbUogcjsFwABVJZFyVAAngBbABGXVQSmwD0490ZED65AQrBeIAAGooAISKAD8igAgooAEKKADCigAIooAKKKABiigA4ooGooAJIHKBjcjPS6gcaTab7VlfbHNNAgSTYPBQOCDF0wdj0mEgekISAugBKimhAA97SBwUCQSAataJlMZi648DcE68i6Re7Pd6HX6A0GQ6zw9gozGMwmk6QU3b0-941nYc7WX4QB6vUM84Hg0MKyAq03IdDE5hk7a06ya63DjnWQp8z2fcXFKWhlQIxBoy6cbc6zbU9Xm5nQW3FyBFN3C8519hNy7t5XdzHdpj9keGzPY82oQGUxXkKna3vMD79mWIBDiOs7-uO37TqeY6Ae2IDLl2Ba9huA4ugAMjue6snCCJIiiiyISeo65AB2YtNeK53r6-o4VBL7Dm++7HLiE5TlRxE8qRyIjJe9EgegbqYauRYsY+uGsgRr5EYc8JQIiwmorx9ZIVxqnqeRaJAfRN5YWusmQYOhExo6VRSFUQA" target="_blank" rel="noopener">Solution 5</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 6<span class="task-name">Duplicate With Separator</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATIuWyhqAMybp24QBZFkqTJAwOUVgBUuPfjtETDqhdi2qNX9zv0-FR1TNwtsAAsIdgATNFBcPDRBbBIEcmSAX2xrdlsACWi41AT8ZNT0rJybVioOVh4rGsUSAFcoKAgkWvrG3NtFdhIyTh72BsI+S06AKwgSMYm0XksI9nJFiEmBNY3DJvGt5YOB7AAzOCQYgDkIAA9WRQBzBDsEAFErxU7WdqQ3up5R7YH5-AE1ABiCCgAGFyNEkK1ON8tqxoRAqCR2EhAaccKj0Zjsc9XggIZd1p84pF1o9LNYIJxJikQOR2NYAApssgxKgATwAtgAjSqoISDcicNZCiC1cgIVjbEAADUUAEJFAB+RQAQUUACFFDDFAARRTvRQQxQAcUU+UUAEl9lBWvDtqA2h0uo8xf1gfjYmgQJJsHgoHAGkGYOwBQxsAKEJAgwAlRRIe4+kAXK63B4gbIe9qdbpB7M3DMowNi1Wh8OR30xuMgBNJsWp7DpvNisu5x4F0hF72ly7lvMgopBzwgMMRxo15uJxrtkCdzMvN5U-OYQtekvdke9yvFYOKGf1qyNxQtxoAGTTFbFoKg-wQuNYUNh8OxSK3O+La9JTdxyrJQQ2nOs+kveNFxTe8uxAdcPi+ftPX-INEKAgNj1PCDJyvGCxTvDsH3xX5n3BIFfwHXdMyfF83yPSdxHnM9INjfDWxAIiVxIuiKIGFDBz3UiwVfZpgOw2tZyjKCF045dVyjZpBJooM+LEoEPzhBEfwkpiWNwht2OgzjuMUx9ZVEt8tK-RFkRUtCLLI+jIWhbTv2RPSxRw6SjKba9YOI+DOmsQksRxZTt2oxz8VCzoiQiyivJPKTz2jYy5KXODaIJeLwqo1ChwsuKMXy5KDN8pQOKyoKcpKhKCqEuq0Ty4lkrA1iZIygK22y9DSXJJBKWQqLCuExDBuG6ksLw1K2P8giQAUkiJopchNwcoqEIGtbMM6ECfPPMCepAKg+rFXY+ykTIgA" target="_blank" rel="noopener">Solution 6</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 7<span class="task-name">Palindrome Check</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATItEqhqAMybpsnQBZFyo8ICsiyVJkgYHKKwAqXHvx2iJh1QuzmqhrYWhZ6BtrCpgG+OtY+dtgAFhDsACZooLh4aILYJAjkuQC+2I7szgASqRmoWfi5+YUlZU6sVBysPA5tiiQArlBQEEjtnd3lzorsJGScY+xdhHwgM3OshjgQAFYQJAtLaALDu-ubSezkBxDLvPblhyuTG9gAZnBIaQAyEK8vDhAIABrABKcAA5klWN4AcCwZDWP5Vqx4VCYYtUYjFMNWIMkD8-tNZhB5tidnsNvcupxlnkQOR2I4AAoMshpKgATwAtgAjZqoITTcicC48iDtcgIVi3EAADUUAEJFAB+RQAQUUACFFABhRQAEUUAFFFAAxRQAcUUlUUAElNlB+uQbkdQAMhiMNgLnmT0mgQJJsHgoHAuv6YOwuQxsFyEJB-SDFEgIAAPL0gd6fAkbUpuwbDUb+zPfX7-YZ+gXyoMhsPeyPRkCx+MCxPYZNposfEuE3OkfOeztZ0u+2qC6uh7pVxtx7qtkDt9MwQGgiFokC990F9PF7Mj-1I4MT-1TpuzpOpxfLzEKDf9wsCnfD7Dl0eBkCH2sOeuKU-+qjnjsBTWEkc0wPMPXvDMu13Z8an9RQPwmb8YxnP8APTYDSVvCDLzhVdoT3AVBAPGskKjH9UJbdDwyvfDRGwrcaLwhEYRfY830Q8NkOnZsQC+aigJROj1zAvscKYlcESRNiiJIo863IlDeLnBcJOvETwMY71aKkwi5Q40iuMUnjun4tsL39DF8JvUTNwHQTMVYuCiIQwzKwo3izPnCyBRxPFdwY+zkUcvS5M-CNjN-AV-3MwCtlOUDNKCqyWL0qdOIUhsopAGLvLizDErErTgus0LXPkuUPNMgStlxKB8WHQLIJSqFpOcsd3zcr9IsonKapOCkNKK5KhN02CK0q8dwu47LctUoDiSw2y73TPz6pgrYJuI8rpp6zz+vFfzGuW8TfMO9an020d0q6iKst6lSfKgoceykYogA" target="_blank" rel="noopener">Solution 7</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 8<span class="task-name">Unary Subtraction</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATIuWyhqAMybp24QBYDKnQFYzR1ADZFk88IDs11QA43Oxg+kyQMBxQrAAqXDz8OqIShqoK2FqqGgmxOvopTqimGTZWOar2MZmu+TqepcI+Rf4AFhDsACZooLh4aILYJAjk7QC+2IHswQAS9U2oLfjtnd19A0GsVBysPAELiiQArlBQEEiLy6uDwYrsJGScB+wrhHz+uwBWECRXN2i8tezkrxC3AjVfViGNbXX7vEEnAYkdhIEIIACycAaDXIDChMLhAFEkE1OnUSABrABKcAA5jVWAARMlwIHYaDsGAQJZfCAhKDsODkOBIUmKXasbawhAAGQgADNWPEcBBBVBhWLJckQAymYqqTS6SqOUyWajEcjUYpxTyvpidWiQADvsDAhBOLcOiByIzWAAFF1kBpUACeAFsAEazVBCU7kTgAgOyqjkBCsP4gAAaigAhIoAPyKACCigAQooAMKKSmKTGKABiigA4ophooAJLAqCbVF-UBbHZ7IEh45a3aNNAgSTYPBQWlHdh+y1+hCQQdExRICAAD27AWhwoNKIY-Xb212+0HMA3cK3Ruw-fGSkUo-HR8n09nqwX2CXq6PJ4RSO3IF3pH3XYfhiX6Gpal6DsOIC3is95TooM5ziGL4gG+a7HsB2JNH+HYHmhn6YfyYyDugAD6N5jjBPYPvBT7zouK54RhOK-pge6doePb4cxF5ESGkHQROcHYAhqwivR74hiQ+LEmSFLUqStIsWxuGDlJzwyeSGoKX2vHXiOFGrJBIl0a+DGDqqzIcKi7KctyvJKf+7FrmphIkpp8mKTxA4huRd5UUJIDGSGYmmRJpDSW5cmag5OGAZJEWyVpnkyt5Q6+ZRIA0YhIDIahg4mkgZoWjFAEcdqjKWayNlcjyfJeVe-EGYOWWieJa4CkKcLqgo2Gle1sqdaKEpSoRqWkelgmPtlIUoWZIYdfKXXDT1rGOSp80DYtQ2StK4F8RNsFTa1oX9XKCrDRovVOYOC3nUqo1XuN+l+QE1HCbRwVtTdm13awl2rbFZW3Ut931RBB3+Udg4zXlIYWeqHlAld63lWqw2Iw9xEQ2l73Zblc2o5V+rfkayNxYTeoQGeYG6Y1L0tSZs1hehwoEWTZUFUVFWYz5z0ZTAb2BR9OVfSGnPkOa3Ps2u4uS0yPM41BTW80L2VUKLVqAr+Ui9EAA" target="_blank" rel="noopener">Solution 8</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 9<span class="task-name">Unary Multiplication</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xpYgDGEANuQMpwBeEaAnI9gC4CGADg6gNq8gADKkEhsAYhABdTAOHoxIBTLmoATIuWyhqAMybp24QBZFklToCsBi8IBsNo6gDsZ6TJAwOUVgBUuPPw6ohKGqgrYWqoakWE6+rG2qKahSdaJTg4Zqq6pHgAWEOwAJmiguHhogtgkCORVAL7YXuw+ABJFpajl+FU1dY3N3qxUHKw8nsOKJACuUFAQSCNjEy0+iuwkZJzL7OOEfB4LAFYQJLv7aLwF7OQXEAcC+beshpN7D1fv680A1nCcACCigAZnAkMUAEKKBasOZIXwIUatVghUgITgAT0BAH1FqwoJjphjsTiwRDiVjcQBzBCIgCiFP6VJxsPhiORP3RLIWXgQCwAShA4VAUMzSbzWPyIFQSOwkJzXuLcZLpbL5YoCexIOQOVNsNB2DAIIDFYpDcbgQaoEaINDsODjT4ADKdcHUtpG-KKWmI3xQGYQRmlbDPO5vLwQTgHaogchG1gABXjZGKVExAFsAEYDVBCDbkTjPLPCqjkBCsR4gAAaigAhIoAPyKK0ge0gADCigAIop6YoAGKKADiijaigAkm8A+RPnxQLN5vi0N8lThOivJNg8FA4OMVzB2BmGNgMwhICuBYokBAAB6vPMwf5AkBNBdzBZLA-P1sLEoriIQB3PdViPE8QDPC88yvbAb3vb8AWBN9SA-ZdHx-GENzzLcgN3fdHzAxRIImGCQDgh8QHJKFX0wd8ly-PMqPbP8uhAABNRRgPwzxCNPc8SOvO8KKYmi6M-YTwWo7AWIAzi8ImDi+KgkBnUE+C8zZUU9RRURkMXcSVxE6SsJAHCuNA48iP4ldVNgoSVy1HVtPWPTUIY9cRQRJFhjRGS83Qas2LM+SD14iDrLzWyyPsjThXZbydNElD6IozSvMVXyTLkkDQsspSBLs9TuVJfFCSS-S0OK3FSqJYz-2w7LuMPPLwuU0jyJXWoWSo8q3IorrSR6urWNrbcQoIlriMvNT+pJXEetclLOrmslJMw+qlEaiZRtagroqKgaaTpBBg16pa80O1amXXDbgpyibwKmyKZuWnkHilQU4tFM6DIulbfRO66-KUQK7qasKnpAdqYqqnEAdOxbfth+Ggaysb7s2-KbJev63s85zXkRyrLrSgn1tYgKgq23LHoilScdh0mEpc2jkqRkmvvS-UbtY6mHqstqGcumqfuJlbVU+zzyZXaswYs2nlKijrcYld7pSFKWifcjm+Ul+FpbzPmeMmunoYO8W1YWdUFSmLXZre3WZTlG2UQN0yjeahW9uVxnLadjU7de1XHett2dvM2SsegoWLZD53Re12OPv9sUec3D2IdNhmRMDvNHIoMnhoAqn0fBk3FYZ-PdWZwnWYq9yq8LtPDdL+WBe9mGLRNM1c5ALvTW54G5ZXdvpsKij+4TiebUtN3AIjlvdrH-bp9tJC676ldJ6LhrW5HqOoYZrvoV74+3ZL3CMdH6Px63me7Snu-bWYkz5-G42vex2+80daBWFdEo7pPQwG9Kfe+L8NpGxwpDKgDMwy1zEpVX+Lo3RIA9F6N2UDr6H2-iAAG-pAwIw3udPBx0CFBlRhtN+GNPbYLNhRfBAYKGlF7owwhlDeZ713kvPMsDcHwNfFIBoQA" target="_blank" rel="noopener">Solution 9</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 10<span class="task-name">Binary Addition</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xoDM2AxhADYUDKcAXhGgJxPYAuAhgA6OoDafEAAZUQkNnQgAupkEjJ2MTLmoATOJCTlw1EQ1bZOgCwalhkQFZT086gBs+myoDsj7elHX3GL4Y-qJJ01dX0EPE0DvK0i-ezdY10VpGRAYTig2ABVuXgEdMRiVBWEgkQDNUpDC41CdaJLtEQdqkUSK7wKG2OKzMLV4vr0k7wj22PqDPuaxvralFIALCA4AEzRQXDw0ITIECjRnAF9sNI4MgAlltdQN-G3d-dQjk-S2ak42XhAkBABhM6gAE8NKQAK5QKAQJBvD5fH7-CHA7AcUjkLgwjifQj8FKQgBWEFIGKxaD4iw4FGJEGxggWFLYNlSsJp3z+AKRIDwcDYCwRQI0SFIAH0OJ1BSLinhhaKNFKJbKoNyINRQQBbIRC+HshVKlWq9CatmInWfPUark8vkcvCK01qg0W3na7A2pUAeUgUAAZhQ7tg6ZTGWkIFxsTsQBQOGkAAqR8graiA1UAIz2aBKyIoXDpyYgb19bBZAA0NABCDQAfg0AEENAAhDS-DQAEQ0AFENAAxDQAcQ05w0AElGVBQRRqaTQGCIVCGahWVaNJDVunOq7PumYBxVYxsKqEJB063sEgIAAPOffaViY5T8GQ6HprXG7DL64VF22r5bncafeH+dj2+c9L3FDhJFvEBpwfUCjX5V8rnTE1v23XcQH-L5qAFED0wDBlIOg2d00dRcEJXec1y-TdUL-A8viA08L2I68QAI+8iPnEjnRwRD50lKj5x-NCMKPbCmM46UIMwO8Z0fTjuSdF8ePIkBkOo389zoo8GJwzivw9aAfTuNjZNAliyPfSilXU4StMAsTL3XZU1Q1Z9+RMmCn3M5T3346zBJozSAJAHTxM5L89QNNzgQ8jir3lCzVzUgKNPQuyQoc4iIvtQ1F1iuT4vApdeI-cL-NSQK0uC0LHOy9UhS4418sc7y3ySz9yqE2jqsyvTdRy6LWOkqD2IKuUZUSvjkoq1KRPsk9dLKu16sa9zhsIsbJOKlSrI3FLbJ6hawqcs0GoUvL1tGlqEp89M-L2maDvo3qluc-UzstbVmqy-r6sGybVI6h7OjmkAABkAFUIZewbvr65aorgjk2vnabilByHoaO2CLpkzz4be81zu4lHAde9qqq+TGXtWmLLtMn6EY+xT4Nu1Gga+dH0up7HiOJpr6fx16DO9X0tgBtHuswl68NYqRDiAA" target="_blank" rel="noopener">Solution 10</a>
+      </li>
+      <li class="task-row">
+        <span class="task-title">Task 11<span class="task-name">Mirror Copy</span></span>
+        <a class="solution-link" href="https://www.korovatron.co.uk/chewring/#share=N4IgbgpgTgzglgewHYgFwEYA0IoIO4xoBM2AxhADYUDKcAXhGgJxPYAuAhgA6OoDafEAAZUQkNnQgAupkEjJ2MTLmoi4kJOXDUAZnWbZ2gCzqlMkDE5Q2AFW68B2sROmH5p1yrUutIvT7dUE0VpcwALCA4AEzRQXDw0ITIECkSAX2xLDmsACUiY1Dj8ROTU0QyLKzZqTjZeC1IOJAAZdVIAVygoCCRq2vqYRpb1DlJyLj6OOsJ+c26AKwhSSem0PnCOChWIGcEwzbZXSqmdtYam1rJsqABPZucQRq67hRAuClGIe-V3z+bXgC22QA1gAlNrXG6gh5PW6g16-cjQn4fJGvfZbI6WCBcGZJEAfSwABVRECi1BuAIARik0MIRhQuPsqRBqhQEGxdiAABrqACE6gA-OoAILqABC6gAwuoACLqACi6gAYuoAOLqHLqACSRyg7Qop34oA6XR6h1Q52G2G60TpvOweCgcDqdIeAIQkDp4OwSAgAA8LVbWhkTZ1ur06YMLupbQUQALHc7XZbAZ76j6QH7A1GhiHMGGzZHLdHrTh8m71E6XfUHSAPV7LZns0HYXcxKHHuHzbmYzaK6mq8n6on6+nveoW3S2-8QJ3TRGg6XLuW7ZahzWoxwAYxsA36tRJwGgxjDvPu8XHpDvv218JXtWUxZt7ux42QM3j9Prx2C12i62P6xgOPJ8gA+huT4wC+6j7nSzTyr6X6WoiXy-oWi7fs8s63vGQgPsOW47rB45NkeOaWjOkjngBWG3Dhq7xty4GQQMMF7qRIAIeRQaobONGYShpI3oxdKsZWHHvgAqjxdJAlAYJzn+C49kJfyvHGYlJpug6SfUMlIRR9YguCAmqcZCmZpploPI+tYke+K5TpRkLImZl7yYpuF0gROkJg59ROchV7PPCSkYeZnlWSBdZ2RJb4ZrJJZ5uF-6CRZXmiZao5xbpCUToZS4pe5gGhQ81n3uJJbsfllpBUZbZucpF6lXC5UxTlhHVcRel0ohWbBahTURZejUaSB+FVc+PW1VxSUhXC1HNbRLmheNd7MVN0EzXBlr9c5bykmFJV0kN7V3lN7qcQZA1GcuqUqZeQ3rfGU1ptJ833WkUhpEAA" target="_blank" rel="noopener">Solution 11</a>
+      </li>
+    </ol>
+
+    <footer>
+      Generated for the Chewring task set &middot; each link encodes a complete machine via Chewring's Share URL
+      feature.
+    </footer>
+  </div>
+</body>
+</html>

@@ -5,22 +5,16 @@ start-tape: 1^01#11
 expected-tape: 101#^10
 ===
 
+title: Reject Any Zero
+description: Accept if the tape contains only 1 symbols. Reject as soon as a 0 is found.
+start-tape: #^111011#
+expected-tape: REJECT
+===
+
 title: Unary Addition
 description: Add two unary numbers separated by # by combining them into one unary block.
 start-tape: #^111#11#
 expected-tape: #^11111
-===
-
-title: Unary Subtraction
-description: Subtract the right-hand unary number from the left-hand unary number. Assume the left side is at least as large as the right side.
-start-tape: #^11111#11#
-expected-tape: #^111
-===
-
-title: Duplicate With Separator
-description: Copy a unary block so that the output is the original block, followed by #, followed by the same block again.
-start-tape: #^111#
-expected-tape: #111#111#^
 ===
 
 title: Binary Successor
@@ -29,22 +23,28 @@ start-tape: #^1011#
 expected-tape: #^1100#
 ===
 
-title: Reject Any Zero
-description: Accept if the tape contains only 1 symbols. Reject as soon as a 0 is found.
-start-tape: #^111011#
-expected-tape: REJECT
-===
-
 title: Recognise 0^n1^n
 description: Accept strings made of some number of 0 symbols followed by the same number of 1 symbols. Reject anything else.
 start-tape: #^000111^
 expected-tape: ACCEPT
 ===
 
+title: Duplicate With Separator
+description: Copy a unary block so that the output is the original block, followed by #, followed by the same block again.
+start-tape: #^111#
+expected-tape: #111#111#^
+===
+
 title: Palindrome Check
 description: Accept if the binary string reads the same forwards and backwards. Reject otherwise.
 start-tape: #^1001#
 expected-tape: ACCEPT
+===
+
+title: Unary Subtraction
+description: Subtract the right-hand unary number from the left-hand unary number. Assume the left side is at least as large as the right side.
+start-tape: #^11111#11#
+expected-tape: #^111
 ===
 
 title: Unary Multiplication
@@ -54,6 +54,12 @@ expected-tape: #^111111#
 ===
 
 title: Binary Addition
-description: Add two binary numbers separated by # and leave the binary sum on the tape.
-start-tape: #^101#11#
-expected-tape: #^1000#
+description: Add two 8-bit binary numbers using column addition, just like on paper. The top row and the row below it are the two numbers, aligned in the same columns; your machine should process them from the rightmost (least significant) bit to the leftmost, writing each sum bit to the row below the two numbers. You can track the carry using your machine's states rather than a separate tape row.
+start-tape: 10110011^|00101110|
+expected-tape: 10110011|00101110|^11100001
+===
+
+title: Mirror Copy
+description: Copy the binary string on the top row so that its exact reverse appears directly underneath it, in the same columns. You will need a second tape row.
+start-tape: 1^0110|
+expected-tape: 10110^|01101

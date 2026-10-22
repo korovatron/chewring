@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v1.0.53";
+const CACHE_VERSION = "v1.0.54";
 const CACHE_NAME = `chewring-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -12,7 +12,7 @@ const APP_SHELL = [
   "./images/appIcon.png",
   "./images/preview.png"
 ];
-const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest"];
+const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest", "/tasks.txt"];
 
 function isAppShellPath(pathname) {
   if (APP_SHELL_FILES.includes(pathname)) {

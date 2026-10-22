@@ -141,6 +141,36 @@ body {
   user-select: none;
   -webkit-touch-callout: none;
   touch-action: pan-x pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: #6d63b0 #000000;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7f74c6, #5d529f);
+  border: 2px solid #000000;
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9388db, #6f63b6);
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+  background: #000000;
 }
 
 input,
@@ -1113,6 +1143,31 @@ body.touch-input button.tape-cell:focus-visible:not(:disabled):not(.hamburger-bt
   box-shadow: 0 8px 20px rgba(10, 6, 30, 0.4);
   max-height: calc(100dvh - 32px);
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6d63b0 #1a1430;
+}
+
+.modal::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #221a44, #140f28);
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7f74c6, #5d529f);
+  border: 2px solid #1a1430;
+  border-radius: 999px;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9388db, #6f63b6);
+}
+
+.modal::-webkit-scrollbar-corner {
+  background: #1a1430;
 }
 
 .modal h3 {
@@ -1370,6 +1425,18 @@ body.touch-input .tape-symbol-choice:active {
   font-size: 0.85rem;
   opacity: 0.75;
   text-align: center;
+}
+
+.write-picker {
+  min-width: 200px;
+}
+
+.write-picker-same {
+  grid-column: 1 / -1;
+  aspect-ratio: auto;
+  height: 44px;
+  font-size: 0.9rem;
+  padding: 0 8px;
 }
 
 .tape-symbol-choice.is-selected {
@@ -2006,7 +2073,8 @@ td select {
 }
 
 #rulesTable td .move-btn,
-#rulesTable td .read-btn {
+#rulesTable td .read-btn,
+#rulesTable td .write-btn {
   width: 100%;
   min-height: 34px;
   padding: 5px 24px 6px 6px;
@@ -2028,7 +2096,8 @@ td select {
 }
 
 #rulesTable td .move-btn:hover:not(:disabled),
-#rulesTable td .read-btn:hover:not(:disabled) {
+#rulesTable td .read-btn:hover:not(:disabled),
+#rulesTable td .write-btn:hover:not(:disabled) {
   background-color: var(--control-bg);
   border-color: var(--control-border);
   box-shadow: none;
@@ -2036,8 +2105,13 @@ td select {
 }
 
 #rulesTable td .move-btn:focus-visible,
-#rulesTable td .read-btn:focus-visible {
-  outline: 2px solid #d7e0f2;
+#rulesTable td .read-btn:focus-visible,
+#rulesTable td .write-btn:focus-visible,
+#rulesTable td .move-btn.picker-anchor-open,
+#rulesTable td .read-btn.picker-anchor-open,
+#rulesTable td .write-btn.picker-anchor-open,
+#rulesTable td select:focus-visible {
+  outline: 2px solid #ffffff;
   outline-offset: 0;
 }
 

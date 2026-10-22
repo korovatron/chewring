@@ -1,5 +1,5 @@
 const BLANK = "□";
-const APP_VERSION = "V1.0.52";
+const APP_VERSION = "V1.0.53";
 const LEGACY_BLANK = "_";
 const CORE_TAPE_SYMBOLS = [BLANK, "0", "1", "#"];
 const DEFAULT_USER_ALPHABET = ["X", "!", "?", "A", "B", "C", "D", "E", "F", "G", "H", "I"];
@@ -74,6 +74,7 @@ const appState = {
   tapeSymbolPicker: { open: false, row: null, col: null, cell: null },
   movePicker: { open: false, ruleId: null, sequence: "" },
   readPicker: { open: false, ruleId: null, selected: [] },
+  writePicker: { open: false, ruleId: null },
   alphabetModal: { open: false, originalSlots: null },
   alphabetSlots: [...DEFAULT_USER_ALPHABET],
   headWritePulseUntil: 0,
@@ -119,6 +120,8 @@ const els = {
   readPicker: document.getElementById("readPicker"),
   readPickerGrid: document.getElementById("readPickerGrid"),
   readPickerSet: document.getElementById("readPickerSet"),
+  writePicker: document.getElementById("writePicker"),
+  writePickerGrid: document.getElementById("writePickerGrid"),
   cellSizeSlider: document.getElementById("cellSizeSlider"),
   executionSpeedSlider: document.getElementById("executionSpeedSlider"),
   executionSpeedLabel: document.getElementById("executionSpeedLabel"),
@@ -3018,7 +3021,6 @@ function renderRulesTable() {
   tbody.innerHTML = "";
 
   const stateChoices = getAvailableStates();
-  const alphabetChoices = getAvailableAlphabet();
 
   for (const rule of appState.rules) {
     const tr = document.createElement("tr");
@@ -3032,7 +3034,7 @@ function renderRulesTable() {
 
     tr.appendChild(ruleStateSelectCell(rule, "current", stateChoices));
     tr.appendChild(ruleReadCell(rule));
-    tr.appendChild(ruleSymbolSelectCell(rule, "write", alphabetChoices));
+    tr.appendChild(ruleWriteCell(rule));
     tr.appendChild(ruleMoveCell(rule));
     tr.appendChild(ruleStateSelectCell(rule, "next", stateChoices));
 
@@ -3227,53 +3229,38 @@ function ruleStateSelectCell(rule, field, options) {
   return td;
 }
 
-function ruleSymbolSelectCell(rule, field, options) {
+function writeDisplayText(write) {
+  if (write === WRITE_SAME) {
+    return "same as read";
+  }
+  const clean = normalizeSymbol(write);
+  if (!clean) {
+    return "";
+  }
+  return clean === BLANK ? `blank (${BLANK})` : clean;
+}
+
+function updateWriteButton(button, write) {
+  const text = writeDisplayText(write);
+  button.textContent = text;
+  button.title = text ? `Write: ${text}` : "Choose a symbol to write";
+  button.setAttribute("aria-label", text ? `Write: ${text}` : "Write: none selected");
+}
+
+function ruleWriteCell(rule) {
   const td = document.createElement("td");
-  const select = document.createElement("select");
-  const isSame = field === "write" && rule.write === WRITE_SAME;
-  const currentRaw = isSame ? "" : normalizeSymbol(rule[field]);
-  const current = currentRaw ? symbolForDisplay(currentRaw) : "";
-  const values = current && !options.includes(current) ? [...options, current] : [...options];
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "write-btn";
+  button.setAttribute("aria-haspopup", "dialog");
+  updateWriteButton(button, rule.write);
 
-  if (!current && !isSame) {
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "";
-    placeholder.selected = true;
-    select.appendChild(placeholder);
-  }
-
-  if (field === "write") {
-    const sameOption = document.createElement("option");
-    sameOption.value = WRITE_SAME;
-    sameOption.textContent = "same as read";
-    sameOption.selected = isSame;
-    select.appendChild(sameOption);
-  }
-
-  for (const option of values) {
-    const el = document.createElement("option");
-    el.value = option;
-    el.textContent = option === BLANK ? `blank (${BLANK})` : option;
-    if (option === current) {
-      el.selected = true;
-    }
-    select.appendChild(el);
-  }
-
-  select.addEventListener("change", () => {
+  button.addEventListener("click", () => {
     clearHaltedStatePulse();
-    rule[field] = select.value === "" ? "" : normalizeWriteSymbol(select.value) || BLANK;
-    if (select.value) {
-      const placeholder = select.querySelector('option[value=""]');
-      if (placeholder) {
-        placeholder.remove();
-      }
-    }
-    renderDiagram();
+    openWritePicker(rule.id, button);
   });
 
-  td.appendChild(select);
+  td.appendChild(button);
   return td;
 }
 
@@ -3314,6 +3301,10 @@ function ruleReadCell(rule) {
 
 function findRuleRowElement(ruleId) {
   return Array.from(els.rulesTableBody?.querySelectorAll("tr") || []).find((tr) => tr.dataset.ruleId === ruleId) || null;
+}
+
+function findReadButton(ruleId) {
+  return findRuleRowElement(ruleId)?.querySelector(".read-btn") || null;
 }
 
 // Maps rule id -> { symbols } for rules that share a state and at least one read symbol with another rule.
@@ -3380,6 +3371,7 @@ function closeReadPicker() {
   if (!appState.readPicker.open) {
     return;
   }
+  findReadButton(appState.readPicker.ruleId)?.classList.remove("picker-anchor-open");
   appState.readPicker = { open: false, ruleId: null, selected: [] };
   if (!els.readPicker) {
     return;
@@ -3401,7 +3393,7 @@ function commitReadPicker() {
     clearHaltedStatePulse();
     const ordered = getAvailableAlphabet().filter((symbol) => selected.includes(symbol));
     rule.read = normalizeReadSet(ordered.join("") + selected.join(""));
-    const button = findRuleRowElement(ruleId)?.querySelector(".read-btn");
+    const button = findReadButton(ruleId);
     if (button) {
       updateReadButton(button, rule.read);
     }
@@ -3464,6 +3456,8 @@ function openReadPicker(ruleId, anchor) {
   }
   closeMovePicker();
   closeTapeSymbolPicker();
+  closeWritePicker();
+  anchor?.classList.add("picker-anchor-open");
   appState.readPicker = { open: true, ruleId, selected: splitReadSet(rule.read) };
   renderReadPickerChoices();
   els.readPicker.hidden = false;
@@ -3529,6 +3523,7 @@ function closeMovePicker() {
   if (!appState.movePicker.open) {
     return;
   }
+  findMoveButton(appState.movePicker.ruleId)?.classList.remove("picker-anchor-open");
   appState.movePicker = { open: false, ruleId: null, sequence: "" };
   if (!els.movePicker) {
     return;
@@ -3632,6 +3627,8 @@ function openMovePicker(ruleId, anchor) {
   }
   closeTapeSymbolPicker();
   closeReadPicker();
+  closeWritePicker();
+  anchor?.classList.add("picker-anchor-open");
   appState.movePicker = { open: true, ruleId, sequence: "" };
   renderMovePickerChoices();
   updateMovePickerPreview();
@@ -3642,6 +3639,93 @@ function openMovePicker(ruleId, anchor) {
   els.movePicker.style.visibility = "visible";
   requestAnimationFrame(() => {
     els.movePicker?.focus({ preventScroll: true });
+  });
+}
+
+function findWriteButton(ruleId) {
+  const row = Array.from(els.rulesTableBody?.querySelectorAll("tr") || []).find((tr) => tr.dataset.ruleId === ruleId);
+  return row?.querySelector(".write-btn") || null;
+}
+
+function closeWritePicker() {
+  if (!appState.writePicker.open) {
+    return;
+  }
+  findWriteButton(appState.writePicker.ruleId)?.classList.remove("picker-anchor-open");
+  appState.writePicker = { open: false, ruleId: null };
+  if (!els.writePicker) {
+    return;
+  }
+  els.writePicker.hidden = true;
+  els.writePicker.classList.remove("is-open");
+  els.writePicker.style.left = "";
+  els.writePicker.style.top = "";
+  els.writePicker.style.visibility = "";
+}
+
+function commitWritePicker(write) {
+  const ruleId = appState.writePicker.ruleId;
+  const rule = appState.rules.find((r) => r.id === ruleId);
+  if (rule) {
+    clearHaltedStatePulse();
+    rule.write = write === WRITE_SAME ? WRITE_SAME : normalizeWriteSymbol(write) || BLANK;
+    const button = findWriteButton(ruleId);
+    if (button) {
+      updateWriteButton(button, rule.write);
+    }
+    renderDiagram();
+  }
+  closeWritePicker();
+}
+
+function renderWritePickerChoices() {
+  if (!els.writePickerGrid) {
+    return;
+  }
+  els.writePickerGrid.innerHTML = "";
+  const currentWrite = appState.rules.find((r) => r.id === appState.writePicker.ruleId)?.write;
+  for (const symbol of getAvailableAlphabet()) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.className = "tape-symbol-choice";
+    choice.dataset.symbol = symbol;
+    choice.textContent = symbol;
+    const name = symbol === BLANK ? "blank" : symbol;
+    choice.title = name;
+    choice.setAttribute("aria-label", name);
+    choice.classList.toggle("is-selected", currentWrite !== WRITE_SAME && normalizeSymbol(currentWrite) === symbol);
+    choice.addEventListener("click", () => commitWritePicker(symbol));
+    els.writePickerGrid.appendChild(choice);
+  }
+
+  const sameChoice = document.createElement("button");
+  sameChoice.type = "button";
+  sameChoice.className = "tape-symbol-choice write-picker-same";
+  sameChoice.textContent = "same as read";
+  sameChoice.title = "same as read";
+  sameChoice.setAttribute("aria-label", "same as read");
+  sameChoice.classList.toggle("is-selected", currentWrite === WRITE_SAME);
+  sameChoice.addEventListener("click", () => commitWritePicker(WRITE_SAME));
+  els.writePickerGrid.appendChild(sameChoice);
+}
+
+function openWritePicker(ruleId, anchor) {
+  if (appState.running || !els.writePicker) {
+    return;
+  }
+  closeTapeSymbolPicker();
+  closeReadPicker();
+  closeMovePicker();
+  anchor?.classList.add("picker-anchor-open");
+  appState.writePicker = { open: true, ruleId };
+  renderWritePickerChoices();
+  els.writePicker.hidden = false;
+  els.writePicker.classList.add("is-open");
+  els.writePicker.style.visibility = "hidden";
+  positionPopupNearAnchor(els.writePicker, anchor);
+  els.writePicker.style.visibility = "visible";
+  requestAnimationFrame(() => {
+    els.writePicker?.focus({ preventScroll: true });
   });
 }
 
@@ -4019,6 +4103,7 @@ function startRunLoop() {
   appState.running = true;
   closeMovePicker();
   closeReadPicker();
+  closeWritePicker();
   appState.runTimer = setInterval(runLoopTick, getExecutionDelay());
 }
 
@@ -4980,6 +5065,12 @@ function initEvents() {
   }
   els.readPickerSet?.addEventListener("click", commitReadPicker);
 
+  if (els.writePicker) {
+    els.writePicker.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+  }
+
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
   });
@@ -5051,6 +5142,20 @@ function initEvents() {
         return;
       }
       closeReadPicker();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (!appState.writePicker.open) {
+        return;
+      }
+      if (els.writePicker?.contains(event.target)) {
+        return;
+      }
+      closeWritePicker();
     },
     true
   );
@@ -5140,6 +5245,10 @@ function initEvents() {
         closeMovePicker();
         return;
       }
+      if (appState.writePicker.open) {
+        closeWritePicker();
+        return;
+      }
       if (appState.tapeSymbolPicker.open) {
         closeTapeSymbolPicker();
         return;
@@ -5197,6 +5306,9 @@ function initEvents() {
     }
     if (appState.readPicker.open) {
       positionPopupNearAnchor(els.readPicker, findRuleRowElement(appState.readPicker.ruleId)?.querySelector(".read-btn"));
+    }
+    if (appState.writePicker.open) {
+      positionPopupNearAnchor(els.writePicker, findWriteButton(appState.writePicker.ruleId));
     }
     if (appState.diagramModalOpen) {
       renderDiagram(els.diagramExpanded);

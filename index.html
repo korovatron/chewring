@@ -297,6 +297,10 @@
     </div>
   </div>
 
+  <div id="writePicker" class="tape-symbol-picker move-picker write-picker" hidden tabindex="-1" role="dialog" aria-label="Write symbol">
+    <div id="writePickerGrid" class="tape-symbol-grid" role="group"></div>
+  </div>
+
   <div id="alphabetModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="alphabetModalTitle">
     <div class="modal alphabet-modal">
       <h3 id="alphabetModalTitle">Alphabet</h3>
@@ -383,7 +387,7 @@
       <p><strong>Head position</strong><br />
       Drag the tape with mouse or finger to move the read head to a new start position.</p>
       <p><strong>Rules</strong><br />
-      Use the <span class="help-action-chip help-action-chip-add">+</span> button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. For Read, click the button and tap one or more symbols, then press Set: the rule applies when the head is over any of them. A red outline means two rules for the same state share a read symbol, and the first one in the table wins. For Write, choose "same as read" to leave the symbol unchanged. For Move, click the button to open a picker: Stay applies immediately, while the arrow buttons build a sequence of moves (for example ←←↑) that is applied as a single step when you press Set. Use the red X to delete a rule. the button to open a picker: Stay applies immediately, while the arrow buttons build a sequence of moves (for example ←←↑) that is applied as a single step when you press Set. Use the red X to delete a rule.</p>
+      Use the <span class="help-action-chip help-action-chip-add">+</span> button in Delta Rules to add a rule row. Edit Current, Read, Write, Move and Next directly in the table. For Read, click the button and tap one or more symbols, then press Set: the rule applies when the head is over any of them. A red outline means two rules for the same state share a read symbol, and the first one in the table wins. For Write, click the button and tap a symbol, or "same as read" to leave the symbol unchanged: the choice applies immediately. For Move, click the button to open a picker: Stay applies immediately, while the arrow buttons build a sequence of moves (for example ←←↑) that is applied as a single step when you press Set. Use the red X to delete a rule.</p>
       <p><strong>States</strong><br />
       Use the <span class="help-action-chip help-action-chip-add">+</span> button in Finite State Diagram to add a state. Click a state node to edit its name and role: Normal, Start, Accept, Reject, or Halt. In the diagram, a double ring means a halting state (Accept, Reject, or Halt). In that dialog, use Delete to remove the state.</p>
       <p><strong>Tape controls</strong><br />

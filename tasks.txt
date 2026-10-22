@@ -5,10 +5,34 @@ start-tape: 1^01#11
 expected-tape: 101#^10
 ===
 
+title: Find The Start
+description: Starting from the right-hand end, move left until the # symbol is found, then halt without changing the tape.
+start-tape: #1101^
+expected-tape: #^1101
+===
+
+title: Invert The Bits
+description: Flip every 0 to a 1 and every 1 to a 0, leaving the complement of the original binary string on the tape.
+start-tape: 1^01001
+expected-tape: 010110^
+===
+
+title: Mark The End
+description: Find the end of a block of 1 symbols and write a single # immediately after it, then halt.
+start-tape: 1^11
+expected-tape: 111#^
+===
+
 title: Reject Any Zero
 description: Accept if the tape contains only 1 symbols. Reject as soon as a 0 is found.
 start-tape: #^111011#
 expected-tape: REJECT
+===
+
+title: Accept If Ends With One
+description: Accept if the last symbol on the tape is a 1. Reject if it is a 0.
+start-tape: 1^011
+expected-tape: ACCEPT
 ===
 
 title: Unary Addition
